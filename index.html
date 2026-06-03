@@ -1095,6 +1095,24 @@ input, textarea, select { font-family: inherit; font-size: inherit; }
 </div>
 
 <!-- =====================================================
+     PINTURA DESC MODAL
+===================================================== -->
+<div class="modal-overlay" id="modal-pintura-desc" onclick="handleOverlayClick(event,'modal-pintura-desc')">
+  <div class="modal-sheet">
+    <div class="modal-top">
+      <div class="modal-title" id="pdesc-title" style="font-size:15px"></div>
+      <button class="btn-close" onclick="closeModal('modal-pintura-desc')">✕</button>
+    </div>
+    <div style="padding:0 4px 8px">
+      <div style="font-size:12px;color:var(--text-muted);margin-bottom:6px" id="pdesc-ov"></div>
+      <div style="background:var(--bg);border-radius:8px;padding:12px 14px;font-size:14px;line-height:1.6;color:var(--text)" id="pdesc-desc"></div>
+    </div>
+    <div style="padding:4px 4px 8px;display:flex;gap:8px;flex-wrap:wrap" id="pdesc-meta"></div>
+    <div style="display:flex;gap:8px;padding:4px 4px 0" id="pdesc-actions"></div>
+  </div>
+</div>
+
+<!-- =====================================================
      UNDO CONFIRM MODAL
 ===================================================== -->
 <div class="modal-overlay" id="modal-undo" onclick="handleOverlayClick(event,'modal-undo')">
@@ -2117,11 +2135,11 @@ function renderItemRow(item, plan) {
     // Botão apagar linha (admin)
     const isAdm = state.currentUser && state.currentUser.role === 'admin';
     const delBtn = isAdm
-      ? `<button onclick="deletePinturaItem(event,'${plan.id}','${item.id}')" style="background:none;border:none;color:#ef4444;font-size:16px;cursor:pointer;padding:4px 6px;line-height:1" title="Remover linha">🗑</button>`
+      ? `<button onclick="event.stopPropagation();deletePinturaItem(event,'${plan.id}','${item.id}')" style="background:none;border:none;color:#ef4444;font-size:16px;cursor:pointer;padding:4px 6px;line-height:1" title="Remover linha">🗑</button>`
       : '';
     // Descrição inline para acessórios
     const showDesc = plan.grupo !== 'colunas' && item.desc;
-    return `<div class="item-row ${rowClass}">
+    return `<div class="item-row ${rowClass}" onclick="openPinturaDescModal('${plan.id}','${item.id}')" style="cursor:pointer">
       <div class="item-body" style="flex:1">
         <div class="item-model-row" style="align-items:baseline;flex-wrap:wrap;gap:6px">
           ${prioHtml}
@@ -2136,8 +2154,8 @@ function renderItemRow(item, plan) {
       </div>
       <div class="pintura-actions" style="display:flex;flex-direction:column;gap:4px;align-items:flex-end">
         <div style="display:flex;gap:4px">
-          <button class="btn-sep ${sepFull ? 'done' : ''}" onclick="openQtyModal('${plan.id}','${item.id}','sep')">${sepLabel}</button>
-          <button class="btn-entr ${entrFull ? 'done' : ''}" onclick="openQtyModal('${plan.id}','${item.id}','entr')">${entrLabel}</button>
+          <button class="btn-sep ${sepFull ? 'done' : ''}" onclick="event.stopPropagation();openQtyModal('${plan.id}','${item.id}','sep')">${sepLabel}</button>
+          <button class="btn-entr ${entrFull ? 'done' : ''}" onclick="event.stopPropagation();openQtyModal('${plan.id}','${item.id}','entr')">${entrLabel}</button>
         </div>
         ${delBtn}
       </div>
@@ -2599,6 +2617,37 @@ async function deleteCargaItem(e, planId, itemId) {
 // =====================================================
 // APAGAR LINHA DE PINTURA
 // =====================================================
+function openPinturaDescModal(planId, itemId) {
+  const plan = plans.find(p => p.id === planId);
+  const item = plan && plan.items.find(i => i.id === itemId);
+  if (!item) return;
+
+  document.getElementById('pdesc-title').textContent = item.model || '—';
+  document.getElementById('pdesc-ov').textContent = `OV ${item.ov || '—'}  ·  Camião: ${item.cesta || plan.nome}`;
+  document.getElementById('pdesc-desc').textContent = item.desc || '(sem descrição)';
+
+  // meta badges
+  const metaEl = document.getElementById('pdesc-meta');
+  const parts = [];
+  if (item.qtyPedida > 0) parts.push(`<span style="background:var(--primary);color:#fff;border-radius:6px;padding:3px 10px;font-size:12px;font-weight:600">${item.qtyPedida} un.</span>`);
+  if (item.fiada && item.fiada !== '—') parts.push(`<span style="background:var(--warning-light);color:var(--warning);border-radius:6px;padding:3px 10px;font-size:12px;font-weight:600">Prioridade ${item.fiada}</span>`);
+  if (item.entregueNota) parts.push(`<span style="background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:3px 10px;font-size:12px">📋 ${escHtml(item.entregueNota)}</span>`);
+  metaEl.innerHTML = parts.join('');
+
+  // action buttons
+  const actEl = document.getElementById('pdesc-actions');
+  const sepFull = item.qtySeparada >= item.qtyPedida && item.qtyPedida > 0;
+  const entrFull = item.qtyEntregue >= item.qtySeparada && item.qtySeparada > 0;
+  const sepLabel = item.qtySeparada > 0 ? `📦 ${item.qtySeparada}/${item.qtyPedida} sep.` : `📦 Separar`;
+  const entrLabel = item.qtyEntregue > 0 ? `✅ ${item.qtyEntregue}/${item.qtySeparada||item.qtyPedida} entr.` : `✅ Entregar`;
+  actEl.innerHTML = `
+    <button class="btn-sep ${sepFull?'done':''}" style="flex:1" onclick="closeModal('modal-pintura-desc');openQtyModal('${planId}','${itemId}','sep')">${sepLabel}</button>
+    <button class="btn-entr ${entrFull?'done':''}" style="flex:1" onclick="closeModal('modal-pintura-desc');openQtyModal('${planId}','${itemId}','entr')">${entrLabel}</button>
+  `;
+
+  openModal('modal-pintura-desc');
+}
+
 async function deletePinturaItem(e, planId, itemId) {
   e.stopPropagation();
   if (!confirm('Remover esta linha do plano?')) return;
