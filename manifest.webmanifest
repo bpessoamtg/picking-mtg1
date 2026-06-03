@@ -1,0 +1,24 @@
+{
+  "name": "Parque MTG1 — Picking",
+  "short_name": "MTG1 Picking",
+  "description": "Gestão de planos de carga e pintura — Metalogalva",
+  "start_url": "/app.html",
+  "display": "standalone",
+  "background_color": "#1a5fa8",
+  "theme_color": "#1a5fa8",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
