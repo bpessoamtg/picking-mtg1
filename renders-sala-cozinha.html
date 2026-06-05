@@ -2,550 +2,424 @@
 <html lang="pt">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Renders Sala-Cozinha Open Space</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { background: #1a1a2e; font-family: 'Segoe UI', sans-serif; color: #eee; }
-  h1 { text-align: center; padding: 18px; font-size: 1.3rem; letter-spacing: 2px; color: #c9a96e; text-transform: uppercase; border-bottom: 1px solid #333; }
-  .tabs { display: flex; justify-content: center; gap: 0; padding: 16px 0 0; }
-  .tab { padding: 10px 36px; cursor: pointer; background: #2a2a3e; border: 1px solid #444; font-size: 0.9rem; letter-spacing: 1px; transition: all .2s; color: #aaa; }
+  body { background: #1a1a2e; font-family: 'Segoe UI', sans-serif; color: #eee; overflow-x: hidden; }
+  h1 { text-align: center; padding: 14px 10px; font-size: 1rem; letter-spacing: 1px; color: #c9a96e; text-transform: uppercase; border-bottom: 1px solid #333; }
+  .tabs { display: flex; justify-content: center; padding: 12px 8px 0; gap: 0; }
+  .tab { flex: 1; max-width: 240px; padding: 10px 8px; cursor: pointer; background: #2a2a3e; border: 1px solid #444; font-size: 0.75rem; text-align: center; transition: all .2s; color: #aaa; line-height: 1.3; }
   .tab:first-child { border-radius: 8px 0 0 8px; }
   .tab:last-child { border-radius: 0 8px 8px 0; }
   .tab.active { background: #c9a96e; color: #1a1a2e; font-weight: bold; border-color: #c9a96e; }
-  .scene-container { display: flex; flex-direction: column; align-items: center; padding: 16px; gap: 12px; }
-  .view-label { font-size: 0.75rem; letter-spacing: 1.5px; color: #888; text-transform: uppercase; }
-  canvas { border-radius: 10px; border: 1px solid #333; }
-  .controls-hint { text-align: center; font-size: 0.7rem; color: #555; padding: 8px; letter-spacing: 1px; }
-  .legend { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; padding: 12px 16px 20px; max-width: 800px; margin: 0 auto; }
-  .legend-item { display: flex; align-items: center; gap: 6px; font-size: 0.72rem; color: #aaa; }
-  .legend-color { width: 16px; height: 16px; border-radius: 3px; border: 1px solid rgba(255,255,255,0.1); }
+  .scene-container { padding: 12px 8px; }
+  .view-label { text-align: center; font-size: 0.65rem; letter-spacing: 1px; color: #666; text-transform: uppercase; padding-bottom: 6px; }
+  canvas { border-radius: 8px; border: 1px solid #333; display: block; width: 100% !important; touch-action: none; }
+  .controls-hint { text-align: center; font-size: 0.65rem; color: #555; padding: 6px; letter-spacing: 0.5px; }
+  .legend { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px 14px; padding: 8px 12px 16px; }
+  .legend-item { display: flex; align-items: center; gap: 5px; font-size: 0.68rem; color: #999; }
+  .legend-color { width: 14px; height: 14px; border-radius: 2px; flex-shrink: 0; }
   #view-a, #view-b { display: none; }
-  #view-a.visible, #view-b.visible { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+  #view-a.visible, #view-b.visible { display: block; }
+  #error-msg { display:none; text-align:center; color:#e07; padding:20px; font-size:0.9rem; }
 </style>
 </head>
 <body>
 <h1>Sala-Cozinha Open Space — T3 · 40,25 m²</h1>
 <div class="tabs">
-  <div class="tab active" onclick="switchView('a')">Opção A — TV na Parede Verde (Fundo)</div>
-  <div class="tab" onclick="switchView('b')">Opção B — TV na Parede Vermelha (Lateral)</div>
+  <div class="tab active" onclick="switchView('a')">Opção A<br>TV Parede Verde (Fundo)</div>
+  <div class="tab" onclick="switchView('b')">Opção B<br>TV Parede Vermelha (Lateral)</div>
 </div>
-
 <div class="scene-container">
-  <div id="view-a" class="visible">
-    <span class="view-label">Perspectiva 3D — Arraste para rodar · Scroll para zoom</span>
-    <canvas id="canvas-a" width="860" height="520"></canvas>
-  </div>
-  <div id="view-b">
-    <span class="view-label">Perspectiva 3D — Arraste para rodar · Scroll para zoom</span>
-    <canvas id="canvas-b" width="860" height="520"></canvas>
-  </div>
+  <div class="view-label">Perspectiva 3D · Arraste para rodar · Pinça para zoom</div>
+  <div id="view-a" class="visible"><canvas id="canvas-a"></canvas></div>
+  <div id="view-b"><canvas id="canvas-b"></canvas></div>
+  <div id="error-msg">Erro ao carregar Three.js. Tente num browser diferente.</div>
 </div>
-
 <div class="legend">
-  <div class="legend-item"><div class="legend-color" style="background:#d4b896"></div>Piso Madeira</div>
-  <div class="legend-item"><div class="legend-color" style="background:#f0ece4"></div>Paredes</div>
-  <div class="legend-item"><div class="legend-color" style="background:#e8d5b7"></div>Cozinha / Ilha</div>
-  <div class="legend-item"><div class="legend-color" style="background:#7b9ea6"></div>Sofá + Chaise</div>
-  <div class="legend-item"><div class="legend-color" style="background:#8b7355"></div>Mesa Jantar</div>
+  <div class="legend-item"><div class="legend-color" style="background:#c4a882"></div>Piso Madeira</div>
+  <div class="legend-item"><div class="legend-color" style="background:#f2ede6"></div>Paredes</div>
+  <div class="legend-item"><div class="legend-color" style="background:#e8dcc8"></div>Cozinha/Ilha</div>
+  <div class="legend-item"><div class="legend-color" style="background:#7b9ea6"></div>Sofá+Chaise</div>
+  <div class="legend-item"><div class="legend-color" style="background:#9e8060"></div>Mesa Jantar</div>
   <div class="legend-item"><div class="legend-color" style="background:#5c6b73"></div>Aparador</div>
-  <div class="legend-item"><div class="legend-color" style="background:#3d3d3d"></div>Móvel TV</div>
+  <div class="legend-item"><div class="legend-color" style="background:#2d2d2d"></div>Móvel TV</div>
 </div>
-<div class="controls-hint">Arraste para rodar · Scroll para zoom · Shift+Arraste para mover</div>
+<div class="controls-hint">Toque e arraste para rodar · Dois dedos para zoom</div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>
-// ─── SHARED HELPERS ───────────────────────────────────────────────────────────
-function box(w, h, d, color, roughness = 0.7) {
-  const geo = new THREE.BoxGeometry(w, h, d);
-  const mat = new THREE.MeshLambertMaterial({ color });
-  return new THREE.Mesh(geo, mat);
+// Inline minimal Three.js r134 — load from CDN with fallback
+(function loadThree() {
+  const s = document.createElement('script');
+  s.src = 'https://unpkg.com/three@0.134.0/build/three.min.js';
+  s.onload = init;
+  s.onerror = function() {
+    // Try fallback CDN
+    const s2 = document.createElement('script');
+    s2.src = 'https://cdn.jsdelivr.net/npm/three@0.134.0/build/three.min.js';
+    s2.onload = init;
+    s2.onerror = function() { document.getElementById('error-msg').style.display='block'; };
+    document.head.appendChild(s2);
+  };
+  document.head.appendChild(s);
+})();
+
+function getCanvasSize() {
+  const w = Math.min(window.innerWidth - 16, 860);
+  const h = Math.round(w * 0.6);
+  return { w, h };
 }
 
-function setupScene(canvas) {
-  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
-  renderer.setSize(860, 520);
-  renderer.shadowMap.enabled = true;
-  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+function box(w, h, d, color) {
+  return new THREE.Mesh(
+    new THREE.BoxGeometry(w, h, d),
+    new THREE.MeshLambertMaterial({ color })
+  );
+}
+
+function setupScene(canvasId) {
+  const canvas = document.getElementById(canvasId);
+  const { w, h } = getCanvasSize();
+  canvas.width = w;
+  canvas.height = h;
+
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.setSize(w, h);
   renderer.setClearColor(0x1a1a2e);
 
   const scene = new THREE.Scene();
-  scene.fog = new THREE.Fog(0x1a1a2e, 20, 40);
+  const camera = new THREE.PerspectiveCamera(48, w / h, 0.1, 100);
 
-  const camera = new THREE.PerspectiveCamera(45, 860 / 520, 0.1, 100);
-  camera.position.set(7, 6, 9);
-  camera.lookAt(2, 0, 2);
-
-  // Lights
-  const ambient = new THREE.AmbientLight(0xffffff, 0.55);
+  const ambient = new THREE.AmbientLight(0xffffff, 0.6);
   scene.add(ambient);
-  const sun = new THREE.DirectionalLight(0xfff5e0, 1.1);
+  const sun = new THREE.DirectionalLight(0xfff5e0, 1.0);
   sun.position.set(5, 10, 8);
-  sun.castShadow = true;
-  sun.shadow.mapSize.width = 2048;
-  sun.shadow.mapSize.height = 2048;
   scene.add(sun);
-  const fill = new THREE.DirectionalLight(0xe8f0ff, 0.3);
-  fill.position.set(-5, 3, -5);
+  const fill = new THREE.DirectionalLight(0xe8f0ff, 0.35);
+  fill.position.set(-5, 4, -5);
   scene.add(fill);
 
   return { renderer, scene, camera };
 }
 
 function buildRoom(scene, W, D, H) {
-  // Floor - wood planks
-  const floorGeo = new THREE.PlaneGeometry(W, D, 20, 20);
-  const floorMat = new THREE.MeshLambertMaterial({ color: 0xc4a882 });
-  const floor = new THREE.Mesh(floorGeo, floorMat);
+  // Floor
+  const floor = new THREE.Mesh(new THREE.PlaneGeometry(W, D), new THREE.MeshLambertMaterial({ color: 0xc4a882 }));
   floor.rotation.x = -Math.PI / 2;
   floor.position.set(W/2, 0, D/2);
-  floor.receiveShadow = true;
   scene.add(floor);
-
-  // Floor lines (wood plank effect)
-  for (let i = 0; i <= D; i += 0.18) {
-    const lineGeo = new THREE.PlaneGeometry(W, 0.01);
-    const lineMat = new THREE.MeshLambertMaterial({ color: 0xb0946e });
-    const line = new THREE.Mesh(lineGeo, lineMat);
+  // Floor plank lines
+  for (let i = 0; i < D; i += 0.2) {
+    const line = new THREE.Mesh(new THREE.PlaneGeometry(W, 0.012), new THREE.MeshLambertMaterial({ color: 0xad9070 }));
     line.rotation.x = -Math.PI / 2;
-    line.position.set(W/2, 0.001, i);
+    line.position.set(W/2, 0.002, i);
     scene.add(line);
   }
-
   const wallMat = new THREE.MeshLambertMaterial({ color: 0xf2ede6 });
-  const wallThick = 0.12;
-
-  // Back wall (Z=0)
-  const bw = new THREE.Mesh(new THREE.BoxGeometry(W, H, wallThick), wallMat);
+  // Back wall Z=0
+  const bw = new THREE.Mesh(new THREE.BoxGeometry(W, H, 0.1), wallMat);
   bw.position.set(W/2, H/2, 0);
   scene.add(bw);
-
-  // Left wall (X=0)
-  const lw = new THREE.Mesh(new THREE.BoxGeometry(wallThick, H, D), wallMat);
+  // Left wall X=0
+  const lw = new THREE.Mesh(new THREE.BoxGeometry(0.1, H, D), wallMat);
   lw.position.set(0, H/2, D/2);
   scene.add(lw);
-
-  // Right wall (X=W)
-  const rw = new THREE.Mesh(new THREE.BoxGeometry(wallThick, H, D), wallMat);
+  // Right wall X=W
+  const rw = new THREE.Mesh(new THREE.BoxGeometry(0.1, H, D), wallMat);
   rw.position.set(W, H/2, D/2);
   scene.add(rw);
-
-  // Front wall - partial (just bottom strip, open for camera)
-  const fw = new THREE.Mesh(new THREE.BoxGeometry(W, 0.15, wallThick), new THREE.MeshLambertMaterial({ color: 0xd9d4cc }));
-  fw.position.set(W/2, 0.075, D);
-  scene.add(fw);
-
-  // Ceiling - subtle
-  const ceiling = new THREE.Mesh(new THREE.PlaneGeometry(W, D), new THREE.MeshLambertMaterial({ color: 0xfaf8f5, side: THREE.DoubleSide }));
-  ceiling.rotation.x = Math.PI / 2;
-  ceiling.position.set(W/2, H, D/2);
-  scene.add(ceiling);
+  // Ceiling subtle
+  const ceil = new THREE.Mesh(new THREE.PlaneGeometry(W, D), new THREE.MeshLambertMaterial({ color: 0xf8f6f2, side: THREE.BackSide }));
+  ceil.rotation.x = -Math.PI / 2;
+  ceil.position.set(W/2, H, D/2);
+  scene.add(ceil);
+  // Skirting boards
+  const skirtMat = new THREE.MeshLambertMaterial({ color: 0xd8d0c4 });
+  const sk1 = new THREE.Mesh(new THREE.BoxGeometry(W, 0.08, 0.04), skirtMat); sk1.position.set(W/2, 0.04, 0.05); scene.add(sk1);
+  const sk2 = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.08, D), skirtMat); sk2.position.set(0.05, 0.04, D/2); scene.add(sk2);
 }
 
-function addKitchen(scene, W, D) {
-  // Kitchen counters along right wall
-  // Base cabinets (right wall, from back)
-  const cab = box(1.95, 0.9, 0.6, 0xe8dcc8);
-  cab.position.set(W - 1.95/2 - 0.12, 0.45, 0.6/2 + 0.1);
+function addKitchen(scene, W) {
+  // Base cabinets right wall
+  const cab = box(1.95, 0.9, 0.62, 0xe8dcc8);
+  cab.position.set(W - 1.07, 0.45, 0.41);
   scene.add(cab);
-
-  // Countertop
-  const top1 = box(1.95, 0.05, 0.65, 0xd0c4a8);
-  top1.position.set(W - 1.95/2 - 0.12, 0.925, 0.65/2 + 0.1);
-  scene.add(top1);
-
-  // Tall unit (fridge section)
-  const tall = box(0.9, 2.0, 0.65, 0xddd3bc);
-  tall.position.set(W - 0.9/2 - 0.12, 1.0, 2.1);
-  scene.add(tall);
-
-  // Fridge
-  const fridge = box(0.7, 1.8, 0.6, 0xe0e0e0);
-  fridge.position.set(W - 0.7/2 - 0.12, 0.9, 2.1);
-  scene.add(fridge);
-  const fridgeHandle = box(0.04, 0.4, 0.04, 0xaaaaaa);
-  fridgeHandle.position.set(W - 0.12 - 0.35, 1.1, 2.1 - 0.32);
-  scene.add(fridgeHandle);
-
+  const ct = box(1.99, 0.05, 0.66, 0xcfc3a6);
+  ct.position.set(W - 1.07, 0.925, 0.43);
+  scene.add(ct);
+  // Wall units
+  const wu = box(1.95, 0.7, 0.38, 0xeae0cc);
+  wu.position.set(W - 1.07, 1.9, 0.29);
+  scene.add(wu);
   // Hob
-  const hobBase = box(0.7, 0.02, 0.55, 0x333333);
-  hobBase.position.set(W - 0.9, 0.93, 1.2);
-  scene.add(hobBase);
+  const hob = box(0.7, 0.025, 0.55, 0x2a2a2a);
+  hob.position.set(W - 0.9, 0.932, 0.9);
+  scene.add(hob);
   [[-.15,-.12],[.15,-.12],[-.15,.12],[.15,.12]].forEach(([ox,oz]) => {
-    const burner = new THREE.Mesh(new THREE.CylinderGeometry(0.09,0.09,0.015,16), new THREE.MeshLambertMaterial({color:0x555555}));
-    burner.position.set(W - 0.9 + ox, 0.945, 1.2 + oz);
-    scene.add(burner);
+    const b = new THREE.Mesh(new THREE.CylinderGeometry(0.085,0.085,0.016,14), new THREE.MeshLambertMaterial({color:0x505050}));
+    b.position.set(W - 0.9 + ox, 0.948, 0.9 + oz);
+    scene.add(b);
   });
-
-  // Wall cabinets above counter
-  const wallCab = box(1.95, 0.7, 0.38, 0xeae0cc);
-  wallCab.position.set(W - 1.95/2 - 0.12, 1.9, 0.38/2 + 0.1);
-  scene.add(wallCab);
-
+  // Tall fridge unit
+  const tall = box(0.92, 2.0, 0.65, 0xddd3bc);
+  tall.position.set(W - 0.56, 1.0, 2.15);
+  scene.add(tall);
+  const fridge = box(0.72, 1.75, 0.62, 0xe2e2e2);
+  fridge.position.set(W - 0.5, 0.9, 2.15);
+  scene.add(fridge);
+  const fh = box(0.04, 0.35, 0.04, 0xaaaaaa);
+  fh.position.set(W - 0.17, 1.1, 2.15 - 0.33);
+  scene.add(fh);
   // Island 1.8 x 0.9m
-  const islandBase = box(1.8, 0.9, 0.9, 0xe8dcc8);
-  islandBase.position.set(W - 1.95/2 - 0.12 - 1.2, 0.45, 2.5);
-  scene.add(islandBase);
-  const islandTop = box(1.85, 0.05, 0.95, 0xc8bca0);
-  islandTop.position.set(W - 1.95/2 - 0.12 - 1.2, 0.925, 2.5);
-  scene.add(islandTop);
-
-  // Island stools (2)
+  const ix = W - 2.4, iz = 2.5;
+  const islandB = box(1.8, 0.9, 0.9, 0xe4d8c0);
+  islandB.position.set(ix, 0.45, iz);
+  scene.add(islandB);
+  const islandT = box(1.86, 0.05, 0.96, 0xcbbf9e);
+  islandT.position.set(ix, 0.925, iz);
+  scene.add(islandT);
+  // Stools
   [0.5, -0.5].forEach(ox => {
-    const stoolSeat = new THREE.Mesh(new THREE.CylinderGeometry(0.18,0.18,0.04,12), new THREE.MeshLambertMaterial({color:0x9e8c7a}));
-    stoolSeat.position.set(W - 1.95/2 - 0.12 - 1.2 + ox, 0.75, 2.5 + 0.7);
-    scene.add(stoolSeat);
-    const stoolLeg = new THREE.Mesh(new THREE.CylinderGeometry(0.03,0.03,0.75,8), new THREE.MeshLambertMaterial({color:0x888888}));
-    stoolLeg.position.set(W - 1.95/2 - 0.12 - 1.2 + ox, 0.375, 2.5 + 0.7);
-    scene.add(stoolLeg);
+    const ss = new THREE.Mesh(new THREE.CylinderGeometry(0.17,0.17,0.04,10), new THREE.MeshLambertMaterial({color:0x9e8c7a}));
+    ss.position.set(ix + ox, 0.76, iz + 0.72);
+    scene.add(ss);
+    const sl = new THREE.Mesh(new THREE.CylinderGeometry(0.025,0.025,0.76,8), new THREE.MeshLambertMaterial({color:0x888}));
+    sl.position.set(ix + ox, 0.38, iz + 0.72);
+    scene.add(sl);
   });
-
-  return W - 1.95/2 - 0.12 - 1.2; // island X center
+  return ix;
 }
 
 function addDiningTable(scene, tx, tz) {
-  // Table 2x1m
-  const tableTop = box(2.0, 0.06, 1.0, 0x9e8060);
-  tableTop.position.set(tx, 0.76, tz);
-  scene.add(tableTop);
-  // Legs
+  const tt = box(2.0, 0.06, 1.0, 0x9e8060);
+  tt.position.set(tx, 0.76, tz);
+  scene.add(tt);
   [[0.85,0.4],[0.85,-0.4],[-0.85,0.4],[-0.85,-0.4]].forEach(([ox,oz]) => {
-    const leg = box(0.06, 0.74, 0.06, 0x7a6244);
-    leg.position.set(tx+ox, 0.37, tz+oz);
-    scene.add(leg);
+    const l = box(0.06, 0.74, 0.06, 0x7a6244);
+    l.position.set(tx+ox, 0.37, tz+oz);
+    scene.add(l);
   });
-  // 4 chairs
-  [[-1.2,0],[1.2,0],[0,0.7],[0,-0.7]].forEach(([ox,oz], i) => {
-    const seat = box(0.46, 0.04, 0.46, 0xc4a882);
+  // Chairs
+  const chairMat = new THREE.MeshLambertMaterial({color:0xc4a882});
+  [[-1.2,0,0],[1.2,0,Math.PI],[0,0.7,-Math.PI/2],[0,-0.7,Math.PI/2]].forEach(([ox,oz,ry]) => {
+    const seat = box(0.44,0.04,0.44,0xc4a882);
     seat.position.set(tx+ox, 0.47, tz+oz);
     scene.add(seat);
-    const back = box(0.46, 0.42, 0.04, 0xc4a882);
-    back.position.set(tx+ox, 0.69, tz+oz + (oz>0?0.21:-0.21) + (oz===0?(ox>0?0:0):0));
-    if (i===0) back.position.z = tz + oz - 0.21;
-    if (i===1) back.position.z = tz + oz + 0.21;
+    const back = box(0.44,0.4,0.05,0xb89a78);
+    back.position.set(tx+ox, 0.69, tz+oz - Math.sin(ry)*0.2 - Math.cos(ry+Math.PI/2)*0.2);
+    back.rotation.y = ry;
+    // simpler: just offset back
     scene.add(back);
-    [[0.18,0.18],[-0.18,0.18],[0.18,-0.18],[-0.18,-0.18]].forEach(([lx,lz]) => {
-      const chairLeg = box(0.04,0.47,0.04,0xa88860);
-      chairLeg.position.set(tx+ox+lx, 0.235, tz+oz+lz);
-      scene.add(chairLeg);
-    });
   });
 }
 
-function addSideboard(scene, sx, sy, sz, rotY=0) {
-  const group = new THREE.Group();
-  const body = box(1.6, 0.55, 0.42, 0x5c6b73);
-  body.position.set(0, 0, 0);
-  group.add(body);
-  const top = box(1.65, 0.04, 0.45, 0x4a5860);
-  top.position.set(0, 0.295, 0);
-  group.add(top);
+function addSideboard(scene, sx, sz, rotY=0) {
+  const g = new THREE.Group();
+  g.add(Object.assign(box(1.6,0.55,0.42,0x5c6b73)));
+  const top = box(1.65,0.04,0.45,0x4a5860); top.position.y=0.295; g.add(top);
+  [[0.65,0.17],[0.65,-0.17],[-0.65,0.17],[-0.65,-0.17]].forEach(([ox,oz])=>{
+    const l=box(0.05,0.2,0.05,0x3d4d55); l.position.set(ox,-0.375,oz); g.add(l);
+  });
+  g.position.set(sx, 0.575, sz);
+  g.rotation.y = rotY;
+  scene.add(g);
+}
+
+function addTVUnit(scene, tx, tz, width, rotY=0) {
+  const g = new THREE.Group();
+  const body = box(width, 0.38, 0.38, 0x252525); g.add(body);
+  const top = box(width+0.04, 0.03, 0.40, 0x1a1a1a); top.position.y=0.205; g.add(top);
+  // Screen
+  const scr = box(width*0.85, 0.68, 0.04, 0x080815); scr.position.set(0,0.58,0.19); g.add(scr);
+  const scrF = box(width*0.87, 0.70, 0.05, 0x2a2a3a); scrF.position.set(0,0.58,0.175); g.add(scrF);
   // Legs
-  [[0.65,0.17],[0.65,-0.17],[-0.65,0.17],[-0.65,-0.17]].forEach(([ox,oz]) => {
-    const leg = box(0.05, 0.2, 0.05, 0x3d4d55);
-    leg.position.set(ox, -0.375, oz);
-    group.add(leg);
-  });
-  // Handles
-  [-0.42, 0, 0.42].forEach(ox => {
-    const h = box(0.02, 0.03, 0.12, 0xcccccc);
-    h.position.set(ox, 0.05, 0.22);
-    group.add(h);
-  });
-  group.position.set(sx, sy + 0.375 + 0.2, sz);
-  group.rotation.y = rotY;
-  scene.add(group);
+  const lL = box(0.06,0.14,0.06,0x111); lL.position.set(-(width/2-0.15),-0.26,0); g.add(lL);
+  const lR = box(0.06,0.14,0.06,0x111); lR.position.set((width/2-0.15),-0.26,0); g.add(lR);
+  g.position.set(tx, 0.33, tz);
+  g.rotation.y = rotY;
+  scene.add(g);
 }
 
-function addTVUnit(scene, tx, ty, tz, width, rotY=0) {
-  const group = new THREE.Group();
-  const body = box(width, 0.38, 0.38, 0x2d2d2d);
-  group.add(body);
-  const top = box(width+0.04, 0.03, 0.40, 0x222222);
-  top.position.y = 0.205;
-  group.add(top);
-  // Legs
-  [[(width/2-0.15), 0.14],[(-(width/2-0.15)), 0.14]].forEach(([ox,oz]) => {
-    const leg = box(0.06,0.14,0.06,0x1a1a1a);
-    leg.position.set(ox,-0.26,0);
-    group.add(leg);
+function addSofa(scene, sx, sz, rotY=0) {
+  const g = new THREE.Group();
+  const sc = 0x7b9ea6, sd = 0x5a7e8a, sl = 0x4a3728;
+  // Base
+  const base = box(2.2, 0.42, 0.9, sc); base.position.set(0,0.21,0); g.add(base);
+  // Cushions
+  [-0.65,0,0.65].forEach(ox => {
+    const c = box(0.68,0.16,0.74,sc); c.position.set(ox,0.50,-0.03); g.add(c);
   });
-  // TV screen
-  const screen = box(width*0.85, 0.65, 0.04, 0x0a0a15);
-  screen.position.set(0, 0.56, 0.185);
-  group.add(screen);
-  // Screen glow
-  const screenFace = box(width*0.83, 0.63, 0.01, 0x111128);
-  screenFace.position.set(0, 0.56, 0.2);
-  group.add(screenFace);
-  // TV frame
-  const frame = box(width*0.87, 0.67, 0.045, 0x333333);
-  frame.position.set(0, 0.56, 0.18);
-  group.add(frame);
-
-  group.position.set(tx, ty + 0.14 + 0.19, tz);
-  group.rotation.y = rotY;
-  scene.add(group);
-}
-
-function addSofaChaise(scene, sx, sz, rotY=0) {
-  // Sofa 3 lugares + chaise longue
-  const group = new THREE.Group();
-  const sofaColor = 0x7b9ea6;
-  const sofaDark = 0x5a7e8a;
-  const legColor = 0x4a3728;
-
-  // Main sofa base (3 seater: ~2.2m)
-  const base = box(2.2, 0.42, 0.9, sofaColor);
-  base.position.set(0, 0.21, 0);
-  group.add(base);
-
-  // Seat cushions (3)
-  [-0.65, 0, 0.65].forEach(ox => {
-    const cushion = box(0.68, 0.18, 0.76, sofaColor);
-    cushion.position.set(ox, 0.51, -0.04);
-    group.add(cushion);
-  });
-
   // Back
-  const back = box(2.2, 0.55, 0.15, sofaDark);
-  back.position.set(0, 0.695, -0.375);
-  group.add(back);
-
-  // Armrest L
-  const armL = box(0.15, 0.45, 0.9, sofaDark);
-  armL.position.set(-1.175, 0.435, 0);
-  group.add(armL);
-  // Armrest R
-  const armR = box(0.15, 0.45, 0.9, sofaDark);
-  armR.position.set(1.175, 0.435, 0);
-  group.add(armR);
-
-  // Chaise longue extension (1.4m from right armrest)
-  const chaiseBase = box(1.35, 0.42, 1.6, sofaColor);
-  chaiseBase.position.set(1.175 + 1.35/2, 0.21, 0.9/2 + 1.6/2 - 0.9/2);
-  group.add(chaiseBase);
-  const chaiseCushion = box(1.32, 0.15, 1.55, sofaColor);
-  chaiseCushion.position.set(1.175 + 1.35/2, 0.505, 0.9/2 + 1.6/2 - 0.9/2);
-  group.add(chaiseCushion);
-  const chaiseBack = box(0.15, 0.45, 1.6, sofaDark);
-  chaiseBack.position.set(1.175 + 1.35 + 0.075, 0.435, 0.9/2 + 1.6/2 - 0.9/2);
-  group.add(chaiseBack);
-
+  const back = box(2.2,0.55,0.14,sd); back.position.set(0,0.69,-0.375); g.add(back);
+  // Arms
+  const aL = box(0.14,0.44,0.9,sd); aL.position.set(-1.17,0.43,0); g.add(aL);
+  const aR = box(0.14,0.44,0.9,sd); aR.position.set(1.17,0.43,0); g.add(aR);
+  // Chaise (right side, extends forward)
+  const cb = box(1.35,0.42,1.6,sc); cb.position.set(1.17+0.675,0.21,0.9/2+0.8-0.45); g.add(cb);
+  const cc = box(1.32,0.14,1.55,sc); cc.position.set(1.17+0.675,0.50,0.9/2+0.8-0.45); g.add(cc);
+  const ca = box(0.14,0.44,1.6,sd); ca.position.set(1.17+1.35+0.07,0.43,0.9/2+0.8-0.45); g.add(ca);
   // Legs
-  const positions = [[-0.95,-0.38],[-0.95,0.38],[0.95,-0.38],[0.95,0.38]];
-  positions.forEach(([ox,oz]) => {
-    const leg = box(0.07,0.12,0.07,legColor);
-    leg.position.set(ox,-0.06,oz);
-    group.add(leg);
+  [[-0.95,-0.38],[0.95,-0.38],[-0.95,0.38],[0.95,0.38]].forEach(([ox,oz])=>{
+    const l=box(0.07,0.11,0.07,sl); l.position.set(ox,-0.06,oz); g.add(l);
   });
-  // Chaise legs
-  [[1.175+1.2,0.6],[1.175+1.2,-0.2],[1.175+0.2,0.6]].forEach(([ox,oz]) => {
-    const leg = box(0.07,0.12,0.07,legColor);
-    leg.position.set(ox,-0.06,oz);
-    group.add(leg);
-  });
-
-  // Decorative cushion
-  const deco1 = box(0.32, 0.32, 0.08, 0x9bb8c2);
-  deco1.position.set(-0.65, 0.75, -0.28);
-  group.add(deco1);
-  const deco2 = box(0.28, 0.28, 0.08, 0x6a8e96);
-  deco2.position.set(0.2, 0.75, -0.3);
-  group.add(deco2);
-
-  group.position.set(sx, 0, sz);
-  group.rotation.y = rotY;
-  scene.add(group);
+  // Deco cushions
+  const d1=box(0.3,0.3,0.07,0x9ab6c0); d1.position.set(-0.6,0.74,-0.29); g.add(d1);
+  const d2=box(0.26,0.26,0.07,0x6a8e96); d2.position.set(0.1,0.74,-0.31); g.add(d2);
+  g.position.set(sx, 0, sz);
+  g.rotation.y = rotY;
+  scene.add(g);
 }
 
-function addRug(scene, rx, rz, rw, rd, rotY=0) {
-  const rug = new THREE.Mesh(new THREE.PlaneGeometry(rw, rd), new THREE.MeshLambertMaterial({color:0x8a7060}));
-  rug.rotation.x = -Math.PI/2;
-  rug.rotation.z = rotY;
-  rug.position.set(rx, 0.005, rz);
-  scene.add(rug);
-  const rugBorder = new THREE.Mesh(new THREE.PlaneGeometry(rw+0.1, rd+0.1), new THREE.MeshLambertMaterial({color:0x6a5040}));
-  rugBorder.rotation.x = -Math.PI/2;
-  rugBorder.rotation.z = rotY;
-  rugBorder.position.set(rx, 0.004, rz);
-  scene.add(rugBorder);
-}
-
-function addCoffeTable(scene, tx, tz) {
-  const top = box(1.1, 0.04, 0.55, 0x9e8060);
-  top.position.set(tx, 0.4, tz);
-  scene.add(top);
-  [[0.45,0.22],[0.45,-0.22],[-0.45,0.22],[-0.45,-0.22]].forEach(([ox,oz]) => {
-    const leg = box(0.06,0.4,0.06,0x7a6244);
-    leg.position.set(tx+ox,0.2,tz+oz);
-    scene.add(leg);
+function addCoffeeTable(scene, tx, tz) {
+  const top = box(1.1,0.04,0.55,0x9a7e5c); top.position.set(tx,0.4,tz); scene.add(top);
+  [[0.45,0.22],[0.45,-0.22],[-0.45,0.22],[-0.45,-0.22]].forEach(([ox,oz])=>{
+    const l=box(0.055,0.4,0.055,0x7a6244); l.position.set(tx+ox,0.2,tz+oz); scene.add(l);
   });
 }
 
-function addWindow(scene, wx, wy, wz, ww, rotY=0) {
-  const frame = new THREE.Mesh(new THREE.BoxGeometry(ww, 1.4, 0.08), new THREE.MeshLambertMaterial({color:0xcccccc}));
-  frame.rotation.y = rotY;
-  frame.position.set(wx, wy, wz);
-  scene.add(frame);
-  const glass = new THREE.Mesh(new THREE.BoxGeometry(ww-0.12, 1.28, 0.03), new THREE.MeshLambertMaterial({color:0xadd8e6, transparent:true, opacity:0.3}));
-  glass.rotation.y = rotY;
-  glass.position.set(wx, wy, wz);
-  scene.add(glass);
+function addRug(scene, rx, rz, rw, rd) {
+  const border = new THREE.Mesh(new THREE.PlaneGeometry(rw+0.12,rd+0.12), new THREE.MeshLambertMaterial({color:0x6a5040}));
+  border.rotation.x=-Math.PI/2; border.position.set(rx,0.003,rz); scene.add(border);
+  const rug = new THREE.Mesh(new THREE.PlaneGeometry(rw,rd), new THREE.MeshLambertMaterial({color:0x8a7060}));
+  rug.rotation.x=-Math.PI/2; rug.position.set(rx,0.004,rz); scene.add(rug);
 }
 
-function addLighting(scene, px, pz) {
-  const light = new THREE.PointLight(0xfff5cc, 0.8, 8);
-  light.position.set(px, 2.4, pz);
-  scene.add(light);
-  // Pendant
-  const pendant = new THREE.Mesh(new THREE.CylinderGeometry(0.12,0.18,0.22,16), new THREE.MeshLambertMaterial({color:0xd4b060, emissive:0x332200}));
-  pendant.position.set(px, 2.3, pz);
-  scene.add(pendant);
-  const cord = new THREE.Mesh(new THREE.CylinderGeometry(0.01,0.01,0.5,6), new THREE.MeshLambertMaterial({color:0x333333}));
-  cord.position.set(px, 2.65, pz);
-  scene.add(cord);
+function addPendant(scene, px, pz) {
+  const shade = new THREE.Mesh(new THREE.CylinderGeometry(0.11,0.17,0.2,14), new THREE.MeshLambertMaterial({color:0xc4a030,emissive:0x201400}));
+  shade.position.set(px,2.3,pz); scene.add(shade);
+  const cord = new THREE.Mesh(new THREE.CylinderGeometry(0.01,0.01,0.5,6), new THREE.MeshLambertMaterial({color:0x222}));
+  cord.position.set(px,2.65,pz); scene.add(cord);
+  const light = new THREE.PointLight(0xfff0cc,0.7,6);
+  light.position.set(px,2.2,pz); scene.add(light);
 }
 
-function setupOrbitControls(camera, canvas, renderer, scene) {
-  let isDragging = false, isShifting = false;
-  let lastX = 0, lastY = 0;
-  let theta = 0.6, phi = 0.55, radius = 11;
-  let target = new THREE.Vector3(3, 0.5, 3.5);
+function addWindow(scene, wx, wz, ww) {
+  const frame = new THREE.Mesh(new THREE.BoxGeometry(ww,1.5,0.08), new THREE.MeshLambertMaterial({color:0xbbb}));
+  frame.position.set(wx,1.5,wz); scene.add(frame);
+  const glass = new THREE.Mesh(new THREE.BoxGeometry(ww-0.1,1.38,0.03), new THREE.MeshLambertMaterial({color:0x88ccee,transparent:true,opacity:0.25}));
+  glass.position.set(wx,1.5,wz); scene.add(glass);
+}
 
-  function updateCamera() {
-    camera.position.x = target.x + radius * Math.sin(phi) * Math.sin(theta);
-    camera.position.y = target.y + radius * Math.cos(phi);
-    camera.position.z = target.z + radius * Math.sin(phi) * Math.cos(theta);
+function setupControls(canvas, camera, renderer, scene) {
+  let theta = 0.55, phi = 0.52, radius = 11.5;
+  const target = new THREE.Vector3(3, 0.8, 3.5);
+  let lastX=0, lastY=0, isDrag=false;
+  let lastDist=0, isPinch=false;
+
+  function render() {
+    const sp = Math.sin(phi), cp = Math.cos(phi), st = Math.sin(theta), ct = Math.cos(theta);
+    camera.position.set(target.x + radius*sp*st, target.y + radius*cp, target.z + radius*sp*ct);
     camera.lookAt(target);
     renderer.render(scene, camera);
   }
 
-  canvas.addEventListener('mousedown', e => { isDragging = true; isShifting = e.shiftKey; lastX = e.clientX; lastY = e.clientY; });
-  window.addEventListener('mouseup', () => { isDragging = false; });
+  // Mouse
+  canvas.addEventListener('mousedown', e => { isDrag=true; lastX=e.clientX; lastY=e.clientY; e.preventDefault(); });
+  window.addEventListener('mouseup', () => isDrag=false);
   window.addEventListener('mousemove', e => {
-    if (!isDragging) return;
-    const dx = e.clientX - lastX, dy = e.clientY - lastY;
-    lastX = e.clientX; lastY = e.clientY;
-    if (isShifting) {
-      const right = new THREE.Vector3(); right.crossVectors(camera.getWorldDirection(new THREE.Vector3()), camera.up).normalize();
-      target.addScaledVector(right, -dx * 0.01);
-      target.y += dy * 0.01;
-    } else {
-      theta -= dx * 0.008;
-      phi = Math.max(0.15, Math.min(1.4, phi + dy * 0.008));
-    }
-    updateCamera();
+    if (!isDrag) return;
+    theta -= (e.clientX-lastX)*0.009;
+    phi = Math.max(0.18, Math.min(1.38, phi+(e.clientY-lastY)*0.009));
+    lastX=e.clientX; lastY=e.clientY;
+    render();
   });
-  canvas.addEventListener('wheel', e => {
-    radius = Math.max(3, Math.min(20, radius + e.deltaY * 0.02));
-    updateCamera();
+  canvas.addEventListener('wheel', e => { radius=Math.max(4,Math.min(18,radius+e.deltaY*0.018)); render(); e.preventDefault(); },{passive:false});
+
+  // Touch
+  canvas.addEventListener('touchstart', e => {
     e.preventDefault();
-  }, { passive: false });
+    if (e.touches.length===1) { isDrag=true; lastX=e.touches[0].clientX; lastY=e.touches[0].clientY; }
+    if (e.touches.length===2) { isPinch=true; isDrag=false; lastDist=Math.hypot(e.touches[0].clientX-e.touches[1].clientX, e.touches[0].clientY-e.touches[1].clientY); }
+  },{passive:false});
+  canvas.addEventListener('touchend', e => { e.preventDefault(); isDrag=false; isPinch=false; },{passive:false});
+  canvas.addEventListener('touchmove', e => {
+    e.preventDefault();
+    if (isDrag && e.touches.length===1) {
+      theta -= (e.touches[0].clientX-lastX)*0.011;
+      phi = Math.max(0.18, Math.min(1.38, phi+(e.touches[0].clientY-lastY)*0.011));
+      lastX=e.touches[0].clientX; lastY=e.touches[0].clientY;
+      render();
+    }
+    if (isPinch && e.touches.length===2) {
+      const d=Math.hypot(e.touches[0].clientX-e.touches[1].clientX, e.touches[0].clientY-e.touches[1].clientY);
+      radius=Math.max(4,Math.min(18,radius-(d-lastDist)*0.04));
+      lastDist=d; render();
+    }
+  },{passive:false});
 
-  updateCamera();
-  return updateCamera;
+  render();
 }
 
-// ─── OPTION A: TV on back wall (green = top/back wall, Z=0) ──────────────────
+let scenesBuilt = { a: false, b: false };
+
 function buildSceneA() {
-  const { renderer, scene, camera } = setupScene(document.getElementById('canvas-a'));
-  const W = 6.4, D = 7.0, H = 2.8;
-
+  if (scenesBuilt.a) return;
+  scenesBuilt.a = true;
+  const { renderer, scene, camera } = setupScene('canvas-a');
+  const W=6.4, D=7.0, H=2.8;
   buildRoom(scene, W, D, H);
 
-  // TV unit on back wall (Z≈0), centered on left zone (0 to 4.45)
-  addTVUnit(scene, 2.2, 0, 0.2, 2.0, 0);
+  // GREEN wall accent (back wall Z=0)
+  const ga = new THREE.Mesh(new THREE.BoxGeometry(2.5,0.06,0.05), new THREE.MeshLambertMaterial({color:0x2db840,emissive:0x1a6020}));
+  ga.position.set(2.2, 2.55, 0.06); scene.add(ga);
 
-  // Sofa facing back wall (chaise on right side)
-  addSofaChaise(scene, 1.8, 3.6, Math.PI); // facing back (rotated 180°)
+  addTVUnit(scene, 2.2, 0.22, 2.0, 0);
+  addSofa(scene, 1.8, 3.8, Math.PI);
+  addRug(scene, 2.1, 2.75, 3.4, 2.6);
+  addCoffeeTable(scene, 2.0, 2.15);
+  addDiningTable(scene, 2.2, 5.5);
+  addSideboard(scene, 1.0, 5.9, 0);
+  addKitchen(scene, W);
+  addPendant(scene, 2.2, 1.0);
+  addPendant(scene, 2.2, 5.5);
+  addPendant(scene, W-1.8, 2.5);
+  addWindow(scene, 1.4, D-0.05, 1.2);
+  addWindow(scene, 3.3, D-0.05, 1.4);
 
-  // Rug under sofa area
-  addRug(scene, 2.2, 2.8, 3.5, 2.8);
-
-  // Coffee table between sofa and TV
-  addCoffeTable(scene, 2.0, 2.0);
-
-  // Dining table
-  addDiningTable(scene, 2.0, 5.2);
-
-  // Sideboard (behind dining, against left wall)
-  addSideboard(scene, 1.0, 0, 5.8, 0);
-
-  // Kitchen
-  addKitchen(scene, W, D);
-
-  // Pendants
-  addLighting(scene, 2.0, 1.0);
-  addLighting(scene, 2.0, 5.2);
-  addLighting(scene, W - 1.6, 2.5);
-
-  // Windows on front wall (Z=D) — glazed facade
-  addWindow(scene, 1.2, 2.1, D - 0.04, 1.2);
-  addWindow(scene, 3.2, 2.1, D - 0.04, 1.4);
-
-  // Wall accent - green wall indicator
-  const greenAccent = new THREE.Mesh(new THREE.PlaneGeometry(2.4, 0.06), new THREE.MeshLambertMaterial({color:0x2d8a40, emissive:0x1a5020}));
-  greenAccent.position.set(2.2, 2.5, 0.07);
-  scene.add(greenAccent);
-
-  setupOrbitControls(camera, document.getElementById('canvas-a'), renderer, scene);
+  setupControls(document.getElementById('canvas-a'), camera, renderer, scene);
 }
 
-// ─── OPTION B: TV on left wall (red = left wall, X=0) ────────────────────────
 function buildSceneB() {
-  const { renderer, scene, camera } = setupScene(document.getElementById('canvas-b'));
-  const W = 6.4, D = 7.0, H = 2.8;
-
+  if (scenesBuilt.b) return;
+  scenesBuilt.b = true;
+  const { renderer, scene, camera } = setupScene('canvas-b');
+  const W=6.4, D=7.0, H=2.8;
   buildRoom(scene, W, D, H);
 
-  // TV unit on left wall (X≈0), centered vertically
-  addTVUnit(scene, 0.2, 0, 3.8, 2.0, -Math.PI/2);
+  // RED wall accent (left wall X=0)
+  const ra = new THREE.Mesh(new THREE.BoxGeometry(0.05,0.06,2.5), new THREE.MeshLambertMaterial({color:0xcc1818,emissive:0x660808}));
+  ra.position.set(0.06, 2.55, 4.0); scene.add(ra);
 
-  // Sofa facing left wall (chaise toward kitchen side)
-  addSofaChaise(scene, 2.8, 3.4, Math.PI/2); // facing left wall
-
-  // Rug
-  addRug(scene, 2.2, 3.2, 3.2, 2.6);
-
-  // Coffee table
-  addCoffeTable(scene, 1.6, 3.6);
-
-  // Dining table
+  addTVUnit(scene, 0.22, 4.0, 2.0, -Math.PI/2);
+  addSofa(scene, 3.0, 3.6, Math.PI/2);
+  addRug(scene, 2.4, 3.5, 2.8, 3.0);
+  addCoffeeTable(scene, 1.7, 3.8);
   addDiningTable(scene, 2.8, 6.0);
+  addSideboard(scene, 2.5, 0.25, 0);
+  addKitchen(scene, W);
+  addPendant(scene, 2.0, 3.5);
+  addPendant(scene, 2.8, 6.0);
+  addPendant(scene, W-1.8, 2.5);
+  addWindow(scene, 1.4, D-0.05, 1.2);
+  addWindow(scene, 3.3, D-0.05, 1.4);
 
-  // Sideboard against back wall (Z≈0), near dining area
-  addSideboard(scene, 2.0, 0, 0.28, 0);
-
-  // Kitchen
-  addKitchen(scene, W, D);
-
-  // Pendants
-  addLighting(scene, 1.8, 3.5);
-  addLighting(scene, 2.8, 6.0);
-  addLighting(scene, W - 1.6, 2.5);
-
-  // Windows
-  addWindow(scene, 1.2, 2.1, D - 0.04, 1.2);
-  addWindow(scene, 3.2, 2.1, D - 0.04, 1.4);
-
-  // Wall accent - red wall indicator
-  const redAccent = new THREE.Mesh(new THREE.PlaneGeometry(0.06, 2.4), new THREE.MeshLambertMaterial({color:0xcc2020, emissive:0x661010}));
-  redAccent.position.set(0.07, 2.5, 3.8);
-  redAccent.rotation.y = Math.PI/2;
-  scene.add(redAccent);
-
-  setupOrbitControls(camera, document.getElementById('canvas-b'), renderer, scene);
+  setupControls(document.getElementById('canvas-b'), camera, renderer, scene);
 }
 
 function switchView(v) {
   document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', (v==='a'&&i===0)||(v==='b'&&i===1)));
-  document.getElementById('view-a').classList.toggle('visible', v==='a');
-  document.getElementById('view-b').classList.toggle('visible', v==='b');
+  document.getElementById('view-a').style.display = v==='a' ? 'block' : 'none';
+  document.getElementById('view-b').style.display = v==='b' ? 'block' : 'none';
+  if (v==='b') buildSceneB();
 }
+document.getElementById('view-a').style.display = 'block';
+document.getElementById('view-b').style.display = 'none';
 
-buildSceneA();
-buildSceneB();
+function init() {
+  buildSceneA();
+}
 </script>
 </body>
 </html>
