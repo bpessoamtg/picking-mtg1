@@ -2584,7 +2584,7 @@ async function addLinhasPintura(planId, grupo) {
   const rows = newItems.map(it => ({
     id: it.id, plan_id: planId,
     model: it.model, ref: it.ref || '',
-    desc_item: it.descItem || '', tipo_galva: it.tipoGalva,
+    desc_item: it.desc || '', tipo_galva: it.tipoGalva,
     ov: it.ov, descarga: it.descarga,
     fiada: it.fiada || '', cesta: it.cesta || '',
     qty_pedida: it.qtyPedida || 0, qty_separada: 0,
@@ -2619,8 +2619,9 @@ async function deleteCargaItem(e, planId, itemId) {
 // =====================================================
 function openPinturaDescModal(planId, itemId) {
   const plan = plans.find(p => p.id === planId);
-  const item = plan && plan.items.find(i => i.id === itemId);
-  if (!item) return;
+  if (!plan) { console.warn('openPinturaDescModal: plan not found', planId); showToast('⚠ Plano não encontrado'); return; }
+  const item = plan.items.find(i => i.id === itemId);
+  if (!item) { console.warn('openPinturaDescModal: item not found', itemId, 'in plan', planId, 'items:', plan.items.map(i=>i.id)); showToast('⚠ Item não encontrado'); return; }
 
   document.getElementById('pdesc-title').textContent = item.model || '—';
   document.getElementById('pdesc-ov').textContent = `OV ${item.ov || '—'}  ·  Camião: ${item.cesta || plan.nome}`;
