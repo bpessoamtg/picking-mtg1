@@ -528,19 +528,15 @@ input, textarea, select { font-family: inherit; font-size: inherit; }
   display: flex;
   align-items: baseline;
   gap: 6px;
-  white-space: nowrap;
-  overflow: hidden;
+  flex-wrap: wrap;
 }
 .item-model {
   font-family: 'Courier New', monospace;
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 700;
   color: var(--text);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  word-break: break-all;
   flex-shrink: 0;
-  max-width: 60%;
 }
 .item-sap {
   font-family: 'Courier New', monospace;
@@ -1109,6 +1105,24 @@ input, textarea, select { font-family: inherit; font-size: inherit; }
     </div>
     <div style="padding:4px 4px 8px;display:flex;gap:8px;flex-wrap:wrap" id="pdesc-meta"></div>
     <div style="display:flex;gap:8px;padding:4px 4px 0" id="pdesc-actions"></div>
+  </div>
+</div>
+
+<!-- =====================================================
+     PINTURA TABELA MODAL
+===================================================== -->
+<div class="modal-overlay" id="modal-pintura-tabela" onclick="handleOverlayClick(event,'modal-pintura-tabela')">
+  <div class="modal-sheet" style="max-width:100%;width:100%;max-height:92vh;display:flex;flex-direction:column">
+    <div class="modal-top" style="flex-shrink:0">
+      <div class="modal-title" id="ptab-title" style="font-size:15px"></div>
+      <button class="btn-close" onclick="closeModal('modal-pintura-tabela')">✕</button>
+    </div>
+    <div style="overflow-x:auto;overflow-y:auto;flex:1;-webkit-overflow-scrolling:touch">
+      <table id="ptab-table" style="width:100%;border-collapse:collapse;font-size:12px;min-width:480px">
+        <thead id="ptab-head"></thead>
+        <tbody id="ptab-body"></tbody>
+      </table>
+    </div>
   </div>
 </div>
 
@@ -1983,7 +1997,7 @@ function renderDetail(plan) {
   // Actions
   let actHtml = plan.tipo === 'carga'
     ? `<button class="btn-action btn-view-pdf" onclick="openPdfViewer('${plan.id}')">👁 Ver PDF</button>`
-    : '';
+    : `<button class="btn-action btn-view-pdf" onclick="openPinturaTabela('${plan.id}')">📋 Tabela</button>`;
   if (isAdmin) {
     if (plan.tipo === 'pintura') {
       actHtml += `<button class="btn-action" style="background:var(--primary)" onclick="openAddLinhasPintura('${plan.id}')">+ Linhas</button>`;
@@ -2584,7 +2598,7 @@ async function addLinhasPintura(planId, grupo) {
   const rows = newItems.map(it => ({
     id: it.id, plan_id: planId,
     model: it.model, ref: it.ref || '',
-    desc_item: it.descItem || '', tipo_galva: it.tipoGalva,
+    desc_item: it.desc || '', tipo_galva: it.tipoGalva,
     ov: it.ov, descarga: it.descarga,
     fiada: it.fiada || '', cesta: it.cesta || '',
     qty_pedida: it.qtyPedida || 0, qty_separada: 0,
@@ -2617,10 +2631,54 @@ async function deleteCargaItem(e, planId, itemId) {
 // =====================================================
 // APAGAR LINHA DE PINTURA
 // =====================================================
+function openPinturaTabela(planId) {
+  const plan = plans.find(p => p.id === planId);
+  if (!plan) return;
+
+  document.getElementById('ptab-title').textContent = `📋 ${plan.nome} — ${formatDate(plan.data)}`;
+
+  const isColunas = plan.grupo === 'colunas';
+  const thStyle = 'padding:6px 8px;text-align:left;background:var(--primary);color:#fff;white-space:nowrap;position:sticky;top:0';
+  const cols = isColunas
+    ? ['Prior.','Camião','OV','Modelo','Qt','Utilização','Pintura','Sep.','Entr.']
+    : ['Camião','OV','Modelo','Descrição','Qt','Utilização','Pintura','Sep.','Entr.'];
+
+  document.getElementById('ptab-head').innerHTML =
+    '<tr>' + cols.map(c => `<th style="${thStyle}">${c}</th>`).join('') + '</tr>';
+
+  const items = plan.items.filter(i => userCanSeeItem(i, plan));
+  let rows = '';
+  items.forEach((item, idx) => {
+    const sepFull = item.qtySeparada >= item.qtyPedida && item.qtyPedida > 0;
+    const entrFull = item.qtyEntregue >= item.qtySeparada && item.qtySeparada > 0;
+    const bg = item.entregue ? '#dcfce7' : (sepFull ? '#fef9c3' : (idx % 2 === 0 ? '' : 'background:#f8fafc'));
+    const bgStyle = item.entregue ? 'background:#dcfce7' : (sepFull ? 'background:#fef9c3' : (idx % 2 !== 0 ? 'background:#f8fafc' : ''));
+    const tdStyle = `padding:5px 8px;border-bottom:1px solid var(--border);vertical-align:middle`;
+    const sepIcon = item.qtySeparada > 0 ? `<span style="color:var(--warning);font-weight:700">${item.qtySeparada}/${item.qtyPedida}</span>` : `<span style="color:var(--text-muted)">—</span>`;
+    const entrIcon = item.qtyEntregue > 0 ? `<span style="color:var(--success);font-weight:700">${item.qtyEntregue}</span>` : `<span style="color:var(--text-muted)">—</span>`;
+    const prioCell = isColunas ? `<td style="${tdStyle}">${item.fiada && item.fiada !== '—' ? `<b style="color:var(--primary)">P${escHtml(item.fiada)}</b>` : '—'}</td>` : '';
+    rows += `<tr style="${bgStyle}">
+      ${prioCell}
+      <td style="${tdStyle};white-space:nowrap">${escHtml(item.descarga || '—')}</td>
+      <td style="${tdStyle};white-space:nowrap;font-family:monospace">${escHtml(item.ov || '—')}</td>
+      <td style="${tdStyle};font-family:monospace;font-weight:700">${escHtml(item.model)}</td>
+      ${!isColunas ? `<td style="${tdStyle};max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px">${escHtml(item.desc || '—')}</td>` : ''}
+      <td style="${tdStyle};text-align:right;font-weight:700">${item.qtyPedida}</td>
+      <td style="${tdStyle};font-size:11px;color:var(--text-muted)">${escHtml(item.entregueNota || '—')}</td>
+      <td style="${tdStyle};font-size:11px;color:#7c3aed">${escHtml(item.cesta || '—')}</td>
+      <td style="${tdStyle};text-align:center">${sepIcon}</td>
+      <td style="${tdStyle};text-align:center">${entrIcon}</td>
+    </tr>`;
+  });
+  document.getElementById('ptab-body').innerHTML = rows;
+  openModal('modal-pintura-tabela');
+}
+
 function openPinturaDescModal(planId, itemId) {
   const plan = plans.find(p => p.id === planId);
-  const item = plan && plan.items.find(i => i.id === itemId);
-  if (!item) return;
+  if (!plan) { console.warn('openPinturaDescModal: plan not found', planId); showToast('⚠ Plano não encontrado'); return; }
+  const item = plan.items.find(i => i.id === itemId);
+  if (!item) { console.warn('openPinturaDescModal: item not found', itemId, 'in plan', planId, 'items:', plan.items.map(i=>i.id)); showToast('⚠ Item não encontrado'); return; }
 
   document.getElementById('pdesc-title').textContent = item.model || '—';
   document.getElementById('pdesc-ov').textContent = `OV ${item.ov || '—'}  ·  Camião: ${item.cesta || plan.nome}`;
