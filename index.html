@@ -269,6 +269,40 @@ input, textarea, select { font-family: inherit; font-size: inherit; }
   color: #fff;
   border-color: var(--primary);
 }
+.carga-search-bar {
+  display: flex;
+  gap: 8px;
+  padding: 10px 16px 0;
+  flex-wrap: wrap;
+}
+.carga-search-bar input[type="text"] {
+  flex: 1;
+  min-width: 160px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  border: 1.5px solid var(--border);
+  background: var(--bg-card);
+  color: var(--text-main);
+  font-size: 14px;
+}
+.carga-search-bar input[type="date"] {
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1.5px solid var(--border);
+  background: var(--bg-card);
+  color: var(--text-main);
+  font-size: 14px;
+}
+.carga-search-bar input:focus { border-color: var(--primary); outline: none; }
+.carga-search-bar button#carga-search-clear {
+  padding: 8px 12px;
+  border-radius: 10px;
+  border: 1.5px solid var(--border);
+  background: var(--card);
+  color: var(--text-muted);
+  font-size: 14px;
+  cursor: pointer;
+}
 .btn-primary {
   padding: 8px 16px;
   background: var(--primary);
@@ -1015,6 +1049,11 @@ input, textarea, select { font-family: inherit; font-size: inherit; }
       </div>
       <button class="btn-primary admin-only" id="btn-novo-carga" onclick="openNewPlanModal('carga')" style="display:none">+ Novo</button>
     </div>
+    <div class="carga-search-bar" id="carga-search-bar" style="display:none">
+      <input type="text" id="carga-search-nome" placeholder="🔎 Pesquisar por nome…" oninput="applyCargaSearch()">
+      <input type="date" id="carga-search-data" onchange="applyCargaSearch()">
+      <button id="carga-search-clear" onclick="clearCargaSearch()" title="Limpar pesquisa">✕</button>
+    </div>
     <div id="list-carga"></div>
   </div>
 
@@ -1271,6 +1310,7 @@ let state = {
   groupView: 'todos',        // admins: 'acessorios' | 'colunas' | 'todos'
   activeTab: 'carga',
   dateFilters: { carga: 'hoje', pintura: 'hoje' },
+  cargaSearch: { nome: '', data: '' },
   pinturaSort: 'camiao',
   openPlanId: null,
   qtyModal: null,            // context for open qty modal
@@ -1796,6 +1836,20 @@ function setCargaFilter(val, btn) {
   state.dateFilters.carga = val;
   document.getElementById('date-filter-carga').querySelectorAll('button')
     .forEach(b => b.classList.toggle('active', b === btn));
+  document.getElementById('carga-search-bar').style.display = val === 'todos' ? 'flex' : 'none';
+  renderList('carga');
+}
+
+function applyCargaSearch() {
+  state.cargaSearch.nome = document.getElementById('carga-search-nome').value.trim().toLowerCase();
+  state.cargaSearch.data = document.getElementById('carga-search-data').value;
+  renderList('carga');
+}
+
+function clearCargaSearch() {
+  document.getElementById('carga-search-nome').value = '';
+  document.getElementById('carga-search-data').value = '';
+  state.cargaSearch = { nome: '', data: '' };
   renderList('carga');
 }
 
@@ -1858,7 +1912,8 @@ function filterPlansByDate(tipo, filter) {
       if (filter === 'hoje')   return d === today;
       if (filter === 'amanha') return d === thisWeekDate(1);
       if (filter === 'semana') {
-        const now = new Date(); const mon = new Date(now);
+        const now = new Date(); now.setHours(0, 0, 0, 0);
+        const mon = new Date(now);
         mon.setDate(now.getDate() - (now.getDay() + 6) % 7);
         const sun = new Date(mon); sun.setDate(mon.getDate() + 6);
         const pd = localDateStr(d);
@@ -1884,7 +1939,12 @@ function renderAll() {
 
 function renderList(tipo) {
   const filter = state.dateFilters[tipo];
-  const filtered = filterPlansByDate(tipo, filter);
+  let filtered = filterPlansByDate(tipo, filter);
+  if (tipo === 'carga' && filter === 'todos') {
+    const { nome, data } = state.cargaSearch;
+    if (nome) filtered = filtered.filter(p => (p.nome || '').toLowerCase().includes(nome));
+    if (data) filtered = filtered.filter(p => p.data === data);
+  }
   const container = document.getElementById('list-' + tipo);
 
   if (filtered.length === 0) {
