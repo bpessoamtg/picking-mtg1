@@ -616,6 +616,9 @@ input, textarea, select { font-family: inherit; font-size: inherit; }
 }
 .item-qty.ok { color: var(--success); }
 .item-qty.partial { color: var(--warning); }
+.item-qty.excesso { color: #9333ea; }
+#qty-input.excesso { color: #9333ea; border-color: #9333ea; background: #f5f3ff; }
+.qty-excesso-note { text-align: center; font-size: 12px; font-weight: 600; color: #9333ea; margin-top: -6px; margin-bottom: 6px; min-height: 16px; }
 .item-who { font-size: 11px; color: var(--text-muted); text-align: right; }
 .tipo-badge {
   font-size: 10px;
@@ -642,6 +645,7 @@ input, textarea, select { font-family: inherit; font-size: inherit; }
 }
 .btn-sep { background: #eff6ff; color: var(--primary); border: 1.5px solid #bfdbfe; }
 .btn-sep.done { background: var(--success-light); color: var(--success); border-color: #86efac; }
+.btn-sep.excesso, .btn-entr.excesso { background: #f5f3ff; color: #9333ea; border-color: #d8b4fe; }
 .btn-entr { background: #f0fdf4; color: var(--success); border: 1.5px solid #86efac; }
 .btn-entr.done { background: #dbeafe; color: var(--tg-color); border-color: #93c5fd; }
 
@@ -1138,6 +1142,7 @@ input, textarea, select { font-family: inherit; font-size: inherit; }
       <input type="number" class="qty-input" id="qty-input" min="0" oninput="clampQty()">
       <button onclick="adjustQty(1)" style="font-size:24px;width:44px;height:44px;border-radius:50%;background:var(--bg);border:2px solid var(--border);">+</button>
     </div>
+    <div class="qty-excesso-note" id="qty-excesso-note"></div>
     <div class="qty-presets" id="qty-presets"></div>
     <button class="btn-confirm" id="qty-confirm-btn" onclick="confirmQty()">Confirmar</button>
     <button class="btn-undo" id="qty-undo-btn" onclick="openUndoConfirm()" style="display:none">↩ Desfazer separação</button>
@@ -2201,10 +2206,13 @@ function renderItemRow(item, plan) {
   if (tipo === 'carga') {
     const full = item.qtySeparada >= item.qtyPedida && item.qtyPedida > 0;
     const partial = item.qtySeparada > 0 && !full;
+    const excesso = item.qtySeparada > item.qtyPedida;
     rowClass = full ? 'row-complete' : (partial ? 'row-partial' : '');
     checkIcon = full ? 'checked' : (partial ? 'partial' : '');
     const icon = full ? '✓' : (partial ? '!' : '');
-    qtyDisplay = `<span class="item-qty ${full ? 'ok' : (partial ? 'partial' : '')}">${full ? item.qtySeparada : (partial ? item.qtySeparada + ' / ' + item.qtyPedida : item.qtyPedida)} ${partial ? '⚠' : ''}</span>`;
+    const qtyClass = excesso ? 'excesso' : (full ? 'ok' : (partial ? 'partial' : ''));
+    const qtyText = full ? item.qtySeparada : (partial ? item.qtySeparada + ' / ' + item.qtyPedida : item.qtyPedida);
+    qtyDisplay = `<span class="item-qty ${qtyClass}">${qtyText}${excesso ? ` (+${item.qtySeparada - item.qtyPedida})` : ''}${partial ? ' ⚠' : ''}</span>`;
     if (item.separadoPor) whoHtml = `<div class="item-who">${item.separadoPor}<br>${formatTime(item.separadoEm)}</div>`;
 
     const isAdmCarga = state.currentUser && state.currentUser.role === 'admin';
@@ -2233,23 +2241,25 @@ function renderItemRow(item, plan) {
     // Pintura — sep + entr independent
     const sepFull = item.qtySeparada >= item.qtyPedida && item.qtyPedida > 0;
     const sepPartial = item.qtySeparada > 0 && !sepFull;
+    const sepExcesso = item.qtySeparada > item.qtyPedida;
     const entrFull = item.qtyEntregue >= item.qtySeparada && item.qtySeparada > 0;
     const entrPartial = item.qtyEntregue > 0 && !entrFull;
+    const entrExcesso = item.qtyEntregue > (item.qtySeparada || item.qtyPedida);
 
     rowClass = item.entregue ? 'row-entregue' : (sepPartial || sepFull ? 'row-partial' : '');
 
     const sepLabel = item.qtySeparada > 0
-      ? `📦 ${item.qtySeparada}/${item.qtyPedida} sep.`
+      ? `📦 ${item.qtySeparada}/${item.qtyPedida} sep.${sepExcesso ? ` ⚠+${item.qtySeparada - item.qtyPedida}` : ''}`
       : `📦 Separar`;
     const entrLabel = item.qtyEntregue > 0
-      ? `✅ ${item.qtyEntregue}/${item.qtySeparada || item.qtyPedida} entr.`
+      ? `✅ ${item.qtyEntregue}/${item.qtySeparada || item.qtyPedida} entr.${entrExcesso ? ` ⚠+${item.qtyEntregue - (item.qtySeparada || item.qtyPedida)}` : ''}`
       : `✅ Entregar`;
 
     const utilizacaoHtml  = item.entregueNota ? `<span style="color:var(--text-muted);font-size:11px">📋 ${escHtml(item.entregueNota)}</span>` : '';
     const tipoPinturaHtml = item.cesta        ? `<span style="color:#7c3aed;font-size:11px;font-weight:600">🎨 ${escHtml(item.cesta)}</span>` : '';
     const prioHtml        = item.fiada && item.fiada !== '—' ? `<span style="background:var(--primary);color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:10px;margin-right:6px">P${escHtml(item.fiada)}</span>` : '';
     const qtyHtml         = item.qtyPedida > 0
-      ? `<span style="font-size:13px;font-weight:700;color:${sepFull ? 'var(--success)' : 'var(--text-main)'}">${item.qtySeparada > 0 ? item.qtySeparada + '/' : ''}${item.qtyPedida} un.</span>`
+      ? `<span style="font-size:13px;font-weight:700;color:${sepExcesso ? '#9333ea' : (sepFull ? 'var(--success)' : 'var(--text-main)')}">${item.qtySeparada > 0 ? item.qtySeparada + '/' : ''}${item.qtyPedida} un.</span>`
       : '';
     // Botão apagar linha (admin)
     const isAdm = state.currentUser && state.currentUser.role === 'admin';
@@ -2273,8 +2283,8 @@ function renderItemRow(item, plan) {
       </div>
       <div class="pintura-actions" style="display:flex;flex-direction:column;gap:4px;align-items:flex-end">
         <div style="display:flex;gap:4px">
-          <button class="btn-sep ${sepFull ? 'done' : ''}" onclick="event.stopPropagation();openQtyModal('${plan.id}','${item.id}','sep')">${sepLabel}</button>
-          <button class="btn-entr ${entrFull ? 'done' : ''}" onclick="event.stopPropagation();openQtyModal('${plan.id}','${item.id}','entr')">${entrLabel}</button>
+          <button class="btn-sep ${sepExcesso ? 'excesso' : (sepFull ? 'done' : '')}" onclick="event.stopPropagation();openQtyModal('${plan.id}','${item.id}','sep')">${sepLabel}</button>
+          <button class="btn-entr ${entrExcesso ? 'excesso' : (entrFull ? 'done' : '')}" onclick="event.stopPropagation();openQtyModal('${plan.id}','${item.id}','entr')">${entrLabel}</button>
         </div>
         ${delBtn}
       </div>
@@ -2305,6 +2315,7 @@ function openQtyModal(planId, itemId, action) {
   const input = document.getElementById('qty-input');
   input.value = currentVal > 0 ? currentVal : maxQty;
   input.max = maxQty;
+  updateQtyExcessoUI();
 
   // Presets
   const half = Math.floor(maxQty / 2);
@@ -2320,16 +2331,30 @@ function openQtyModal(planId, itemId, action) {
   openModal('modal-qty');
 }
 
-function setQty(v) { document.getElementById('qty-input').value = v; }
+function setQty(v) { document.getElementById('qty-input').value = v; updateQtyExcessoUI(); }
 function adjustQty(d) {
   const input = document.getElementById('qty-input');
-  input.value = Math.max(0, Math.min(parseInt(input.max) || 9999, (parseInt(input.value) || 0) + d));
+  input.value = Math.max(0, (parseInt(input.value) || 0) + d);
+  updateQtyExcessoUI();
 }
 function clampQty() {
   const input = document.getElementById('qty-input');
-  const max = parseInt(input.max) || 9999;
-  if (parseInt(input.value) > max) input.value = max;
   if (parseInt(input.value) < 0) input.value = 0;
+  updateQtyExcessoUI();
+}
+function updateQtyExcessoUI() {
+  const input = document.getElementById('qty-input');
+  const note  = document.getElementById('qty-excesso-note');
+  const max   = parseInt(input.max) || 0;
+  const val   = parseInt(input.value) || 0;
+  const excesso = val - max;
+  if (excesso > 0) {
+    input.classList.add('excesso');
+    note.textContent = `⚠ +${excesso} a mais que o previsto (${max})`;
+  } else {
+    input.classList.remove('excesso');
+    note.textContent = '';
+  }
 }
 
 async function confirmQty() {
