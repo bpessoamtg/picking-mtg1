@@ -11,6 +11,7 @@ create table if not exists plans (
   data            date not null,
   hora_carregar   text,
   transportadora  text,
+  observacao      text,
   status          text not null default 'em_separacao',
   grupo           text not null default 'ambos',
   criado_por      text,
@@ -57,3 +58,8 @@ create policy "allow_all_plan_items" on plan_items for all using (true) with che
 create index if not exists idx_plan_items_plan_id on plan_items(plan_id);
 create index if not exists idx_plans_data         on plans(data desc);
 create index if not exists idx_plans_tipo         on plans(tipo);
+
+-- =====================================================
+-- MIGRAÇÃO: coluna observacao (correr se a tabela já existir sem ela)
+-- =====================================================
+alter table plans add column if not exists observacao text;

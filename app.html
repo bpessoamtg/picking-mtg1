@@ -482,6 +482,19 @@ input, textarea, select { font-family: inherit; font-size: inherit; }
 .btn-view-pdf { background: #1e40af; color: #fff; }
 .btn-marcar-pronto { background: var(--success); color: #fff; }
 .btn-delete { background: var(--danger-light); color: var(--danger); }
+.btn-observacao { background: #d97706; color: #fff; }
+.detail-observacao-box {
+  margin: 8px 16px 0;
+  padding: 10px 12px;
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  border-radius: 8px;
+  font-size: 13px;
+  color: #78350f;
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+.detail-observacao-box b { color: #92400e; }
 
 /* Descarga group */
 .descarga-group { margin-bottom: 16px; }
@@ -1090,6 +1103,8 @@ input, textarea, select { font-family: inherit; font-size: inherit; }
 
   <div class="detail-actions" id="detail-actions"></div>
 
+  <div class="detail-observacao-box" id="detail-observacao-box" style="display:none"></div>
+
   <div class="carga-pronta-banner" id="carga-pronta-banner"></div>
 
   <!-- Sort bar (pintura only) -->
@@ -1144,6 +1159,24 @@ input, textarea, select { font-family: inherit; font-size: inherit; }
     </div>
     <div style="padding:4px 4px 8px;display:flex;gap:8px;flex-wrap:wrap" id="pdesc-meta"></div>
     <div style="display:flex;gap:8px;padding:4px 4px 0" id="pdesc-actions"></div>
+  </div>
+</div>
+
+<!-- =====================================================
+     OBSERVAÇÃO MODAL
+===================================================== -->
+<div class="modal-overlay" id="modal-observacao" onclick="handleOverlayClick(event,'modal-observacao')">
+  <div class="modal-sheet">
+    <div class="modal-top">
+      <div class="modal-title">📝 Observação</div>
+      <button class="btn-close" onclick="closeModal('modal-observacao')">✕</button>
+    </div>
+    <div style="padding:0 4px 8px">
+      <label style="font-size:12px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px">Local de separação / Cesta(s)</label>
+      <textarea id="obs-textarea" rows="5" placeholder="Ex: Separado no Parque B, cestas 12 e 13"
+        style="width:100%;margin-top:6px;padding:10px 12px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit;resize:vertical"></textarea>
+    </div>
+    <button class="btn-confirm" onclick="saveObservacao()">Guardar</button>
   </div>
 </div>
 
@@ -1362,6 +1395,7 @@ function dbPlanToLocal(p) {
     data: p.data,
     horaCarregar: p.hora_carregar,
     transportadora: p.transportadora,
+    observacao: p.observacao,
     status: p.status,
     grupo: p.grupo,
     criadoPor: p.criado_por,
@@ -1404,6 +1438,7 @@ function localPlanToDB(p) {
     data: p.data,
     hora_carregar: p.horaCarregar || null,
     transportadora: p.transportadora || null,
+    observacao: p.observacao || null,
     status: p.status,
     grupo: p.grupo,
     criado_por: p.criadoPor,
@@ -1580,7 +1615,7 @@ function buildDemoData() {
 // =====================================================
 async function loadPlans() {
   // Excluir pdf_base64 da query normal (pode ser grande) — carregado à parte quando necessário
-  const cols = 'id,tipo,nome,data,hora_carregar,transportadora,status,grupo,criado_por,criado_em,pdf_name,plan_items(*)';
+  const cols = 'id,tipo,nome,data,hora_carregar,transportadora,observacao,status,grupo,criado_por,criado_em,pdf_name,plan_items(*)';
   try {
     const data = await sbFetch(`/plans?select=${cols}&order=data.desc`);
     plans = (data || []).map(dbPlanToLocal);
@@ -2058,6 +2093,7 @@ function renderDetail(plan) {
   let actHtml = plan.tipo === 'carga'
     ? `<button class="btn-action btn-view-pdf" onclick="openPdfViewer('${plan.id}')">👁 Ver PDF</button>`
     : `<button class="btn-action btn-view-pdf" onclick="openPinturaTabela('${plan.id}')">📋 Tabela</button>`;
+  actHtml += `<button class="btn-action btn-observacao" onclick="openObservacaoModal('${plan.id}')">📝 Observação</button>`;
   if (isAdmin) {
     if (plan.tipo === 'pintura') {
       actHtml += `<button class="btn-action" style="background:var(--primary)" onclick="openAddLinhasPintura('${plan.id}')">+ Linhas</button>`;
@@ -2068,6 +2104,15 @@ function renderDetail(plan) {
     actHtml += `<button class="btn-action btn-delete" onclick="deletePlan('${plan.id}')">🗑 Apagar</button>`;
   }
   document.getElementById('detail-actions').innerHTML = actHtml;
+
+  // Observação box
+  const obsBox = document.getElementById('detail-observacao-box');
+  if (plan.observacao) {
+    obsBox.innerHTML = `<b>📝 Observação:</b> ${plan.observacao.replace(/</g,'&lt;')}`;
+    obsBox.style.display = '';
+  } else {
+    obsBox.style.display = 'none';
+  }
 
   // Ready banner
   const banner = document.getElementById('carga-pronta-banner');
@@ -2359,6 +2404,26 @@ async function deletePlan(planId) {
   closeDetail();
   showToast('Plano apagado');
   await dbDeletePlan(planId);
+}
+
+function openObservacaoModal(planId) {
+  const plan = plans.find(p => p.id === planId);
+  if (!plan) return;
+  state.observacaoPlanId = planId;
+  document.getElementById('obs-textarea').value = plan.observacao || '';
+  openModal('modal-observacao');
+}
+
+async function saveObservacao() {
+  const planId = state.observacaoPlanId;
+  const plan = plans.find(p => p.id === planId);
+  if (!plan) return;
+  const texto = document.getElementById('obs-textarea').value.trim();
+  plan.observacao = texto || null;
+  closeModal('modal-observacao');
+  renderDetail(plan);
+  showToast('Observação guardada ✓');
+  await dbUpdatePlan(planId, { observacao: plan.observacao });
 }
 
 // =====================================================
