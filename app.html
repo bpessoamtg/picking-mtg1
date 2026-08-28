@@ -2002,8 +2002,9 @@ function renderList(tipo) {
   }
 
   const sortKey = p => (p.data || '') + (p.horaCarregar || '');
+  const descending = tipo === 'carga' && filter === 'todos';
   container.innerHTML = filtered
-    .sort((a, b) => tipo === 'carga'
+    .sort((a, b) => descending
       ? sortKey(b).localeCompare(sortKey(a))
       : sortKey(a).localeCompare(sortKey(b)))
     .map(p => renderPlanCard(p)).join('');
