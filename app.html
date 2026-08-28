@@ -1062,6 +1062,7 @@ input, textarea, select { font-family: inherit; font-size: inherit; }
         <button class="active" onclick="setCargaFilter('hoje',this)">Hoje</button>
         <button onclick="setCargaFilter('amanha',this)">Amanhã</button>
         <button onclick="setCargaFilter('semana',this)">Esta semana</button>
+        <button onclick="setCargaFilter('prox_semana',this)">Próxima semana</button>
         <button onclick="setCargaFilter('todos',this)">Todos</button>
       </div>
       <button class="btn-primary admin-only" id="btn-novo-carga" onclick="openNewPlanModal('carga')" style="display:none">+ Novo</button>
@@ -1959,6 +1960,14 @@ function filterPlansByDate(tipo, filter) {
         const pd = localDateStr(d);
         return pd >= mon && pd <= sun;
       }
+      if (filter === 'prox_semana') {
+        const now = new Date(); now.setHours(0, 0, 0, 0);
+        const mon = new Date(now);
+        mon.setDate(now.getDate() - (now.getDay() + 6) % 7 + 7);
+        const sun = new Date(mon); sun.setDate(mon.getDate() + 6);
+        const pd = localDateStr(d);
+        return pd >= mon && pd <= sun;
+      }
       return true; // todos
     } else {
       // Pintura: filter is ISO week key
@@ -1992,8 +2001,11 @@ function renderList(tipo) {
     return;
   }
 
+  const sortKey = p => (p.data || '') + (p.horaCarregar || '');
   container.innerHTML = filtered
-    .sort((a, b) => (a.data + (a.horaCarregar || '')).localeCompare(b.data + (b.horaCarregar || '')))
+    .sort((a, b) => tipo === 'carga'
+      ? sortKey(b).localeCompare(sortKey(a))
+      : sortKey(a).localeCompare(sortKey(b)))
     .map(p => renderPlanCard(p)).join('');
 }
 
