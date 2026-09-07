@@ -2268,6 +2268,11 @@ function renderItemRow(item, plan) {
       ? `✅ ${item.qtyEntregue}/${item.qtySeparada || item.qtyPedida} entr.${entrExcesso ? ` ⚠+${item.qtyEntregue - (item.qtySeparada || item.qtyPedida)}` : ''}`
       : `✅ Entregar`;
 
+    const faltamEntregar = item.qtyPedida - item.qtyEntregue;
+    const faltamHtml = (item.qtyEntregue > 0 && faltamEntregar > 0)
+      ? `<span style="color:#d97706;font-size:11px;font-weight:700">⏳ Faltam ${faltamEntregar} entregar</span>`
+      : '';
+
     const utilizacaoHtml  = item.entregueNota ? `<span style="color:var(--text-muted);font-size:11px">📋 ${escHtml(item.entregueNota)}</span>` : '';
     const tipoPinturaHtml = item.cesta        ? `<span style="color:#7c3aed;font-size:11px;font-weight:600">🎨 ${escHtml(item.cesta)}</span>` : '';
     const prioHtml        = item.fiada && item.fiada !== '—' ? `<span style="background:var(--primary);color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:10px;margin-right:6px">P${escHtml(item.fiada)}</span>` : '';
@@ -2299,6 +2304,7 @@ function renderItemRow(item, plan) {
           <button class="btn-sep ${sepExcesso ? 'excesso' : (sepFull ? 'done' : '')}" onclick="event.stopPropagation();openQtyModal('${plan.id}','${item.id}','sep')">${sepLabel}</button>
           <button class="btn-entr ${entrExcesso ? 'excesso' : (entrFull ? 'done' : '')}" onclick="event.stopPropagation();openQtyModal('${plan.id}','${item.id}','entr')">${entrLabel}</button>
         </div>
+        ${faltamHtml}
         ${delBtn}
       </div>
     </div>`;
