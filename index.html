@@ -1095,6 +1095,7 @@ input, textarea, select { font-family: inherit; font-size: inherit; }
     <div class="detail-header-top">
       <button class="btn-back" onclick="closeDetail()">← Planos</button>
       <div class="detail-plan-name" id="detail-name">—</div>
+      <button id="detail-name-edit-btn" onclick="openRenamePlanoModal()" style="display:none;background:none;border:none;color:#fff;opacity:0.85;font-size:15px;cursor:pointer;padding:2px 4px" title="Editar nome do plano">✏️</button>
       <span class="status-pill" id="detail-status-pill"></span>
     </div>
     <div class="detail-meta" id="detail-meta"></div>
@@ -1165,6 +1166,24 @@ input, textarea, select { font-family: inherit; font-size: inherit; }
     </div>
     <div style="padding:4px 4px 8px;display:flex;gap:8px;flex-wrap:wrap" id="pdesc-meta"></div>
     <div style="display:flex;gap:8px;padding:4px 4px 0" id="pdesc-actions"></div>
+  </div>
+</div>
+
+<!-- =====================================================
+     RENAME PLANO MODAL
+===================================================== -->
+<div class="modal-overlay" id="modal-rename-plano" onclick="handleOverlayClick(event,'modal-rename-plano')">
+  <div class="modal-sheet">
+    <div class="modal-top">
+      <div class="modal-title">✏️ Editar nome do plano</div>
+      <button class="btn-close" onclick="closeModal('modal-rename-plano')">✕</button>
+    </div>
+    <div style="padding:0 4px 8px">
+      <label style="font-size:12px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px">Nome</label>
+      <input type="text" id="rename-plano-input" maxlength="80"
+        style="width:100%;margin-top:6px;padding:10px 12px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit">
+    </div>
+    <button class="btn-confirm" onclick="saveRenamePlano()">Guardar</button>
   </div>
 </div>
 
@@ -2094,6 +2113,7 @@ function renderDetail(plan) {
 
   // Header
   document.getElementById('detail-name').textContent = plan.nome;
+  document.getElementById('detail-name-edit-btn').style.display = (isAdmin && plan.tipo === 'pintura') ? '' : 'none';
   const pill = document.getElementById('detail-status-pill');
   pill.className = `status-pill status-${plan.status}`;
   pill.textContent = plan.status === 'pronto' ? '✅ Pronto' : '⏳ Em Separação';
@@ -2448,6 +2468,26 @@ async function deletePlan(planId) {
   closeDetail();
   showToast('Plano apagado');
   await dbDeletePlan(planId);
+}
+
+function openRenamePlanoModal() {
+  const plan = plans.find(p => p.id === state.openPlanId);
+  if (!plan) return;
+  document.getElementById('rename-plano-input').value = plan.nome || '';
+  openModal('modal-rename-plano');
+}
+
+async function saveRenamePlano() {
+  const plan = plans.find(p => p.id === state.openPlanId);
+  if (!plan) return;
+  const novoNome = document.getElementById('rename-plano-input').value.trim();
+  if (!novoNome) { showToast('O nome não pode ficar vazio'); return; }
+  plan.nome = novoNome;
+  closeModal('modal-rename-plano');
+  renderDetail(plan);
+  renderAll();
+  showToast('Nome do plano atualizado ✓');
+  await dbUpdatePlan(plan.id, { nome: novoNome });
 }
 
 function openObservacaoModal(planId) {
