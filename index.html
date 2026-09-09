@@ -2021,7 +2021,7 @@ function renderList(tipo) {
   }
 
   const sortKey = p => (p.data || '') + (p.horaCarregar || '');
-  const descending = tipo === 'carga' && filter === 'todos';
+  const descending = tipo === 'carga' && (filter === 'todos' || filter === 'semana');
   container.innerHTML = filtered
     .sort((a, b) => descending
       ? sortKey(b).localeCompare(sortKey(a))
@@ -2423,6 +2423,19 @@ async function confirmQty() {
   updateBadges();
   showToast(action === 'sep' ? `${qty} un. separadas ✓` : `${qty} un. entregues ✓`);
   await dbUpdateItem(item.id, dbFields);
+  if (action === 'sep') await checkAutoMarkPronto(plan);
+}
+
+async function checkAutoMarkPronto(plan) {
+  if (plan.tipo !== 'carga' || plan.status === 'pronto') return;
+  const items = plan.items || [];
+  const allSeparado = items.length > 0 && items.every(i => i.qtySeparada >= i.qtyPedida);
+  if (!allSeparado) return;
+  plan.status = 'pronto';
+  renderDetail(plan);
+  renderAll();
+  showToast('✅ Carga Pronta — todos os itens separados!');
+  await dbUpdatePlan(plan.id, { status: 'pronto' });
 }
 
 function openUndoConfirm() {
@@ -2448,6 +2461,12 @@ async function confirmUndo() {
   renderDetail(plan);
   showToast('Separação anulada');
   await dbUpdateItem(item.id, { qty_separada: 0, separado: false, separado_por: null, separado_em: null });
+  if (plan.tipo === 'carga' && plan.status === 'pronto') {
+    plan.status = 'em_separacao';
+    renderDetail(plan);
+    renderAll();
+    await dbUpdatePlan(plan.id, { status: 'em_separacao' });
+  }
 }
 
 // =====================================================
