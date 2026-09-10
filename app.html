@@ -2326,18 +2326,16 @@ function renderItemRow(item, plan, opts) {
           ${showDesc ? `<div style="font-size:11px;color:var(--text-muted);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml(item.desc)}</div>` : '<div style="flex:1"></div>'}
           ${qtyHtml}
         </div>
-        <div style="font-size:11px;color:var(--text-muted);margin-top:2px">OV ${escHtml(item.ov || '—')}</div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:3px">
-          ${utilizacaoHtml}${tipoPinturaHtml}
-        </div>
+        <div style="font-size:13px;color:var(--text-muted);margin-top:1px">OV ${escHtml(item.ov || '—')}</div>
+        ${(utilizacaoHtml || tipoPinturaHtml) ? `<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:3px">${utilizacaoHtml}${tipoPinturaHtml}</div>` : ''}
       </div>
       <div class="pintura-actions" style="display:flex;flex-direction:column;gap:4px;align-items:flex-end">
-        <div style="display:flex;gap:4px">
+        <div style="display:flex;gap:4px;align-items:center">
           <button class="btn-sep ${sepExcesso ? 'excesso' : (sepFull ? 'done' : '')}" onclick="event.stopPropagation();openQtyModal('${plan.id}','${item.id}','sep')">${sepLabel}</button>
           <button class="btn-entr ${entrExcesso ? 'excesso' : (entrFull ? 'done' : '')}" onclick="event.stopPropagation();openQtyModal('${plan.id}','${item.id}','entr')">${entrLabel}</button>
+          ${delBtn}
         </div>
         ${faltamHtml}
-        ${delBtn}
       </div>
     </div>`;
   }
