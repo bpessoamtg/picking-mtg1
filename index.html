@@ -2225,15 +2225,17 @@ function renderDetail(plan) {
       if (!grouped[k]) grouped[k] = [];
       grouped[k].push(item);
     });
-    // Quando agrupado por Modelo, o cabeçalho do grupo já mostra o modelo —
-    // repeti-lo dentro de cada cartão é redundante e só ocupa espaço vertical.
-    const hideModelInRow = sortMode === 'modelo';
-    Object.entries(grouped).forEach(([grp, items]) => {
-      html += `<div class="descarga-group">
-        <div class="descarga-header">${groupIcon} ${escHtml(grp)}</div>`;
-      items.forEach(item => { html += renderItemRow(item, plan, { hideModel: hideModelInRow }); });
-      html += '</div>';
-    });
+    if (sortMode === 'modelo') {
+      // Ordenado por Modelo: sem cabeçalhos de grupo, o modelo vai dentro do cartão.
+      sorted.forEach(item => { html += renderItemRow(item, plan); });
+    } else {
+      Object.entries(grouped).forEach(([grp, items]) => {
+        html += `<div class="descarga-group">
+          <div class="descarga-header">${groupIcon} ${escHtml(grp)}</div>`;
+        items.forEach(item => { html += renderItemRow(item, plan); });
+        html += '</div>';
+      });
+    }
 
   } // end else pintura
 
