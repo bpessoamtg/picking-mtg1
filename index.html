@@ -406,7 +406,7 @@ input, textarea, select { font-family: inherit; font-size: inherit; }
 .detail-header {
   background: var(--primary);
   color: #fff;
-  padding: 12px 16px;
+  padding: 8px 12px;
   position: sticky;
   top: 0;
   z-index: 100;
@@ -415,7 +415,7 @@ input, textarea, select { font-family: inherit; font-size: inherit; }
   display: flex;
   align-items: center;
   gap: 10px;
-  margin-bottom: 10px;
+  margin-bottom: 6px;
 }
 .btn-back {
   background: rgba(255,255,255,0.2);
@@ -445,8 +445,8 @@ input, textarea, select { font-family: inherit; font-size: inherit; }
 .detail-progress {
   background: rgba(255,255,255,0.15);
   border-radius: var(--radius-sm);
-  padding: 10px 12px;
-  margin-top: 8px;
+  padding: 7px 10px;
+  margin-top: 6px;
   display: flex;
   align-items: center;
   gap: 10px;
@@ -466,16 +466,16 @@ input, textarea, select { font-family: inherit; font-size: inherit; }
 }
 .detail-actions {
   display: flex;
-  gap: 8px;
-  padding: 8px 16px 4px;
+  gap: 6px;
+  padding: 6px 10px;
   background: #fff;
   border-bottom: 1px solid var(--border);
   flex-wrap: wrap;
 }
 .btn-action {
-  padding: 8px 14px;
+  padding: 6px 10px;
   border-radius: 8px;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 600;
   transition: all 0.2s;
 }
@@ -497,25 +497,25 @@ input, textarea, select { font-family: inherit; font-size: inherit; }
 .detail-observacao-box b { color: #92400e; }
 
 /* Descarga group */
-.descarga-group { margin-bottom: 16px; }
+.descarga-group { margin-bottom: 8px; }
 .descarga-header {
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.7px;
+  letter-spacing: 0.5px;
   color: var(--text-muted);
-  padding: 6px 0;
-  margin-bottom: 6px;
+  padding: 3px 0;
+  margin-bottom: 3px;
   border-bottom: 1px solid var(--border);
 }
-/* Fiada group */
-.fiada-group { margin-bottom: 10px; }
+/* Fiada group (only rendered when the plan actually uses fiada) */
+.fiada-group { margin-bottom: 4px; }
 .fiada-header {
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 600;
   color: var(--primary);
-  padding: 4px 6px;
-  margin-bottom: 4px;
+  padding: 2px 6px;
+  margin-bottom: 2px;
   background: #eff6ff;
   border-radius: 6px;
   display: flex;
@@ -535,11 +535,11 @@ input, textarea, select { font-family: inherit; font-size: inherit; }
 .item-row {
   background: var(--card);
   border-radius: var(--radius-sm);
-  padding: 11px 12px;
-  margin-bottom: 6px;
+  padding: 8px 10px;
+  margin-bottom: 4px;
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   box-shadow: 0 1px 4px rgba(0,0,0,0.06);
   cursor: pointer;
   transition: all 0.2s;
@@ -943,7 +943,7 @@ input, textarea, select { font-family: inherit; font-size: inherit; }
 .detail-content {
   flex: 1;
   overflow-y: auto;
-  padding: 12px;
+  padding: 8px;
 }
 
 /* Loading overlay */
@@ -2187,9 +2187,17 @@ function renderDetail(plan) {
     Object.entries(byDescarga).forEach(([descarga, fiadas]) => {
       html += `<div class="descarga-group"><div class="descarga-header">🚛 ${escHtml(descarga)}</div>`;
       Object.entries(fiadas).forEach(([fiada, items]) => {
-        html += `<div class="fiada-group"><div class="fiada-header">🗂 Fiada ${escHtml(fiada)}</div>`;
-        items.forEach(item => { html += renderItemRow(item, plan); });
-        html += '</div>';
+        // Só mostra o cabeçalho de Fiada quando o plano realmente usa esse campo.
+        // A maioria dos planos de carga não preenche "fiada" — mostrar "Fiada —"
+        // é ruído puro e só obriga a mais scroll vertical sem ajudar a separar.
+        const showFiadaHeader = fiada && fiada !== '—';
+        if (showFiadaHeader) {
+          html += `<div class="fiada-group"><div class="fiada-header">🗂 Fiada ${escHtml(fiada)}</div>`;
+          items.forEach(item => { html += renderItemRow(item, plan); });
+          html += '</div>';
+        } else {
+          items.forEach(item => { html += renderItemRow(item, plan); });
+        }
       });
       html += '</div>';
     });
@@ -2217,10 +2225,13 @@ function renderDetail(plan) {
       if (!grouped[k]) grouped[k] = [];
       grouped[k].push(item);
     });
+    // Quando agrupado por Modelo, o cabeçalho do grupo já mostra o modelo —
+    // repeti-lo dentro de cada cartão é redundante e só ocupa espaço vertical.
+    const hideModelInRow = sortMode === 'modelo';
     Object.entries(grouped).forEach(([grp, items]) => {
       html += `<div class="descarga-group">
         <div class="descarga-header">${groupIcon} ${escHtml(grp)}</div>`;
-      items.forEach(item => { html += renderItemRow(item, plan); });
+      items.forEach(item => { html += renderItemRow(item, plan, { hideModel: hideModelInRow }); });
       html += '</div>';
     });
 
@@ -2230,7 +2241,8 @@ function renderDetail(plan) {
   document.getElementById('detail-content').innerHTML = html;
 }
 
-function renderItemRow(item, plan) {
+function renderItemRow(item, plan, opts) {
+  opts = opts || {};
   const tipo = plan.tipo;
   const tipoBadge = `<span class="tipo-badge ${item.tipoGalva}">${item.tipoGalva}</span>`;
 
@@ -2310,7 +2322,7 @@ function renderItemRow(item, plan) {
       <div class="item-body" style="flex:1">
         <div class="item-model-row" style="align-items:baseline;flex-wrap:wrap;gap:6px">
           ${prioHtml}
-          <div class="item-model" style="flex-shrink:0">${escHtml(item.model)}</div>
+          ${opts.hideModel ? '' : `<div class="item-model" style="flex-shrink:0">${escHtml(item.model)}</div>`}
           ${showDesc ? `<div style="font-size:11px;color:var(--text-muted);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml(item.desc)}</div>` : '<div style="flex:1"></div>'}
           ${qtyHtml}
         </div>
