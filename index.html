@@ -2226,8 +2226,19 @@ function renderDetail(plan) {
       grouped[k].push(item);
     });
     if (sortMode === 'modelo') {
-      // Ordenado por Modelo: sem cabeçalhos de grupo, o modelo vai dentro do cartão.
-      sorted.forEach(item => { html += renderItemRow(item, plan); });
+      // Ordenado por Modelo: só mostra cabeçalho quando há mais do que um item
+      // com o mesmo modelo — serve para salientar que são iguais. Um modelo
+      // sozinho não precisa de cabeçalho, o nome já vai dentro do cartão.
+      Object.entries(grouped).forEach(([grp, items]) => {
+        if (items.length > 1) {
+          html += `<div class="descarga-group">
+            <div class="descarga-header">${groupIcon} ${escHtml(grp)} · ${items.length}x igual</div>`;
+          items.forEach(item => { html += renderItemRow(item, plan, { hideModel: true }); });
+          html += '</div>';
+        } else {
+          items.forEach(item => { html += renderItemRow(item, plan); });
+        }
+      });
     } else {
       Object.entries(grouped).forEach(([grp, items]) => {
         html += `<div class="descarga-group">
