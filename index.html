@@ -1116,9 +1116,9 @@ input, textarea, select { font-family: inherit; font-size: inherit; }
   <!-- Sort bar (pintura only) -->
   <div id="pintura-sort-bar" style="display:none;padding:8px 16px;background:var(--bg-card);border-bottom:1px solid var(--border);display:flex;gap:8px;align-items:center">
     <span style="font-size:12px;color:var(--text-muted);font-weight:600">Ordenar:</span>
-    <button id="sort-btn-camiao"    class="sort-btn active" onclick="setPinturaSort('camiao')">🚛 Camião</button>
+    <button id="sort-btn-camiao"    class="sort-btn"        onclick="setPinturaSort('camiao')">🚛 Camião</button>
     <button id="sort-btn-prioridade" class="sort-btn"       onclick="setPinturaSort('prioridade')">🔢 Prioridade</button>
-    <button id="sort-btn-modelo"    class="sort-btn"        onclick="setPinturaSort('modelo')">🔤 Modelo</button>
+    <button id="sort-btn-modelo"    class="sort-btn active" onclick="setPinturaSort('modelo')">🔤 Modelo</button>
   </div>
 
   <div class="detail-content" id="detail-content"></div>
@@ -1369,7 +1369,7 @@ let state = {
   activeTab: 'carga',
   dateFilters: { carga: 'hoje', pintura: 'hoje' },
   cargaSearch: { nome: '', data: '' },
-  pinturaSort: 'camiao',
+  pinturaSort: 'modelo',
   openPlanId: null,
   qtyModal: null,            // context for open qty modal
   undoContext: null,
@@ -2163,14 +2163,18 @@ function renderDetail(plan) {
 
   // Sort bar visibility
   const sortBar = document.getElementById('pintura-sort-bar');
+  const sortMode = state.pinturaSort || 'modelo';
   if (plan.tipo === 'pintura') {
     sortBar.style.display = 'flex';
+    // Mantém o botão ativo em sincronia com o modo atual (o pré-definido é Modelo).
+    ['camiao','prioridade','modelo'].forEach(m => {
+      document.getElementById('sort-btn-' + m).classList.toggle('active', m === sortMode);
+    });
   } else {
     sortBar.style.display = 'none';
   }
 
   const visibleItems = plan.items.filter(i => userCanSeeItem(i, plan));
-  const sortMode = state.pinturaSort || 'camiao';
 
   // Sort + group
   let html = '';
