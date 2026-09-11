@@ -2237,7 +2237,7 @@ function renderDetail(plan) {
         if (items.length > 1) {
           const totalQty = items.reduce((sum, it) => sum + (it.qtyPedida || 0), 0);
           html += `<div class="descarga-group">
-            <div class="descarga-header">${groupIcon} ${escHtml(grp)} · ${items.length} OV's - ${totalQty}un Total</div>`;
+            <div class="descarga-header">${groupIcon} ${escHtml(grp)} · ${items.length} OV's - Total ${totalQty}un</div>`;
           items.forEach(item => { html += renderItemRow(item, plan, { hideModel: true }); });
           html += '</div>';
         } else {
