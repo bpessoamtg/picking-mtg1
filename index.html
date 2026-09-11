@@ -2235,8 +2235,9 @@ function renderDetail(plan) {
       // sozinho não precisa de cabeçalho, o nome já vai dentro do cartão.
       Object.entries(grouped).forEach(([grp, items]) => {
         if (items.length > 1) {
+          const totalQty = items.reduce((sum, it) => sum + (it.qtyPedida || 0), 0);
           html += `<div class="descarga-group">
-            <div class="descarga-header">${groupIcon} ${escHtml(grp)} · ${items.length}x igual</div>`;
+            <div class="descarga-header">${groupIcon} ${escHtml(grp)} · ${items.length} OV's - ${totalQty}un Total</div>`;
           items.forEach(item => { html += renderItemRow(item, plan, { hideModel: true }); });
           html += '</div>';
         } else {
