@@ -992,17 +992,17 @@ input, textarea, select { font-family: inherit; font-size: inherit; }
   <div class="login-card">
     <div class="login-logo">
       <h1>🏭 Parque MTG1</h1>
-      <p>metalogalva.pt — Gestão de Picking</p>
+      <p data-i18n="login_subtitle">metalogalva.pt — Gestão de Picking</p>
     </div>
     <div class="form-group">
-      <label>Utilizador</label>
+      <label data-i18n="login_user_label">Utilizador</label>
       <select id="login-user">
-        <option value="">— Selecionar —</option>
-        <optgroup label="Acessórios">
+        <option value="" data-i18n="login_select_placeholder">— Selecionar —</option>
+        <optgroup label="Acessórios" data-i18n-attr="label:label_acessorios">
           <option value="Carmona">Carmona</option>
-          <option value="Deepak">Deepak</option>
+          <option value="Deepak">Deepak/Amit</option>
         </optgroup>
-        <optgroup label="Colunas">
+        <optgroup label="Colunas" data-i18n-attr="label:label_colunas">
           <option value="Bruno">Bruno</option>
           <option value="Custódio">Custódio</option>
         </optgroup>
@@ -1013,11 +1013,11 @@ input, textarea, select { font-family: inherit; font-size: inherit; }
       </select>
     </div>
     <div class="form-group">
-      <label>PIN</label>
+      <label data-i18n="login_pin_label">PIN</label>
       <input type="password" id="login-pin" placeholder="••••" autocomplete="current-password" inputmode="numeric">
     </div>
-    <button class="btn-login" onclick="doLogin()">Entrar</button>
-    <div class="login-error" id="login-error">Credenciais inválidas</div>
+    <button class="btn-login" onclick="doLogin()" data-i18n="login_button">Entrar</button>
+    <div class="login-error" id="login-error" data-i18n="login_error">Credenciais inválidas</div>
   </div>
 </div>
 
@@ -1033,24 +1033,24 @@ input, textarea, select { font-family: inherit; font-size: inherit; }
         <div class="app-header-sub" id="header-user-info"><span id="realtime-dot" class="offline"></span>—</div>
       </div>
     </div>
-    <button class="btn-logout" onclick="doLogout()">Sair</button>
+    <button class="btn-logout" onclick="doLogout()" data-i18n="btn_logout">Sair</button>
   </div>
 
   <!-- Admin group toggle -->
   <div class="group-toggle" id="group-toggle" style="display:none">
-    <button onclick="setGroupView('acessorios')" id="gtb-acessorios">🔩 Acessórios</button>
-    <button onclick="setGroupView('colunas')" id="gtb-colunas">🏛 Colunas</button>
-    <button onclick="setGroupView('todos')" id="gtb-todos" class="active">⚡ Todos</button>
+    <button onclick="setGroupView('acessorios')" id="gtb-acessorios" data-i18n="group_acessorios_btn">🔩 Acessórios</button>
+    <button onclick="setGroupView('colunas')" id="gtb-colunas" data-i18n="group_colunas_btn">🏛 Colunas</button>
+    <button onclick="setGroupView('todos')" id="gtb-todos" class="active" data-i18n="group_todos_btn">⚡ Todos</button>
   </div>
 
   <!-- Tabs -->
   <div class="tabs">
     <button class="tab-btn active" id="tab-carga-btn" onclick="switchTab('carga')">
-      🚚 Planos de Carga
+      <span data-i18n="tab_carga">🚚 Planos de Carga</span>
       <span class="tab-badge" id="badge-carga">0</span>
     </button>
     <button class="tab-btn" id="tab-pintura-btn" onclick="switchTab('pintura')">
-      🎨 Planos de Pintura
+      <span data-i18n="tab_pintura">🎨 Planos de Pintura</span>
       <span class="tab-badge" id="badge-pintura">0</span>
     </button>
   </div>
@@ -1059,18 +1059,18 @@ input, textarea, select { font-family: inherit; font-size: inherit; }
   <div class="tab-content active" id="tab-carga">
     <div class="actions-bar">
       <div class="date-filters" id="date-filter-carga">
-        <button class="active" onclick="setCargaFilter('hoje',this)">Hoje</button>
-        <button onclick="setCargaFilter('amanha',this)">Amanhã</button>
-        <button onclick="setCargaFilter('semana',this)">Esta semana</button>
-        <button onclick="setCargaFilter('prox_semana',this)">Próxima semana</button>
-        <button onclick="setCargaFilter('todos',this)">Todos</button>
+        <button class="active" onclick="setCargaFilter('hoje',this)" data-i18n="filter_hoje">Hoje</button>
+        <button onclick="setCargaFilter('amanha',this)" data-i18n="filter_amanha">Amanhã</button>
+        <button onclick="setCargaFilter('semana',this)" data-i18n="filter_semana">Esta semana</button>
+        <button onclick="setCargaFilter('prox_semana',this)" data-i18n="filter_prox_semana">Próxima semana</button>
+        <button onclick="setCargaFilter('todos',this)" data-i18n="filter_todos">Todos</button>
       </div>
-      <button class="btn-primary admin-only" id="btn-novo-carga" onclick="openNewPlanModal('carga')" style="display:none">+ Novo</button>
+      <button class="btn-primary admin-only" id="btn-novo-carga" onclick="openNewPlanModal('carga')" style="display:none" data-i18n="btn_novo">+ Novo</button>
     </div>
     <div class="carga-search-bar" id="carga-search-bar" style="display:none">
-      <input type="text" id="carga-search-nome" placeholder="🔎 Pesquisar por nome…" oninput="applyCargaSearch()">
+      <input type="text" id="carga-search-nome" placeholder="🔎 Pesquisar por nome…" oninput="applyCargaSearch()" data-i18n-placeholder="search_by_name_placeholder">
       <input type="date" id="carga-search-data" onchange="applyCargaSearch()">
-      <button id="carga-search-clear" onclick="clearCargaSearch()" title="Limpar pesquisa">✕</button>
+      <button id="carga-search-clear" onclick="clearCargaSearch()" title="Limpar pesquisa" data-i18n-attr="title:tooltip_limpar_pesquisa">✕</button>
     </div>
     <div id="list-carga"></div>
   </div>
@@ -1081,7 +1081,7 @@ input, textarea, select { font-family: inherit; font-size: inherit; }
       <div class="date-filters" id="date-filter-pintura">
         <select id="week-select-pintura" onchange="setWeekFilter('pintura',this.value)" style="font-size:14px;padding:6px 10px;border-radius:20px;border:1.5px solid var(--border);background:var(--bg-card);color:var(--text-main);cursor:pointer;min-width:160px"></select>
       </div>
-      <button class="btn-primary admin-only" id="btn-novo-pintura" onclick="openNewPlanModal('pintura')" style="display:none">+ Novo</button>
+      <button class="btn-primary admin-only" id="btn-novo-pintura" onclick="openNewPlanModal('pintura')" style="display:none" data-i18n="btn_novo">+ Novo</button>
     </div>
     <div id="list-pintura"></div>
   </div>
@@ -1093,9 +1093,9 @@ input, textarea, select { font-family: inherit; font-size: inherit; }
 <div id="view-detail">
   <div class="detail-header">
     <div class="detail-header-top">
-      <button class="btn-back" onclick="closeDetail()">← Planos</button>
+      <button class="btn-back" onclick="closeDetail()" data-i18n="btn_back_planos">← Planos</button>
       <div class="detail-plan-name" id="detail-name">—</div>
-      <button id="detail-name-edit-btn" onclick="openRenamePlanoModal()" style="display:none;background:none;border:none;color:#fff;opacity:0.85;font-size:15px;cursor:pointer;padding:2px 4px" title="Editar nome do plano">✏️</button>
+      <button id="detail-name-edit-btn" onclick="openRenamePlanoModal()" style="display:none;background:none;border:none;color:#fff;opacity:0.85;font-size:15px;cursor:pointer;padding:2px 4px" title="Editar nome do plano" data-i18n-attr="title:tooltip_editar_nome_plano">✏️</button>
       <span class="status-pill" id="detail-status-pill"></span>
     </div>
     <div class="detail-meta" id="detail-meta"></div>
@@ -1115,10 +1115,10 @@ input, textarea, select { font-family: inherit; font-size: inherit; }
 
   <!-- Sort bar (pintura only) -->
   <div id="pintura-sort-bar" style="display:none;padding:8px 16px;background:var(--bg-card);border-bottom:1px solid var(--border);display:flex;gap:8px;align-items:center">
-    <span style="font-size:12px;color:var(--text-muted);font-weight:600">Ordenar:</span>
-    <button id="sort-btn-camiao"    class="sort-btn"        onclick="setPinturaSort('camiao')">🚛 Camião</button>
-    <button id="sort-btn-prioridade" class="sort-btn"       onclick="setPinturaSort('prioridade')">🔢 Prioridade</button>
-    <button id="sort-btn-modelo"    class="sort-btn active" onclick="setPinturaSort('modelo')">🔤 Modelo</button>
+    <span style="font-size:12px;color:var(--text-muted);font-weight:600" data-i18n="label_ordenar">Ordenar:</span>
+    <button id="sort-btn-camiao"    class="sort-btn"        onclick="setPinturaSort('camiao')" data-i18n="sort_camiao">🚛 Camião</button>
+    <button id="sort-btn-prioridade" class="sort-btn"       onclick="setPinturaSort('prioridade')" data-i18n="sort_prioridade">🔢 Prioridade</button>
+    <button id="sort-btn-modelo"    class="sort-btn active" onclick="setPinturaSort('modelo')" data-i18n="sort_modelo">🔤 Modelo</button>
   </div>
 
   <div class="detail-content" id="detail-content"></div>
@@ -1130,7 +1130,7 @@ input, textarea, select { font-family: inherit; font-size: inherit; }
 <div class="modal-overlay" id="modal-qty" onclick="handleOverlayClick(event,'modal-qty')">
   <div class="modal-sheet">
     <div class="modal-top">
-      <div class="modal-title" id="qty-modal-title">Separar item</div>
+      <div class="modal-title" id="qty-modal-title" data-i18n="qty_modal_title_sep">Separar item</div>
       <button class="btn-close" onclick="closeModal('modal-qty')">✕</button>
     </div>
     <div class="qty-modal-model-row">
@@ -1146,8 +1146,8 @@ input, textarea, select { font-family: inherit; font-size: inherit; }
     </div>
     <div class="qty-excesso-note" id="qty-excesso-note"></div>
     <div class="qty-presets" id="qty-presets"></div>
-    <button class="btn-confirm" id="qty-confirm-btn" onclick="confirmQty()">Confirmar</button>
-    <button class="btn-undo" id="qty-undo-btn" onclick="openUndoConfirm()" style="display:none">↩ Desfazer separação</button>
+    <button class="btn-confirm" id="qty-confirm-btn" onclick="confirmQty()" data-i18n="btn_confirmar">Confirmar</button>
+    <button class="btn-undo" id="qty-undo-btn" onclick="openUndoConfirm()" style="display:none" data-i18n="btn_desfazer_separacao">↩ Desfazer separação</button>
   </div>
 </div>
 
@@ -1175,15 +1175,15 @@ input, textarea, select { font-family: inherit; font-size: inherit; }
 <div class="modal-overlay" id="modal-rename-plano" onclick="handleOverlayClick(event,'modal-rename-plano')">
   <div class="modal-sheet">
     <div class="modal-top">
-      <div class="modal-title">✏️ Editar nome do plano</div>
+      <div class="modal-title" data-i18n="modal_title_rename_plano">✏️ Editar nome do plano</div>
       <button class="btn-close" onclick="closeModal('modal-rename-plano')">✕</button>
     </div>
     <div style="padding:0 4px 8px">
-      <label style="font-size:12px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px">Nome</label>
+      <label style="font-size:12px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px" data-i18n="label_nome">Nome</label>
       <input type="text" id="rename-plano-input" maxlength="80"
         style="width:100%;margin-top:6px;padding:10px 12px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit">
     </div>
-    <button class="btn-confirm" onclick="saveRenamePlano()">Guardar</button>
+    <button class="btn-confirm" onclick="saveRenamePlano()" data-i18n="btn_guardar">Guardar</button>
   </div>
 </div>
 
@@ -1193,15 +1193,15 @@ input, textarea, select { font-family: inherit; font-size: inherit; }
 <div class="modal-overlay" id="modal-observacao" onclick="handleOverlayClick(event,'modal-observacao')">
   <div class="modal-sheet">
     <div class="modal-top">
-      <div class="modal-title">📝 Observação</div>
+      <div class="modal-title" data-i18n="modal_title_observacao">📝 Observação</div>
       <button class="btn-close" onclick="closeModal('modal-observacao')">✕</button>
     </div>
     <div style="padding:0 4px 8px">
-      <label style="font-size:12px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px">Local de separação / Cesta(s)</label>
+      <label style="font-size:12px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px" data-i18n="label_local_separacao">Local de separação / Cesta(s)</label>
       <textarea id="obs-textarea" rows="5" placeholder="Ex: Separado no Parque B, cestas 12 e 13"
-        style="width:100%;margin-top:6px;padding:10px 12px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit;resize:vertical"></textarea>
+        style="width:100%;margin-top:6px;padding:10px 12px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit;resize:vertical" data-i18n-placeholder="obs_placeholder_example"></textarea>
     </div>
-    <button class="btn-confirm" onclick="saveObservacao()">Guardar</button>
+    <button class="btn-confirm" onclick="saveObservacao()" data-i18n="btn_guardar">Guardar</button>
   </div>
 </div>
 
@@ -1229,14 +1229,14 @@ input, textarea, select { font-family: inherit; font-size: inherit; }
 <div class="modal-overlay" id="modal-undo" onclick="handleOverlayClick(event,'modal-undo')">
   <div class="modal-sheet">
     <div class="modal-top">
-      <div class="modal-title">Confirmar Anulação</div>
+      <div class="modal-title" data-i18n="modal_title_confirmar_anulacao">Confirmar Anulação</div>
       <button class="btn-close" onclick="closeModal('modal-undo')">✕</button>
     </div>
     <div class="confirm-dialog">
-      <p id="undo-msg">Deseja anular a separação deste item?</p>
+      <p id="undo-msg" data-i18n="undo_msg_default">Deseja anular a separação deste item?</p>
       <div class="confirm-btns">
-        <button class="btn-cancel-confirm" onclick="closeModal('modal-undo')">Cancelar</button>
-        <button class="btn-ok-confirm" onclick="confirmUndo()">Anular</button>
+        <button class="btn-cancel-confirm" onclick="closeModal('modal-undo')" data-i18n="btn_cancelar">Cancelar</button>
+        <button class="btn-ok-confirm" onclick="confirmUndo()" data-i18n="btn_anular">Anular</button>
       </div>
     </div>
   </div>
@@ -1248,50 +1248,50 @@ input, textarea, select { font-family: inherit; font-size: inherit; }
 <div class="modal-overlay" id="modal-new-plan" onclick="handleOverlayClick(event,'modal-new-plan')">
   <div class="modal-sheet">
     <div class="modal-top">
-      <div class="modal-title" id="new-plan-title">Novo Plano de Carga</div>
+      <div class="modal-title" id="new-plan-title" data-i18n="new_plan_title_carga">Novo Plano de Carga</div>
       <button class="btn-close" onclick="closeModal('modal-new-plan')">✕</button>
     </div>
     <div class="plan-form" id="new-plan-form">
       <div class="form-group">
-        <label>Nome do Plano</label>
+        <label data-i18n="label_nome_plano">Nome do Plano</label>
         <input type="text" id="np-nome" placeholder="PT_W23_1" style="font-family:'Courier New',monospace;font-size:16px">
       </div>
       <div class="form-row">
         <div class="form-group" id="np-data-group">
-          <label>Data</label>
+          <label data-i18n="label_data">Data</label>
           <input type="date" id="np-data">
         </div>
         <div class="form-group" id="np-semana-group" style="display:none">
-          <label>Semana</label>
+          <label data-i18n="label_semana">Semana</label>
           <select id="np-semana" style="font-size:15px;padding:8px 10px;border-radius:8px;border:1.5px solid var(--border);background:var(--bg-card);color:var(--text-main);width:100%"></select>
         </div>
         <div class="form-group" id="np-hora-group">
-          <label>Hora Carregar</label>
+          <label data-i18n="label_hora_carregar">Hora Carregar</label>
           <input type="time" id="np-hora">
         </div>
       </div>
       <div class="form-group" id="np-trans-group">
-        <label>Transportadora</label>
+        <label data-i18n="label_transportadora">Transportadora</label>
         <input type="text" id="np-trans" placeholder="Transmaia">
       </div>
       <div class="form-group">
-        <label>Grupo</label>
+        <label data-i18n="label_grupo">Grupo</label>
         <select id="np-grupo">
-          <option value="ambos">Todos (Acessórios + Colunas)</option>
-          <option value="acessorios">Acessórios</option>
-          <option value="colunas">Colunas</option>
+          <option value="ambos" data-i18n="grupo_opt_todos">Todos (Acessórios + Colunas)</option>
+          <option value="acessorios" data-i18n="label_acessorios">Acessórios</option>
+          <option value="colunas" data-i18n="label_colunas">Colunas</option>
         </select>
       </div>
       <!-- Pintura: paste do Excel -->
       <div class="form-group" id="np-paste-group" style="display:none">
-        <label>Cola aqui as linhas do Excel <span style="font-weight:400;color:var(--text-muted)">(Ctrl+C no Excel → Ctrl+V aqui)</span></label>
+        <label><span data-i18n="label_cola_excel">Cola aqui as linhas do Excel</span> <span style="font-weight:400;color:var(--text-muted)" data-i18n="label_cola_excel_hint">(Ctrl+C no Excel → Ctrl+V aqui)</span></label>
         <textarea id="np-paste-area" rows="5"
           style="width:100%;font-family:'Courier New',monospace;font-size:12px;padding:8px;border:2px dashed var(--border);border-radius:8px;background:var(--bg-card);color:var(--text-main);resize:vertical"
-          placeholder="Cola aqui as células copiadas do Excel..."></textarea>
+          placeholder="Cola aqui as células copiadas do Excel..." data-i18n-placeholder="paste_area_placeholder"></textarea>
         <div id="np-paste-preview" style="display:none;margin-top:8px;overflow-x:auto;max-height:220px;overflow-y:auto"></div>
         <div id="np-paste-count" style="font-size:12px;color:var(--text-muted);margin-top:4px"></div>
       </div>
-      <button class="btn-confirm" onclick="createPlan()">Criar Plano</button>
+      <button class="btn-confirm" onclick="createPlan()" data-i18n="btn_criar_plano">Criar Plano</button>
     </div>
   </div>
 </div>
@@ -1302,14 +1302,14 @@ input, textarea, select { font-family: inherit; font-size: inherit; }
 <div class="modal-overlay" id="modal-email" onclick="handleOverlayClick(event,'modal-email')">
   <div class="modal-sheet">
     <div class="modal-top">
-      <div class="modal-title">📥 Carregar Planos de Carga</div>
+      <div class="modal-title" data-i18n="modal_title_email_sync">📥 Carregar Planos de Carga</div>
       <button class="btn-close" onclick="closeModal('modal-email')">✕</button>
     </div>
     <div style="background:#eff6ff;border:1.5px solid #bfdbfe;border-radius:10px;padding:14px;margin-bottom:12px">
-      <div style="font-size:14px;font-weight:700;color:var(--primary);margin-bottom:6px">📧 Como funciona</div>
-      <p style="font-size:13px;color:var(--text-muted);margin:0">Os planos de carga são carregados diretamente do Outlook pelo administrador do sistema. Para carregar novos planos, <strong>diz ao administrador do sistema para os carregar</strong> — os planos aparecerão automaticamente em segundos.</p>
+      <div style="font-size:14px;font-weight:700;color:var(--primary);margin-bottom:6px" data-i18n="label_como_funciona">📧 Como funciona</div>
+      <p style="font-size:13px;color:var(--text-muted);margin:0"><span data-i18n="email_sync_desc_1">Os planos de carga são carregados diretamente do Outlook pelo administrador do sistema. Para carregar novos planos, </span><strong data-i18n="email_sync_desc_strong">diz ao administrador do sistema para os carregar</strong><span data-i18n="email_sync_desc_2"> — os planos aparecerão automaticamente em segundos.</span></p>
     </div>
-    <div style="font-size:13px;font-weight:600;margin-bottom:8px">Planos atualmente carregados:</div>
+    <div style="font-size:13px;font-weight:600;margin-bottom:8px" data-i18n="label_planos_carregados">Planos atualmente carregados:</div>
     <div id="email-list"></div>
   </div>
 </div>
@@ -1321,11 +1321,11 @@ input, textarea, select { font-family: inherit; font-size: inherit; }
   <div class="pdf-header">
     <div style="font-size:15px;font-weight:700;font-family:'Courier New',monospace" id="pdf-name-display">—</div>
     <div class="pdf-nav">
-      <button class="btn-pdf-nav" id="btn-pdf-prev" onclick="pdfPrevPage()">‹ Ant</button>
+      <button class="btn-pdf-nav" id="btn-pdf-prev" onclick="pdfPrevPage()" data-i18n="btn_pdf_prev">‹ Ant</button>
       <span class="pdf-page-info" id="pdf-page-info">1 / 1</span>
-      <button class="btn-pdf-nav" id="btn-pdf-next" onclick="pdfNextPage()">Próx ›</button>
+      <button class="btn-pdf-nav" id="btn-pdf-next" onclick="pdfNextPage()" data-i18n="btn_pdf_next">Próx ›</button>
     </div>
-    <button onclick="closeModal('modal-pdf')" style="background:rgba(255,255,255,0.15);color:#fff;padding:8px 14px;border-radius:8px;font-size:14px;font-weight:600">✕ Fechar</button>
+    <button onclick="closeModal('modal-pdf')" style="background:rgba(255,255,255,0.15);color:#fff;padding:8px 14px;border-radius:8px;font-size:14px;font-weight:600" data-i18n="btn_fechar">✕ Fechar</button>
   </div>
   <div id="pdf-canvas-wrap">
     <canvas id="pdf-canvas"></canvas>
@@ -1338,7 +1338,7 @@ input, textarea, select { font-family: inherit; font-size: inherit; }
 <!-- Loading overlay -->
 <div id="app-loading">
   <div class="loading-spinner"></div>
-  <p id="loading-msg">A ligar ao servidor…</p>
+  <p id="loading-msg" data-i18n="loading_connecting">A ligar ao servidor…</p>
 </div>
 
 <!-- =====================================================
@@ -1352,10 +1352,388 @@ const USERS = {
   adminbp: { pin: '1745', role: 'admin', name: 'Admin BP' },
   adminpc: { pin: '2897', role: 'admin', name: 'Admin PC' },
   Carmona: { pin: '1111', role: 'picker', group: 'acessorios', name: 'Carmona' },
-  Deepak:  { pin: '2222', role: 'picker', group: 'acessorios', name: 'Deepak' },
+  Deepak:  { pin: '2222', role: 'picker', group: 'acessorios', name: 'Deepak/Amit', lang: 'en' },
   Bruno:   { pin: '1111', role: 'picker', group: 'colunas', name: 'Bruno' },
   Custódio:{ pin: '2222', role: 'picker', group: 'colunas', name: 'Custódio' },
 };
+
+// =====================================================
+// I18N — Português (default/fallback) + Inglês
+// =====================================================
+const I18N = {
+  pt: {
+    // Login
+    login_subtitle: 'metalogalva.pt — Gestão de Picking',
+    login_user_label: 'Utilizador',
+    login_select_placeholder: '— Selecionar —',
+    login_pin_label: 'PIN',
+    login_button: 'Entrar',
+    login_error: 'Credenciais inválidas',
+    // Header / groups
+    btn_logout: 'Sair',
+    label_admin_suffix: ' (Admin)',
+    label_acessorios: 'Acessórios',
+    label_colunas: 'Colunas',
+    group_acessorios_btn: '🔩 Acessórios',
+    group_colunas_btn: '🏛 Colunas',
+    group_todos_btn: '⚡ Todos',
+    // Tabs
+    tab_carga: '🚚 Planos de Carga',
+    tab_pintura: '🎨 Planos de Pintura',
+    // Filters
+    filter_hoje: 'Hoje',
+    filter_amanha: 'Amanhã',
+    filter_semana: 'Esta semana',
+    filter_prox_semana: 'Próxima semana',
+    filter_todos: 'Todos',
+    btn_novo: '+ Novo',
+    search_by_name_placeholder: '🔎 Pesquisar por nome…',
+    tooltip_limpar_pesquisa: 'Limpar pesquisa',
+    empty_planos: 'Nenhum plano encontrado',
+    label_itens_progress: '{done}/{total} itens',
+    label_unidades_progress: '{done}/{total} un.',
+    label_qty_pcs: '{qty} un.',
+    status_pronto: '✅ Pronto',
+    status_em_separacao: '⏳ Em Separação',
+    week_label_prefix: 'Sem.',
+    current_week_suffix: ' (atual)',
+    // Detail view
+    btn_back_planos: '← Planos',
+    tooltip_editar_nome_plano: 'Editar nome do plano',
+    label_ordenar: 'Ordenar:',
+    sort_camiao: '🚛 Camião',
+    sort_prioridade: '🔢 Prioridade',
+    sort_modelo: '🔤 Modelo',
+    btn_ver_pdf: '👁 Ver PDF',
+    btn_tabela: '📋 Tabela',
+    btn_observacao: '📝 Observação',
+    btn_mais_linhas: '+ Linhas',
+    btn_marcar_pronto: '✓ Marcar Pronto',
+    btn_apagar: '🗑 Apagar',
+    label_observacao_prefix: '📝 Observação:',
+    label_carga: 'Carga',
+    label_pintura: 'Pintura',
+    banner_pronta: '✅ {tipo} Pronta! — {nome} — {data}',
+    detail_progress_text: '{done}/{total} itens · {doneUnits}/{totalUnits} un.',
+    label_fiada: 'Fiada',
+    label_sem_descarga: 'Sem Descarga',
+    empty_itens_grupo: 'Sem itens visíveis para este grupo',
+    label_sem_descricao: '(sem descrição)',
+    header_ovs_total: "{count} OV's - Total {total}un",
+    tooltip_remover_linha: 'Remover linha',
+    btn_separar_label: '📦 Separar',
+    btn_entregar_label: '✅ Entregar',
+    label_sep_progress: '{sep}/{total} sep.',
+    label_entr_progress: '{entr}/{total} entr.',
+    label_faltam_entregar: '⏳ Faltam {n} entregar',
+    // Qty modal
+    qty_modal_title_sep: '📦 Separar Item',
+    qty_modal_title_entr: '✅ Entregar Item',
+    btn_confirmar: 'Confirmar',
+    btn_desfazer_separacao: '↩ Desfazer separação',
+    preset_half: '½ ({half})',
+    preset_all: 'Tudo ({max})',
+    excesso_note: '⚠ +{excesso} a mais que o previsto ({max})',
+    undo_confirm_msg: 'Anular separação de "{model}" ({qty} un.)?',
+    modal_title_confirmar_anulacao: 'Confirmar Anulação',
+    undo_msg_default: 'Deseja anular a separação deste item?',
+    btn_cancelar: 'Cancelar',
+    btn_anular: 'Anular',
+    // Rename / Observação modals
+    modal_title_rename_plano: '✏️ Editar nome do plano',
+    label_nome: 'Nome',
+    btn_guardar: 'Guardar',
+    modal_title_observacao: '📝 Observação',
+    label_local_separacao: 'Local de separação / Cesta(s)',
+    obs_placeholder_example: 'Ex: Separado no Parque B, cestas 12 e 13',
+    // New plan modal
+    new_plan_title_carga: '🚚 Novo Plano de Carga',
+    new_plan_title_pintura: '🎨 Novo Plano de Pintura',
+    label_nome_plano: 'Nome do Plano',
+    label_data: 'Data',
+    label_data_colon: 'Data:',
+    label_semana: 'Semana',
+    label_hora_carregar: 'Hora Carregar',
+    label_transportadora: 'Transportadora',
+    label_grupo: 'Grupo',
+    grupo_opt_todos: 'Todos (Acessórios + Colunas)',
+    label_cola_excel: 'Cola aqui as linhas do Excel',
+    label_cola_excel_hint: '(Ctrl+C no Excel → Ctrl+V aqui)',
+    paste_area_placeholder: 'Cola aqui as células copiadas do Excel...',
+    btn_criar_plano: 'Criar Plano',
+    btn_adicionar_linhas: 'Adicionar Linhas',
+    title_adicionar_linhas: '➕ Adicionar linhas — {nome}',
+    // Paste preview table
+    col_prior: 'Prior.',
+    col_camiao: 'Camião',
+    col_ov: 'OV',
+    col_modelo: 'Modelo',
+    col_descricao: 'Descrição',
+    col_qt: 'Qt',
+    col_utilizacao: 'Utilização',
+    col_tipo_pintura: 'Tipo Pintura',
+    col_pintura: 'Pintura',
+    col_sep: 'Sep.',
+    col_entr: 'Entr.',
+    paste_count_one: '✓ {n} linha reconhecida',
+    paste_count_many: '✓ {n} linhas reconhecidas',
+    label_camiao_colon: 'Camião:',
+    label_prioridade_val: 'Prioridade {fiada}',
+    // Email sync modal (legacy)
+    modal_title_email_sync: '📥 Carregar Planos de Carga',
+    label_como_funciona: '📧 Como funciona',
+    email_sync_desc_1: 'Os planos de carga são carregados diretamente do Outlook pelo administrador do sistema. Para carregar novos planos, ',
+    email_sync_desc_strong: 'diz ao administrador do sistema para os carregar',
+    email_sync_desc_2: ' — os planos aparecerão automaticamente em segundos.',
+    label_planos_carregados: 'Planos atualmente carregados:',
+    label_de_colon: 'De:',
+    btn_ver_email: '👁 Ver email',
+    btn_importar_pdf: '📥 Importar PDF',
+    title_importar_email: '📥 Importar Plano do Email',
+    // PDF viewer
+    btn_pdf_prev: '‹ Ant',
+    btn_pdf_next: 'Próx ›',
+    btn_fechar: '✕ Fechar',
+    pdf_no_content_msg: 'Este plano ainda não tem o PDF/print anexado.',
+    btn_carregar_pdf: '📎 Carregar PDF / Print',
+    pdf_upload_hint: 'Anexa o PDF da carga ou um print do Excel',
+    pdf_ask_admin: 'Pede a um admin para anexar o documento.',
+    // Loading
+    loading_connecting: 'A ligar ao servidor…',
+    loading_planos: 'A carregar planos…',
+    // Toasts / confirms
+    toast_erro_carregar_dados: '⚠ Erro ao carregar dados: {msg}',
+    toast_ligacao_lenta: '⚠ Ligação lenta — a continuar sem dados',
+    toast_erro_supabase: '⚠ Erro Supabase: {msg}',
+    toast_erro_guardar: '⚠ Erro ao guardar: {msg}',
+    toast_erro_criar_plano: '⚠ Erro ao criar plano: {msg}',
+    toast_erro_apagar: '⚠ Erro ao apagar: {msg}',
+    toast_un_separadas: '{qty} un. separadas ✓',
+    toast_un_entregues: '{qty} un. entregues ✓',
+    toast_carga_pronta: '✅ Carga Pronta — todos os itens separados!',
+    toast_separacao_anulada: 'Separação anulada',
+    toast_plano_marcado_pronto: 'Plano marcado como Pronto ✅',
+    confirm_apagar_plano: 'Apagar este plano?',
+    toast_plano_apagado: 'Plano apagado',
+    toast_nome_vazio: 'O nome não pode ficar vazio',
+    toast_nome_atualizado: 'Nome do plano atualizado ✓',
+    toast_observacao_guardada: 'Observação guardada ✓',
+    toast_ficheiro_excel_carregado: 'Ficheiro Excel carregado ✓',
+    toast_preencha_nome_data: 'Preencha nome e semana/data',
+    toast_plano_criado: 'Plano {nome} criado com {count} linha(s) ✓',
+    toast_nenhuma_linha: 'Nenhuma linha reconhecida',
+    toast_linhas_adicionadas_one: '{count} linha adicionada ✓',
+    toast_linhas_adicionadas_many: '{count} linhas adicionadas ✓',
+    toast_erro_generico: 'Erro: {msg}',
+    toast_linha_removida: 'Linha removida ✓',
+    confirm_remover_linha_carga: 'Remover esta linha do plano de carga?',
+    confirm_remover_linha: 'Remover esta linha do plano?',
+    toast_plano_nao_encontrado: '⚠ Plano não encontrado',
+    toast_item_nao_encontrado: '⚠ Item não encontrado',
+    toast_ficheiro_grande: 'Ficheiro demasiado grande (máx 4MB)',
+    toast_pdf_anexado: 'PDF anexado ✓',
+    toast_erro_guardar_pdf: 'Erro ao guardar PDF',
+    toast_pdfjs_nao_carregado: 'pdf.js não carregado',
+    toast_erro_carregar_pdf: 'Erro ao carregar PDF',
+    toast_pdf_importado_sim: 'PDF "{name}" importado (simulado)',
+    email_alert_template: 'De: {from}\nAssunto: {subject}\n\nConteúdo simulado:\nAnexo: {attachment}\n\nPlano de carga para semana 23. Ver PDF em anexo.',
+  },
+  en: {
+    // Login
+    login_subtitle: 'metalogalva.pt — Picking Management',
+    login_user_label: 'User',
+    login_select_placeholder: '— Select —',
+    login_pin_label: 'PIN',
+    login_button: 'Login',
+    login_error: 'Invalid credentials',
+    // Header / groups
+    btn_logout: 'Log Out',
+    label_admin_suffix: ' (Admin)',
+    label_acessorios: 'Accessories',
+    label_colunas: 'Columns',
+    group_acessorios_btn: '🔩 Accessories',
+    group_colunas_btn: '🏛 Columns',
+    group_todos_btn: '⚡ All',
+    // Tabs
+    tab_carga: '🚚 Load Plans',
+    tab_pintura: '🎨 Painting Plans',
+    // Filters
+    filter_hoje: 'Today',
+    filter_amanha: 'Tomorrow',
+    filter_semana: 'This week',
+    filter_prox_semana: 'Next week',
+    filter_todos: 'All',
+    btn_novo: '+ New',
+    search_by_name_placeholder: '🔎 Search by name…',
+    tooltip_limpar_pesquisa: 'Clear search',
+    empty_planos: 'No plans found',
+    label_itens_progress: '{done}/{total} items',
+    label_unidades_progress: '{done}/{total} pcs',
+    label_qty_pcs: '{qty} pcs',
+    status_pronto: '✅ Ready',
+    status_em_separacao: '⏳ Picking',
+    week_label_prefix: 'Wk',
+    current_week_suffix: ' (current)',
+    // Detail view
+    btn_back_planos: '← Plans',
+    tooltip_editar_nome_plano: 'Edit plan name',
+    label_ordenar: 'Sort:',
+    sort_camiao: '🚛 Truck',
+    sort_prioridade: '🔢 Priority',
+    sort_modelo: '🔤 Model',
+    btn_ver_pdf: '👁 View PDF',
+    btn_tabela: '📋 Table',
+    btn_observacao: '📝 Note',
+    btn_mais_linhas: '+ Rows',
+    btn_marcar_pronto: '✓ Mark Ready',
+    btn_apagar: '🗑 Delete',
+    label_observacao_prefix: '📝 Note:',
+    label_carga: 'Load',
+    label_pintura: 'Painting',
+    banner_pronta: '✅ {tipo} Ready! — {nome} — {data}',
+    detail_progress_text: '{done}/{total} items · {doneUnits}/{totalUnits} pcs',
+    label_fiada: 'Row',
+    label_sem_descarga: 'No Discharge',
+    empty_itens_grupo: 'No items visible for this group',
+    label_sem_descricao: '(no description)',
+    header_ovs_total: "{count} SO's - Total {total} pcs",
+    tooltip_remover_linha: 'Remove row',
+    btn_separar_label: '📦 Pick',
+    btn_entregar_label: '✅ Deliver',
+    label_sep_progress: '{sep}/{total} picked',
+    label_entr_progress: '{entr}/{total} delivered',
+    label_faltam_entregar: '⏳ {n} left to deliver',
+    // Qty modal
+    qty_modal_title_sep: '📦 Pick Item',
+    qty_modal_title_entr: '✅ Deliver Item',
+    btn_confirmar: 'Confirm',
+    btn_desfazer_separacao: '↩ Undo picking',
+    preset_half: '½ ({half})',
+    preset_all: 'All ({max})',
+    excesso_note: '⚠ +{excesso} more than expected ({max})',
+    undo_confirm_msg: 'Cancel picking of "{model}" ({qty} pcs)?',
+    modal_title_confirmar_anulacao: 'Confirm Cancellation',
+    undo_msg_default: 'Cancel picking for this item?',
+    btn_cancelar: 'Cancel',
+    btn_anular: 'Cancel',
+    // Rename / Observação modals
+    modal_title_rename_plano: '✏️ Edit plan name',
+    label_nome: 'Name',
+    btn_guardar: 'Save',
+    modal_title_observacao: '📝 Note',
+    label_local_separacao: 'Picking location / Basket(s)',
+    obs_placeholder_example: 'E.g.: Picked in Yard B, baskets 12 and 13',
+    // New plan modal
+    new_plan_title_carga: '🚚 New Load Plan',
+    new_plan_title_pintura: '🎨 New Painting Plan',
+    label_nome_plano: 'Plan Name',
+    label_data: 'Date',
+    label_data_colon: 'Date:',
+    label_semana: 'Week',
+    label_hora_carregar: 'Loading Time',
+    label_transportadora: 'Carrier',
+    label_grupo: 'Group',
+    grupo_opt_todos: 'All (Accessories + Columns)',
+    label_cola_excel: 'Paste the Excel rows here',
+    label_cola_excel_hint: '(Ctrl+C in Excel → Ctrl+V here)',
+    paste_area_placeholder: 'Paste the copied Excel cells here...',
+    btn_criar_plano: 'Create Plan',
+    btn_adicionar_linhas: 'Add Rows',
+    title_adicionar_linhas: '➕ Add rows — {nome}',
+    // Paste preview table
+    col_prior: 'Prio.',
+    col_camiao: 'Truck',
+    col_ov: 'OV',
+    col_modelo: 'Model',
+    col_descricao: 'Description',
+    col_qt: 'Qty',
+    col_utilizacao: 'Usage',
+    col_tipo_pintura: 'Paint Type',
+    col_pintura: 'Paint',
+    col_sep: 'Pick.',
+    col_entr: 'Deliv.',
+    paste_count_one: '✓ {n} row recognized',
+    paste_count_many: '✓ {n} rows recognized',
+    label_camiao_colon: 'Truck:',
+    label_prioridade_val: 'Priority {fiada}',
+    // Email sync modal (legacy)
+    modal_title_email_sync: '📥 Load Plans',
+    label_como_funciona: '📧 How it works',
+    email_sync_desc_1: 'Load plans are loaded directly from Outlook by the system administrator. To load new plans, ',
+    email_sync_desc_strong: 'tell the system administrator to load them',
+    email_sync_desc_2: ' — the plans will appear automatically within seconds.',
+    label_planos_carregados: 'Currently loaded plans:',
+    label_de_colon: 'From:',
+    btn_ver_email: '👁 View email',
+    btn_importar_pdf: '📥 Import PDF',
+    title_importar_email: '📥 Import Plan from Email',
+    // PDF viewer
+    btn_pdf_prev: '‹ Prev',
+    btn_pdf_next: 'Next ›',
+    btn_fechar: '✕ Close',
+    pdf_no_content_msg: 'This plan does not have a PDF/print attached yet.',
+    btn_carregar_pdf: '📎 Upload PDF / Print',
+    pdf_upload_hint: 'Attach the load PDF or an Excel print/screenshot',
+    pdf_ask_admin: 'Ask an admin to attach the document.',
+    // Loading
+    loading_connecting: 'Connecting to server…',
+    loading_planos: 'Loading plans…',
+    // Toasts / confirms
+    toast_erro_carregar_dados: '⚠ Error loading data: {msg}',
+    toast_ligacao_lenta: '⚠ Slow connection — continuing without data',
+    toast_erro_supabase: '⚠ Supabase error: {msg}',
+    toast_erro_guardar: '⚠ Error saving: {msg}',
+    toast_erro_criar_plano: '⚠ Error creating plan: {msg}',
+    toast_erro_apagar: '⚠ Error deleting: {msg}',
+    toast_un_separadas: '{qty} pcs picked ✓',
+    toast_un_entregues: '{qty} pcs delivered ✓',
+    toast_carga_pronta: '✅ Load Ready — all items picked!',
+    toast_separacao_anulada: 'Picking cancelled',
+    toast_plano_marcado_pronto: 'Plan marked as Ready ✅',
+    confirm_apagar_plano: 'Delete this plan?',
+    toast_plano_apagado: 'Plan deleted',
+    toast_nome_vazio: 'Name cannot be empty',
+    toast_nome_atualizado: 'Plan name updated ✓',
+    toast_observacao_guardada: 'Note saved ✓',
+    toast_ficheiro_excel_carregado: 'Excel file loaded ✓',
+    toast_preencha_nome_data: 'Fill in name and week/date',
+    toast_plano_criado: 'Plan {nome} created with {count} row(s) ✓',
+    toast_nenhuma_linha: 'No rows recognized',
+    toast_linhas_adicionadas_one: '{count} row added ✓',
+    toast_linhas_adicionadas_many: '{count} rows added ✓',
+    toast_erro_generico: 'Error: {msg}',
+    toast_linha_removida: 'Row removed ✓',
+    confirm_remover_linha_carga: 'Remove this row from the load plan?',
+    confirm_remover_linha: 'Remove this row from the plan?',
+    toast_plano_nao_encontrado: '⚠ Plan not found',
+    toast_item_nao_encontrado: '⚠ Item not found',
+    toast_ficheiro_grande: 'File too large (max 4MB)',
+    toast_pdf_anexado: 'PDF attached ✓',
+    toast_erro_guardar_pdf: 'Error saving PDF',
+    toast_pdfjs_nao_carregado: 'pdf.js not loaded',
+    toast_erro_carregar_pdf: 'Error loading PDF',
+    toast_pdf_importado_sim: 'PDF "{name}" imported (simulated)',
+    email_alert_template: 'From: {from}\nSubject: {subject}\n\nSimulated content:\nAttachment: {attachment}\n\nLoad plan for week 23. See attached PDF.',
+  },
+};
+
+function t(key, vars) {
+  const dict = I18N[state.lang] || I18N.pt;
+  let str = dict[key] !== undefined ? dict[key] : (I18N.pt[key] !== undefined ? I18N.pt[key] : key);
+  if (vars) for (const k in vars) str = str.replace(new RegExp('\\{' + k + '\\}', 'g'), vars[k]);
+  return str;
+}
+
+function applyI18n() {
+  document.querySelectorAll('[data-i18n]').forEach(el => { el.textContent = t(el.getAttribute('data-i18n')); });
+  document.querySelectorAll('[data-i18n-placeholder]').forEach(el => { el.placeholder = t(el.getAttribute('data-i18n-placeholder')); });
+  document.querySelectorAll('[data-i18n-attr]').forEach(el => {
+    el.getAttribute('data-i18n-attr').split(';').forEach(pair => {
+      const [attr, key] = pair.split(':');
+      if (attr && key) el.setAttribute(attr, t(key));
+    });
+  });
+}
 
 const ACESSORIOS_TIPOS = ['BG', 'TG', 'AG'];
 const COLUNAS_TIPOS    = ['CG'];   // só galvanizado — pintadas (CP) ignoradas
@@ -1365,6 +1743,7 @@ const COLUNAS_TIPOS    = ['CG'];   // só galvanizado — pintadas (CP) ignorada
 // =====================================================
 let state = {
   currentUser: null,
+  lang: 'pt',                // 'pt' (default) | 'en' — set from USERS entry on login
   groupView: 'todos',        // admins: 'acessorios' | 'colunas' | 'todos'
   activeTab: 'carga',
   dateFilters: { carga: 'hoje', pintura: 'hoje' },
@@ -1646,7 +2025,7 @@ async function loadPlans() {
     plans = (data || []).map(dbPlanToLocal);
   } catch(e) {
     console.error('loadPlans:', e);
-    showToast('⚠ Erro ao carregar dados: ' + e.message);
+    showToast(t('toast_erro_carregar_dados', { msg: e.message }));
     throw e;
   }
 }
@@ -1656,13 +2035,13 @@ function savePlans() { /* substituído por writes individuais */ }
 async function dbUpdateItem(itemId, fields) {
   try {
     await sbFetch(`/plan_items?id=eq.${itemId}`, { method: 'PATCH', body: fields });
-  } catch(e) { showToast('⚠ Erro ao guardar: ' + e.message); throw e; }
+  } catch(e) { showToast(t('toast_erro_guardar', { msg: e.message })); throw e; }
 }
 
 async function dbUpdatePlan(planId, fields) {
   try {
     await sbFetch(`/plans?id=eq.${planId}`, { method: 'PATCH', body: fields });
-  } catch(e) { showToast('⚠ Erro ao guardar: ' + e.message); throw e; }
+  } catch(e) { showToast(t('toast_erro_guardar', { msg: e.message })); throw e; }
 }
 
 async function dbInsertPlan(plan) {
@@ -1671,13 +2050,13 @@ async function dbInsertPlan(plan) {
     if (plan.items && plan.items.length) {
       await sbFetch('/plan_items', { method: 'POST', body: plan.items.map(i => localItemToDB(i, plan.id)), prefer: 'return=minimal' });
     }
-  } catch(e) { showToast('⚠ Erro ao criar plano: ' + e.message); throw e; }
+  } catch(e) { showToast(t('toast_erro_criar_plano', { msg: e.message })); throw e; }
 }
 
 async function dbDeletePlan(planId) {
   try {
     await sbFetch(`/plans?id=eq.${planId}`, { method: 'DELETE' });
-  } catch(e) { showToast('⚠ Erro ao apagar: ' + e.message); throw e; }
+  } catch(e) { showToast(t('toast_erro_apagar', { msg: e.message })); throw e; }
 }
 
 async function dbLoadPlanPdf(planId) {
@@ -1743,6 +2122,8 @@ function doLogin() {
   }
   err.style.display = 'none';
   state.currentUser = { username: user, ...found };
+  state.lang = found.lang || 'pt';
+  applyI18n();
   // Admins default to 'todos', pickers already have group
   state.groupView = found.role === 'admin' ? 'todos' : found.group;
 
@@ -1758,6 +2139,8 @@ function doLogout() {
     document.getElementById('screen-app').style.display = '';
   }
   state.currentUser = null;
+  state.lang = 'pt';
+  applyI18n();
   document.getElementById('screen-app').classList.remove('active');
   document.getElementById('screen-login').classList.add('active');
   document.getElementById('login-pin').value = '';
@@ -1781,7 +2164,7 @@ async function showApp() {
   const loadingEl = document.getElementById('app-loading');
   const loadingMsg = document.getElementById('loading-msg');
   loadingEl.classList.add('visible');
-  loadingMsg.textContent = 'A carregar planos…';
+  loadingMsg.textContent = t('loading_planos');
 
   try {
     // Timeout de 8 segundos para não ficar preso
@@ -1793,8 +2176,8 @@ async function showApp() {
   } catch(e) {
     console.error('showApp:', e);
     showToast(e.message === 'timeout'
-      ? '⚠ Ligação lenta — a continuar sem dados'
-      : '⚠ Erro Supabase: ' + e.message);
+      ? t('toast_ligacao_lenta')
+      : t('toast_erro_supabase', { msg: e.message }));
   }
 
   loadingEl.classList.remove('visible');
@@ -1804,7 +2187,7 @@ async function showApp() {
   const u = state.currentUser;
   document.getElementById('header-user-info').innerHTML =
     `<span id="realtime-dot" class="offline"></span>` +
-    u.name + (u.role === 'admin' ? ' (Admin)' : ` — ${u.group === 'acessorios' ? 'Acessórios' : 'Colunas'}`);
+    u.name + (u.role === 'admin' ? t('label_admin_suffix') : ` — ${u.group === 'acessorios' ? t('label_acessorios') : t('label_colunas')}`);
 
   const isAdmin = u.role === 'admin';
   document.getElementById('group-toggle').style.display = isAdmin ? 'flex' : 'none';
@@ -1816,6 +2199,7 @@ async function showApp() {
     setGroupView(state.groupView);
   }
 
+  applyI18n();
   renderAll();
 }
 
@@ -1859,7 +2243,7 @@ function weekLabel(isoWeek) {
   mon.setDate(jan4.getDate() - (jan4.getDay() + 6) % 7 + (weekNum - 1) * 7);
   const sun = new Date(mon); sun.setDate(mon.getDate() + 6);
   const fmt = d => `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}`;
-  return `Sem. ${weekNum} · ${fmt(mon)}–${fmt(sun)}`;
+  return `${t('week_label_prefix')} ${weekNum} · ${fmt(mon)}–${fmt(sun)}`;
 }
 
 function populateWeekSelect(tipo) {
@@ -2016,7 +2400,7 @@ function renderList(tipo) {
   const container = document.getElementById('list-' + tipo);
 
   if (filtered.length === 0) {
-    container.innerHTML = `<div class="empty-state"><div class="emoji">${tipo === 'carga' ? '🚚' : '🎨'}</div><p>Nenhum plano encontrado</p></div>`;
+    container.innerHTML = `<div class="empty-state"><div class="emoji">${tipo === 'carga' ? '🚚' : '🎨'}</div><p>${t('empty_planos')}</p></div>`;
     return;
   }
 
@@ -2058,14 +2442,14 @@ function renderPlanCard(plan) {
         <div class="plan-name">${plan.nome}</div>
         <div class="plan-meta">${dateStr}${horaStr}${transStr}</div>
       </div>
-      <span class="status-pill status-${plan.status}">${plan.status === 'pronto' ? '✅ Pronto' : '⏳ Em Separação'}</span>
+      <span class="status-pill status-${plan.status}">${plan.status === 'pronto' ? t('status_pronto') : t('status_em_separacao')}</span>
     </div>
     <div class="progress-bar-wrap">
       <div class="progress-bar-fill ${isComplete ? 'complete' : ''}" style="width:${pct}%"></div>
     </div>
     <div class="plan-card-footer">
-      <span class="plan-progress-text">${p.done}/${p.total} itens</span>
-      <span class="plan-units-text">${p.doneUnits}/${p.totalUnits} un.</span>
+      <span class="plan-progress-text">${t('label_itens_progress', { done: p.done, total: p.total })}</span>
+      <span class="plan-units-text">${t('label_unidades_progress', { done: p.doneUnits, total: p.totalUnits })}</span>
     </div>
   </div>`;
 }
@@ -2116,7 +2500,7 @@ function renderDetail(plan) {
   document.getElementById('detail-name-edit-btn').style.display = (isAdmin && plan.tipo === 'pintura') ? '' : 'none';
   const pill = document.getElementById('detail-status-pill');
   pill.className = `status-pill status-${plan.status}`;
-  pill.textContent = plan.status === 'pronto' ? '✅ Pronto' : '⏳ Em Separação';
+  pill.textContent = plan.status === 'pronto' ? t('status_pronto') : t('status_em_separacao');
 
   let metaHtml = `<span>📅 ${formatDate(plan.data)}</span>`;
   if (plan.horaCarregar) metaHtml += `<span>⏰ ${plan.horaCarregar}</span>`;
@@ -2124,29 +2508,29 @@ function renderDetail(plan) {
   document.getElementById('detail-meta').innerHTML = metaHtml;
 
   document.getElementById('detail-progress-text').textContent =
-    `${p.done}/${p.total} itens · ${p.doneUnits}/${p.totalUnits} un.`;
+    t('detail_progress_text', { done: p.done, total: p.total, doneUnits: p.doneUnits, totalUnits: p.totalUnits });
   document.getElementById('detail-progress-fill').style.width = pct + '%';
 
   // Actions
   let actHtml = plan.tipo === 'carga'
-    ? `<button class="btn-action btn-view-pdf" onclick="openPdfViewer('${plan.id}')">👁 Ver PDF</button>`
-    : `<button class="btn-action btn-view-pdf" onclick="openPinturaTabela('${plan.id}')">📋 Tabela</button>`;
-  actHtml += `<button class="btn-action btn-observacao" onclick="openObservacaoModal('${plan.id}')">📝 Observação</button>`;
+    ? `<button class="btn-action btn-view-pdf" onclick="openPdfViewer('${plan.id}')">${t('btn_ver_pdf')}</button>`
+    : `<button class="btn-action btn-view-pdf" onclick="openPinturaTabela('${plan.id}')">${t('btn_tabela')}</button>`;
+  actHtml += `<button class="btn-action btn-observacao" onclick="openObservacaoModal('${plan.id}')">${t('btn_observacao')}</button>`;
   if (isAdmin) {
     if (plan.tipo === 'pintura') {
-      actHtml += `<button class="btn-action" style="background:var(--primary)" onclick="openAddLinhasPintura('${plan.id}')">+ Linhas</button>`;
+      actHtml += `<button class="btn-action" style="background:var(--primary)" onclick="openAddLinhasPintura('${plan.id}')">${t('btn_mais_linhas')}</button>`;
     }
     if (plan.status !== 'pronto') {
-      actHtml += `<button class="btn-action btn-marcar-pronto" onclick="marcarPronto('${plan.id}')">✓ Marcar Pronto</button>`;
+      actHtml += `<button class="btn-action btn-marcar-pronto" onclick="marcarPronto('${plan.id}')">${t('btn_marcar_pronto')}</button>`;
     }
-    actHtml += `<button class="btn-action btn-delete" onclick="deletePlan('${plan.id}')">🗑 Apagar</button>`;
+    actHtml += `<button class="btn-action btn-delete" onclick="deletePlan('${plan.id}')">${t('btn_apagar')}</button>`;
   }
   document.getElementById('detail-actions').innerHTML = actHtml;
 
   // Observação box
   const obsBox = document.getElementById('detail-observacao-box');
   if (plan.observacao) {
-    obsBox.innerHTML = `<b>📝 Observação:</b> ${plan.observacao.replace(/</g,'&lt;')}`;
+    obsBox.innerHTML = `<b>${t('label_observacao_prefix')}</b> ${plan.observacao.replace(/</g,'&lt;')}`;
     obsBox.style.display = '';
   } else {
     obsBox.style.display = 'none';
@@ -2155,7 +2539,11 @@ function renderDetail(plan) {
   // Ready banner
   const banner = document.getElementById('carga-pronta-banner');
   if (p.done === p.total && p.total > 0) {
-    banner.textContent = `✅ ${plan.tipo === 'carga' ? 'Carga' : 'Pintura'} Pronta! — ${plan.nome} — ${formatDate(plan.data)}`;
+    banner.textContent = t('banner_pronta', {
+      tipo: plan.tipo === 'carga' ? t('label_carga') : t('label_pintura'),
+      nome: plan.nome,
+      data: formatDate(plan.data)
+    });
     banner.classList.add('visible');
   } else {
     banner.classList.remove('visible');
@@ -2182,7 +2570,7 @@ function renderDetail(plan) {
     // Carga: group by descarga → fiada (original)
     const byDescarga = {};
     visibleItems.forEach(item => {
-      const key = item.descarga || 'Sem Descarga';
+      const key = item.descarga || t('label_sem_descarga');
       if (!byDescarga[key]) byDescarga[key] = {};
       const fiada = item.fiada || '—';
       if (!byDescarga[key][fiada]) byDescarga[key][fiada] = [];
@@ -2196,7 +2584,7 @@ function renderDetail(plan) {
         // é ruído puro e só obriga a mais scroll vertical sem ajudar a separar.
         const showFiadaHeader = fiada && fiada !== '—';
         if (showFiadaHeader) {
-          html += `<div class="fiada-group"><div class="fiada-header">🗂 Fiada ${escHtml(fiada)}</div>`;
+          html += `<div class="fiada-group"><div class="fiada-header">🗂 ${t('label_fiada')} ${escHtml(fiada)}</div>`;
           items.forEach(item => { html += renderItemRow(item, plan); });
           html += '</div>';
         } else {
@@ -2237,7 +2625,7 @@ function renderDetail(plan) {
         if (items.length > 1) {
           const totalQty = items.reduce((sum, it) => sum + (it.qtyPedida || 0), 0);
           html += `<div class="descarga-group">
-            <div class="descarga-header">${groupIcon} ${escHtml(grp)} · ${items.length} OV's - Total ${totalQty}un</div>`;
+            <div class="descarga-header">${groupIcon} ${escHtml(grp)} · ${t('header_ovs_total', { count: items.length, total: totalQty })}</div>`;
           items.forEach(item => { html += renderItemRow(item, plan, { hideModel: true }); });
           html += '</div>';
         } else {
@@ -2255,7 +2643,7 @@ function renderDetail(plan) {
 
   } // end else pintura
 
-  if (!html) html = `<div class="empty-state"><div class="emoji">🔍</div><p>Sem itens visíveis para este grupo</p></div>`;
+  if (!html) html = `<div class="empty-state"><div class="emoji">🔍</div><p>${t('empty_itens_grupo')}</p></div>`;
   document.getElementById('detail-content').innerHTML = html;
 }
 
@@ -2280,7 +2668,7 @@ function renderItemRow(item, plan, opts) {
 
     const isAdmCarga = state.currentUser && state.currentUser.role === 'admin';
     const delBtnCarga = isAdmCarga
-      ? `<button onclick="deleteCargaItem(event,'${plan.id}','${item.id}')" style="background:none;border:none;color:#ef4444;font-size:15px;cursor:pointer;padding:4px 6px;line-height:1;flex-shrink:0" title="Remover linha">🗑</button>`
+      ? `<button onclick="deleteCargaItem(event,'${plan.id}','${item.id}')" style="background:none;border:none;color:#ef4444;font-size:15px;cursor:pointer;padding:4px 6px;line-height:1;flex-shrink:0" title="${t('tooltip_remover_linha')}">🗑</button>`
       : '';
     return `<div class="item-row ${rowClass} tipo-${item.tipoGalva}" onclick="openQtyModal('${plan.id}','${item.id}','sep')">
       <div class="item-checkbox ${checkIcon}">${icon}</div>
@@ -2312,15 +2700,15 @@ function renderItemRow(item, plan, opts) {
     rowClass = item.entregue ? 'row-entregue' : (sepPartial || sepFull ? 'row-partial' : '');
 
     const sepLabel = item.qtySeparada > 0
-      ? `📦 ${item.qtySeparada}/${item.qtyPedida} sep.${sepExcesso ? ` ⚠+${item.qtySeparada - item.qtyPedida}` : ''}`
-      : `📦 Separar`;
+      ? `📦 ${t('label_sep_progress', { sep: item.qtySeparada, total: item.qtyPedida })}${sepExcesso ? ` ⚠+${item.qtySeparada - item.qtyPedida}` : ''}`
+      : t('btn_separar_label');
     const entrLabel = item.qtyEntregue > 0
-      ? `✅ ${item.qtyEntregue}/${item.qtySeparada || item.qtyPedida} entr.${entrExcesso ? ` ⚠+${item.qtyEntregue - (item.qtySeparada || item.qtyPedida)}` : ''}`
-      : `✅ Entregar`;
+      ? `✅ ${t('label_entr_progress', { entr: item.qtyEntregue, total: item.qtySeparada || item.qtyPedida })}${entrExcesso ? ` ⚠+${item.qtyEntregue - (item.qtySeparada || item.qtyPedida)}` : ''}`
+      : t('btn_entregar_label');
 
     const faltamEntregar = item.qtyPedida - item.qtyEntregue;
     const faltamHtml = (item.qtyEntregue > 0 && faltamEntregar > 0)
-      ? `<span style="color:#d97706;font-size:11px;font-weight:700">⏳ Faltam ${faltamEntregar} entregar</span>`
+      ? `<span style="color:#d97706;font-size:11px;font-weight:700">${t('label_faltam_entregar', { n: faltamEntregar })}</span>`
       : '';
 
     const utilizacaoHtml  = item.entregueNota ? `<span style="color:var(--text-muted);font-size:11px">📋 ${escHtml(item.entregueNota)}</span>` : '';
@@ -2332,7 +2720,7 @@ function renderItemRow(item, plan, opts) {
     // Botão apagar linha (admin)
     const isAdm = state.currentUser && state.currentUser.role === 'admin';
     const delBtn = isAdm
-      ? `<button onclick="event.stopPropagation();deletePinturaItem(event,'${plan.id}','${item.id}')" style="background:none;border:none;color:#ef4444;font-size:16px;cursor:pointer;padding:4px 6px;line-height:1" title="Remover linha">🗑</button>`
+      ? `<button onclick="event.stopPropagation();deletePinturaItem(event,'${plan.id}','${item.id}')" style="background:none;border:none;color:#ef4444;font-size:16px;cursor:pointer;padding:4px 6px;line-height:1" title="${t('tooltip_remover_linha')}">🗑</button>`
       : '';
     // Descrição inline para acessórios
     const showDesc = plan.grupo !== 'colunas' && item.desc;
@@ -2372,7 +2760,7 @@ function openQtyModal(planId, itemId, action) {
   const maxQty = isSep ? item.qtyPedida : (item.qtySeparada || item.qtyPedida);
   const currentVal = isSep ? item.qtySeparada : item.qtyEntregue;
 
-  document.getElementById('qty-modal-title').textContent = isSep ? '📦 Separar Item' : '✅ Entregar Item';
+  document.getElementById('qty-modal-title').textContent = isSep ? t('qty_modal_title_sep') : t('qty_modal_title_entr');
   document.getElementById('qty-modal-model').textContent = item.model;
   document.getElementById('qty-modal-sap').textContent = item.ref || '';
   document.getElementById('qty-modal-desc').textContent = item.desc;
@@ -2387,8 +2775,8 @@ function openQtyModal(planId, itemId, action) {
   // Presets
   const half = Math.floor(maxQty / 2);
   document.getElementById('qty-presets').innerHTML = `
-    <button class="qty-preset" onclick="setQty(${half})">½ (${half})</button>
-    <button class="qty-preset" onclick="setQty(${maxQty})">Tudo (${maxQty})</button>
+    <button class="qty-preset" onclick="setQty(${half})">${t('preset_half', { half })}</button>
+    <button class="qty-preset" onclick="setQty(${maxQty})">${t('preset_all', { max: maxQty })}</button>
   `;
 
   // Show undo only if already has qty (carga only)
@@ -2417,7 +2805,7 @@ function updateQtyExcessoUI() {
   const excesso = val - max;
   if (excesso > 0) {
     input.classList.add('excesso');
-    note.textContent = `⚠ +${excesso} a mais que o previsto (${max})`;
+    note.textContent = t('excesso_note', { excesso, max });
   } else {
     input.classList.remove('excesso');
     note.textContent = '';
@@ -2449,7 +2837,7 @@ async function confirmQty() {
   closeModal('modal-qty');
   renderDetail(plan);
   updateBadges();
-  showToast(action === 'sep' ? `${qty} un. separadas ✓` : `${qty} un. entregues ✓`);
+  showToast(action === 'sep' ? t('toast_un_separadas', { qty }) : t('toast_un_entregues', { qty }));
   await dbUpdateItem(item.id, dbFields);
   if (action === 'sep') await checkAutoMarkPronto(plan);
 }
@@ -2462,7 +2850,7 @@ async function checkAutoMarkPronto(plan) {
   plan.status = 'pronto';
   renderDetail(plan);
   renderAll();
-  showToast('✅ Carga Pronta — todos os itens separados!');
+  showToast(t('toast_carga_pronta'));
   await dbUpdatePlan(plan.id, { status: 'pronto' });
 }
 
@@ -2472,7 +2860,7 @@ function openUndoConfirm() {
   const item = plan.items.find(i => i.id === itemId);
   state.undoContext = { planId, itemId };
   document.getElementById('undo-msg').textContent =
-    `Anular separação de "${item.model}" (${item.qtySeparada} un.)?`;
+    t('undo_confirm_msg', { model: item.model, qty: item.qtySeparada });
   closeModal('modal-qty');
   openModal('modal-undo');
 }
@@ -2487,7 +2875,7 @@ async function confirmUndo() {
   item.separadoEm = null;
   closeModal('modal-undo');
   renderDetail(plan);
-  showToast('Separação anulada');
+  showToast(t('toast_separacao_anulada'));
   await dbUpdateItem(item.id, { qty_separada: 0, separado: false, separado_por: null, separado_em: null });
   if (plan.tipo === 'carga' && plan.status === 'pronto') {
     plan.status = 'em_separacao';
@@ -2505,15 +2893,15 @@ async function marcarPronto(planId) {
   plan.status = 'pronto';
   renderDetail(plan);
   renderAll();
-  showToast('Plano marcado como Pronto ✅');
+  showToast(t('toast_plano_marcado_pronto'));
   await dbUpdatePlan(planId, { status: 'pronto' });
 }
 
 async function deletePlan(planId) {
-  if (!confirm('Apagar este plano?')) return;
+  if (!confirm(t('confirm_apagar_plano'))) return;
   plans = plans.filter(p => p.id !== planId);
   closeDetail();
-  showToast('Plano apagado');
+  showToast(t('toast_plano_apagado'));
   await dbDeletePlan(planId);
 }
 
@@ -2528,12 +2916,12 @@ async function saveRenamePlano() {
   const plan = plans.find(p => p.id === state.openPlanId);
   if (!plan) return;
   const novoNome = document.getElementById('rename-plano-input').value.trim();
-  if (!novoNome) { showToast('O nome não pode ficar vazio'); return; }
+  if (!novoNome) { showToast(t('toast_nome_vazio')); return; }
   plan.nome = novoNome;
   closeModal('modal-rename-plano');
   renderDetail(plan);
   renderAll();
-  showToast('Nome do plano atualizado ✓');
+  showToast(t('toast_nome_atualizado'));
   await dbUpdatePlan(plan.id, { nome: novoNome });
 }
 
@@ -2553,7 +2941,7 @@ async function saveObservacao() {
   plan.observacao = texto || null;
   closeModal('modal-observacao');
   renderDetail(plan);
-  showToast('Observação guardada ✓');
+  showToast(t('toast_observacao_guardada'));
   await dbUpdatePlan(planId, { observacao: plan.observacao });
 }
 
@@ -2575,7 +2963,7 @@ function handlePlanFileUpload(event) {
     } else {
       // xlsx — sem preview de imagem
       preview.style.display = 'none';
-      showToast('Ficheiro Excel carregado ✓');
+      showToast(t('toast_ficheiro_excel_carregado'));
     }
   };
   reader.readAsDataURL(file);
@@ -2585,7 +2973,7 @@ function openNewPlanModal(tipo) {
   state.newPlanTipo = tipo;
   state.newPlanItems = [];
   document.getElementById('new-plan-title').textContent =
-    tipo === 'carga' ? '🚚 Novo Plano de Carga' : '🎨 Novo Plano de Pintura';
+    tipo === 'carga' ? t('new_plan_title_carga') : t('new_plan_title_pintura');
   document.getElementById('np-data').value = todayStr();
   document.getElementById('np-data-group').style.display  = tipo === 'carga' ? '' : 'none';
   document.getElementById('np-semana-group').style.display = tipo === 'pintura' ? '' : 'none';
@@ -2622,7 +3010,7 @@ function populateSemanaSelect() {
   for (let i = 0; i <= 8; i++) {
     const d = new Date(today.getTime() + i * 7 * 86400000);
     const w = getISOWeek(d);
-    if (!options.find(o => o.val === w)) options.push({ val: w, label: weekLabel(w) + (i === 0 ? ' ★ (atual)' : '') });
+    if (!options.find(o => o.val === w)) options.push({ val: w, label: weekLabel(w) + (i === 0 ? ' ★' + t('current_week_suffix') : '') });
   }
   sel.innerHTML = options.map(o => `<option value="${o.val}">${o.label}</option>`).join('');
   sel.value = curWeek;
@@ -2687,14 +3075,14 @@ function renderPastePreview(items, grupo) {
   const isColunas = grupo === 'colunas';
   let html = `<table style="width:100%;border-collapse:collapse;font-size:11px">
     <thead><tr style="background:var(--primary);color:#fff">
-      ${isColunas ? '<th style="padding:4px 6px;text-align:center">Prior.</th>' : ''}
-      <th style="padding:4px 6px;text-align:left">Camião</th>
-      <th style="padding:4px 6px;text-align:left">OV</th>
-      <th style="padding:4px 6px;text-align:left">Modelo</th>
-      ${!isColunas ? '<th style="padding:4px 6px;text-align:left">Descrição</th>' : ''}
-      <th style="padding:4px 6px;text-align:right">Qt</th>
-      <th style="padding:4px 6px;text-align:left">Utilização</th>
-      <th style="padding:4px 6px;text-align:left">Tipo Pintura</th>
+      ${isColunas ? `<th style="padding:4px 6px;text-align:center">${t('col_prior')}</th>` : ''}
+      <th style="padding:4px 6px;text-align:left">${t('col_camiao')}</th>
+      <th style="padding:4px 6px;text-align:left">${t('col_ov')}</th>
+      <th style="padding:4px 6px;text-align:left">${t('col_modelo')}</th>
+      ${!isColunas ? `<th style="padding:4px 6px;text-align:left">${t('col_descricao')}</th>` : ''}
+      <th style="padding:4px 6px;text-align:right">${t('col_qt')}</th>
+      <th style="padding:4px 6px;text-align:left">${t('col_utilizacao')}</th>
+      <th style="padding:4px 6px;text-align:left">${t('col_tipo_pintura')}</th>
     </tr></thead><tbody>`;
   items.forEach((it, i) => {
     const bg = i % 2 === 0 ? '' : 'background:rgba(0,0,0,0.04)';
@@ -2712,7 +3100,7 @@ function renderPastePreview(items, grupo) {
   html += '</tbody></table>';
   preview.innerHTML = html;
   preview.style.display = '';
-  count.textContent = `✓ ${items.length} linha${items.length !== 1 ? 's' : ''} reconhecida${items.length !== 1 ? 's' : ''}`;
+  count.textContent = t(items.length === 1 ? 'paste_count_one' : 'paste_count_many', { n: items.length });
 }
 
 // Ouvir paste na textarea — registar directamente (script corre após DOM)
@@ -2742,7 +3130,7 @@ async function createPlan() {
   const data = state.newPlanTipo === 'pintura'
     ? getMondayOfISOWeek(document.getElementById('np-semana').value)
     : document.getElementById('np-data').value;
-  if (!nome || !data) { showToast('Preencha nome e semana/data'); return; }
+  if (!nome || !data) { showToast(t('toast_preencha_nome_data')); return; }
 
   const grupo = document.getElementById('np-grupo').value;
 
@@ -2785,7 +3173,7 @@ async function createPlan() {
   plans.push(newPlan);
   closeModal('modal-new-plan');
   renderAll();
-  showToast(`Plano ${nome} criado com ${pastedItems.length} linha(s) ✓`);
+  showToast(t('toast_plano_criado', { nome, count: pastedItems.length }));
   document.getElementById('np-nome').value = '';
   document.getElementById('np-paste-area').value = '';
   await dbInsertPlan(newPlan);
@@ -2798,7 +3186,7 @@ function openAddLinhasPintura(planId) {
   state._addLinhasPlanId = planId;
   const plan = plans.find(p => p.id === planId);
   // Reutiliza o modal-new-plan mas em modo "adicionar linhas"
-  document.getElementById('new-plan-title').textContent = `➕ Adicionar linhas — ${plan ? plan.nome : ''}`;
+  document.getElementById('new-plan-title').textContent = t('title_adicionar_linhas', { nome: plan ? plan.nome : '' });
   // Esconder campos de criação, mostrar só paste
   document.getElementById('np-nome').parentElement.style.display = 'none';
   document.getElementById('np-data').closest('.form-row').style.display = 'none';
@@ -2811,7 +3199,7 @@ function openAddLinhasPintura(planId) {
   document.getElementById('np-paste-count').textContent = '';
   // Botão "Criar Plano" passa a "Adicionar"
   const btn = document.querySelector('#modal-new-plan .btn-confirm');
-  btn.textContent = 'Adicionar Linhas';
+  btn.textContent = t('btn_adicionar_linhas');
   btn.onclick = () => addLinhasPintura(planId, plan ? plan.grupo : 'ambos');
   openModal('modal-new-plan');
 }
@@ -2819,7 +3207,7 @@ function openAddLinhasPintura(planId) {
 async function addLinhasPintura(planId, grupo) {
   const tsv = document.getElementById('np-paste-area').value;
   const items = parsePasteData(tsv, grupo);
-  if (!items.length) { showToast('Nenhuma linha reconhecida'); return; }
+  if (!items.length) { showToast(t('toast_nenhuma_linha')); return; }
 
   const newItems = items.map(it => ({
     id: uid(),
@@ -2848,10 +3236,10 @@ async function addLinhasPintura(planId, grupo) {
   document.getElementById('np-data').closest('.form-row').style.display = '';
   document.getElementById('np-grupo').parentElement.style.display = '';
   const btn = document.querySelector('#modal-new-plan .btn-confirm');
-  btn.textContent = 'Criar Plano';
+  btn.textContent = t('btn_criar_plano');
   btn.onclick = () => createPlan();
 
-  showToast(`${newItems.length} linha(s) adicionada(s) ✓`);
+  showToast(t(newItems.length === 1 ? 'toast_linhas_adicionadas_one' : 'toast_linhas_adicionadas_many', { count: newItems.length }));
 
   // Inserir no Supabase
   const h = { ...SB_HDR };
@@ -2869,7 +3257,7 @@ async function addLinhasPintura(planId, grupo) {
     await sbFetch('/plan_items', { method: 'POST', prefer: 'return=minimal', body: rows });
     await loadPlans();
     if (state.openPlanId === planId) renderDetail(plans.find(p => p.id === planId));
-  } catch(e) { showToast('Erro ao guardar: ' + e.message); }
+  } catch(e) { showToast(t('toast_erro_guardar', { msg: e.message })); }
 }
 
 // =====================================================
@@ -2877,15 +3265,15 @@ async function addLinhasPintura(planId, grupo) {
 // =====================================================
 async function deleteCargaItem(e, planId, itemId) {
   e.stopPropagation();
-  if (!confirm('Remover esta linha do plano de carga?')) return;
+  if (!confirm(t('confirm_remover_linha_carga'))) return;
   try {
     await sbFetch('/plan_items?id=eq.' + itemId, { method: 'DELETE' });
     const plan = plans.find(p => p.id === planId);
     if (plan) plan.items = plan.items.filter(i => i.id !== itemId);
     renderDetail(plan);
     renderAll();
-    showToast('Linha removida ✓');
-  } catch(err) { showToast('Erro: ' + err.message); }
+    showToast(t('toast_linha_removida'));
+  } catch(err) { showToast(t('toast_erro_generico', { msg: err.message })); }
 }
 
 // =====================================================
@@ -2900,8 +3288,8 @@ function openPinturaTabela(planId) {
   const isColunas = plan.grupo === 'colunas';
   const thStyle = 'padding:6px 8px;text-align:left;background:var(--primary);color:#fff;white-space:nowrap;position:sticky;top:0';
   const cols = isColunas
-    ? ['Prior.','Camião','OV','Modelo','Qt','Utilização','Pintura','Sep.','Entr.']
-    : ['Camião','OV','Modelo','Descrição','Qt','Utilização','Pintura','Sep.','Entr.'];
+    ? [t('col_prior'), t('col_camiao'), t('col_ov'), t('col_modelo'), t('col_qt'), t('col_utilizacao'), t('col_pintura'), t('col_sep'), t('col_entr')]
+    : [t('col_camiao'), t('col_ov'), t('col_modelo'), t('col_descricao'), t('col_qt'), t('col_utilizacao'), t('col_pintura'), t('col_sep'), t('col_entr')];
 
   document.getElementById('ptab-head').innerHTML =
     '<tr>' + cols.map(c => `<th style="${thStyle}">${c}</th>`).join('') + '</tr>';
@@ -2936,19 +3324,19 @@ function openPinturaTabela(planId) {
 
 function openPinturaDescModal(planId, itemId) {
   const plan = plans.find(p => p.id === planId);
-  if (!plan) { console.warn('openPinturaDescModal: plan not found', planId); showToast('⚠ Plano não encontrado'); return; }
+  if (!plan) { console.warn('openPinturaDescModal: plan not found', planId); showToast(t('toast_plano_nao_encontrado')); return; }
   const item = plan.items.find(i => i.id === itemId);
-  if (!item) { console.warn('openPinturaDescModal: item not found', itemId, 'in plan', planId, 'items:', plan.items.map(i=>i.id)); showToast('⚠ Item não encontrado'); return; }
+  if (!item) { console.warn('openPinturaDescModal: item not found', itemId, 'in plan', planId, 'items:', plan.items.map(i=>i.id)); showToast(t('toast_item_nao_encontrado')); return; }
 
   document.getElementById('pdesc-title').textContent = item.model || '—';
-  document.getElementById('pdesc-ov').textContent = `OV ${item.ov || '—'}  ·  Camião: ${item.cesta || plan.nome}`;
-  document.getElementById('pdesc-desc').textContent = item.desc || '(sem descrição)';
+  document.getElementById('pdesc-ov').textContent = `OV ${item.ov || '—'}  ·  ${t('label_camiao_colon')} ${item.cesta || plan.nome}`;
+  document.getElementById('pdesc-desc').textContent = item.desc || t('label_sem_descricao');
 
   // meta badges
   const metaEl = document.getElementById('pdesc-meta');
   const parts = [];
-  if (item.qtyPedida > 0) parts.push(`<span style="background:var(--primary);color:#fff;border-radius:6px;padding:3px 10px;font-size:12px;font-weight:600">${item.qtyPedida} un.</span>`);
-  if (item.fiada && item.fiada !== '—') parts.push(`<span style="background:var(--warning-light);color:var(--warning);border-radius:6px;padding:3px 10px;font-size:12px;font-weight:600">Prioridade ${item.fiada}</span>`);
+  if (item.qtyPedida > 0) parts.push(`<span style="background:var(--primary);color:#fff;border-radius:6px;padding:3px 10px;font-size:12px;font-weight:600">${t('label_qty_pcs', { qty: item.qtyPedida })}</span>`);
+  if (item.fiada && item.fiada !== '—') parts.push(`<span style="background:var(--warning-light);color:var(--warning);border-radius:6px;padding:3px 10px;font-size:12px;font-weight:600">${t('label_prioridade_val', { fiada: item.fiada })}</span>`);
   if (item.entregueNota) parts.push(`<span style="background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:3px 10px;font-size:12px">📋 ${escHtml(item.entregueNota)}</span>`);
   metaEl.innerHTML = parts.join('');
 
@@ -2956,8 +3344,8 @@ function openPinturaDescModal(planId, itemId) {
   const actEl = document.getElementById('pdesc-actions');
   const sepFull = item.qtySeparada >= item.qtyPedida && item.qtyPedida > 0;
   const entrFull = item.qtyEntregue >= item.qtySeparada && item.qtySeparada > 0;
-  const sepLabel = item.qtySeparada > 0 ? `📦 ${item.qtySeparada}/${item.qtyPedida} sep.` : `📦 Separar`;
-  const entrLabel = item.qtyEntregue > 0 ? `✅ ${item.qtyEntregue}/${item.qtySeparada||item.qtyPedida} entr.` : `✅ Entregar`;
+  const sepLabel = item.qtySeparada > 0 ? `📦 ${t('label_sep_progress', { sep: item.qtySeparada, total: item.qtyPedida })}` : t('btn_separar_label');
+  const entrLabel = item.qtyEntregue > 0 ? `✅ ${t('label_entr_progress', { entr: item.qtyEntregue, total: item.qtySeparada||item.qtyPedida })}` : t('btn_entregar_label');
   actEl.innerHTML = `
     <button class="btn-sep ${sepFull?'done':''}" style="flex:1" onclick="closeModal('modal-pintura-desc');openQtyModal('${planId}','${itemId}','sep')">${sepLabel}</button>
     <button class="btn-entr ${entrFull?'done':''}" style="flex:1" onclick="closeModal('modal-pintura-desc');openQtyModal('${planId}','${itemId}','entr')">${entrLabel}</button>
@@ -2968,15 +3356,15 @@ function openPinturaDescModal(planId, itemId) {
 
 async function deletePinturaItem(e, planId, itemId) {
   e.stopPropagation();
-  if (!confirm('Remover esta linha do plano?')) return;
+  if (!confirm(t('confirm_remover_linha'))) return;
   try {
     await sbFetch('/plan_items?id=eq.' + itemId, { method: 'DELETE' });
     const plan = plans.find(p => p.id === planId);
     if (plan) plan.items = plan.items.filter(i => i.id !== itemId);
     renderDetail(plan);
     renderAll();
-    showToast('Linha removida ✓');
-  } catch(err) { showToast('Erro: ' + err.message); }
+    showToast(t('toast_linha_removida'));
+  } catch(err) { showToast(t('toast_erro_generico', { msg: err.message })); }
 }
 
 // =====================================================
@@ -3020,12 +3408,12 @@ function openEmailModal() {
         ${escHtml(e.subject).replace(escHtml(e.planName), `<span class="plan-highlight">${escHtml(e.planName)}</span>`)}
       </div>
       <div class="email-meta">
-        De: ${escHtml(e.from)} · ${formatTime(e.date)}
+        ${t('label_de_colon')} ${escHtml(e.from)} · ${formatTime(e.date)}
         ${e.hasAttachment ? `<span class="attachment-badge">📎 ${e.attachmentName}</span>` : ''}
       </div>
       <div class="email-actions">
-        <button class="btn-ver-email" onclick="simVerEmail('${e.id}')">👁 Ver email</button>
-        <button class="btn-import" onclick="simImportEmail('${e.id}')">📥 Importar PDF</button>
+        <button class="btn-ver-email" onclick="simVerEmail('${e.id}')">${t('btn_ver_email')}</button>
+        <button class="btn-import" onclick="simImportEmail('${e.id}')">${t('btn_importar_pdf')}</button>
       </div>
     </div>
   `).join('');
@@ -3034,7 +3422,7 @@ function openEmailModal() {
 
 function simVerEmail(emailId) {
   const e = SIMULATED_EMAILS.find(x => x.id === emailId);
-  alert(`De: ${e.from}\nAssunto: ${e.subject}\n\nConteúdo simulado:\nAnexo: ${e.attachmentName}\n\nPlano de carga para semana 23. Ver PDF em anexo.`);
+  alert(t('email_alert_template', { from: e.from, subject: e.subject, attachment: e.attachmentName }));
 }
 
 function simImportEmail(emailId) {
@@ -3043,13 +3431,13 @@ function simImportEmail(emailId) {
 
   // Pre-fill new plan modal with email data
   state.newPlanTipo = 'carga';
-  document.getElementById('new-plan-title').textContent = '📥 Importar Plano do Email';
+  document.getElementById('new-plan-title').textContent = t('title_importar_email');
   document.getElementById('np-nome').value = e.planName;
   document.getElementById('np-data').value = todayStr();
   document.getElementById('np-hora-group').style.display = '';
   document.getElementById('np-trans-group').style.display = '';
   openModal('modal-new-plan');
-  showToast(`PDF "${e.attachmentName}" importado (simulado)`);
+  showToast(t('toast_pdf_importado_sim', { name: e.attachmentName }));
 }
 
 // =====================================================
@@ -3089,13 +3477,13 @@ async function openPdfViewer(planId) {
       <div style="background:#fff;border-radius:12px;padding:48px 32px;text-align:center;color:#334155;max-width:480px">
         <div style="font-size:48px;margin-bottom:12px">📄</div>
         <div style="font-size:20px;font-weight:700;color:#1a5fa8;margin-bottom:8px">${plan.nome}</div>
-        <div style="color:#64748b;font-size:14px;margin-bottom:4px">Data: ${formatDate(plan.data)}${plan.horaCarregar ? ' · ' + plan.horaCarregar : ''}</div>
-        <div style="color:#94a3b8;font-size:13px;margin:18px 0">Este plano ainda não tem o PDF/print anexado.</div>
+        <div style="color:#64748b;font-size:14px;margin-bottom:4px">${t('label_data_colon')} ${formatDate(plan.data)}${plan.horaCarregar ? ' · ' + plan.horaCarregar : ''}</div>
+        <div style="color:#94a3b8;font-size:13px;margin:18px 0">${t('pdf_no_content_msg')}</div>
         ${isAdmin ? `
           <input type="file" id="pdf-upload-input" accept="application/pdf,image/*" style="display:none" onchange="uploadPdfToPlan('${plan.id}', event)">
-          <button onclick="document.getElementById('pdf-upload-input').click()" style="background:#1a5fa8;color:#fff;padding:12px 22px;border:none;border-radius:10px;font-size:15px;font-weight:600;cursor:pointer">📎 Carregar PDF / Print</button>
-          <div style="color:#94a3b8;font-size:12px;margin-top:10px">Anexa o PDF da carga ou um print do Excel</div>
-        ` : `<div style="color:#94a3b8;font-size:12px">Pede a um admin para anexar o documento.</div>`}
+          <button onclick="document.getElementById('pdf-upload-input').click()" style="background:#1a5fa8;color:#fff;padding:12px 22px;border:none;border-radius:10px;font-size:15px;font-weight:600;cursor:pointer">${t('btn_carregar_pdf')}</button>
+          <div style="color:#94a3b8;font-size:12px;margin-top:10px">${t('pdf_upload_hint')}</div>
+        ` : `<div style="color:#94a3b8;font-size:12px">${t('pdf_ask_admin')}</div>`}
       </div>`;
     document.getElementById('pdf-page-info').textContent = '— / —';
   }
@@ -3107,7 +3495,7 @@ async function openPdfViewer(planId) {
 async function uploadPdfToPlan(planId, event) {
   const file = event.target.files[0];
   if (!file) return;
-  if (file.size > 4 * 1024 * 1024) { showToast('Ficheiro demasiado grande (máx 4MB)'); return; }
+  if (file.size > 4 * 1024 * 1024) { showToast(t('toast_ficheiro_grande')); return; }
   const reader = new FileReader();
   reader.onload = async () => {
     const dataUrl = reader.result; // data:...;base64,xxxx
@@ -3115,10 +3503,10 @@ async function uploadPdfToPlan(planId, event) {
       await dbUpdatePlan(planId, { pdf_base64: dataUrl, pdf_name: file.name });
       const plan = plans.find(p => p.id === planId);
       if (plan) { plan.pdfBase64 = dataUrl; plan.pdfName = file.name; }
-      showToast('PDF anexado ✓');
+      showToast(t('toast_pdf_anexado'));
       openPdfViewer(planId); // recarrega o visualizador já com o documento
     } catch(e) {
-      showToast('Erro ao guardar PDF');
+      showToast(t('toast_erro_guardar_pdf'));
     }
   };
   reader.readAsDataURL(file);
@@ -3126,7 +3514,7 @@ async function uploadPdfToPlan(planId, event) {
 
 async function loadPdfFromBase64(b64) {
   try {
-    if (typeof pdfjsLib === 'undefined') { showToast('pdf.js não carregado'); return; }
+    if (typeof pdfjsLib === 'undefined') { showToast(t('toast_pdfjs_nao_carregado')); return; }
     pdfjsLib.GlobalWorkerOptions.workerSrc =
       'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
     const raw = atob(b64);
@@ -3137,7 +3525,7 @@ async function loadPdfFromBase64(b64) {
     state.pdfTotalPages = state.pdfDoc.numPages;
     renderPdfPage(1);
   } catch(e) {
-    showToast('Erro ao carregar PDF');
+    showToast(t('toast_erro_carregar_pdf'));
   }
 }
 
