@@ -1376,6 +1376,7 @@ input, textarea, select { font-family: inherit; font-size: inherit; }
       <div style="background:var(--bg);border-radius:8px;padding:12px 14px;font-size:14px;line-height:1.6;color:var(--text)" id="pdesc-desc"></div>
     </div>
     <div style="padding:4px 4px 8px;display:flex;gap:8px;flex-wrap:wrap" id="pdesc-meta"></div>
+    <div id="pdesc-stock" class="stock-loc-box" style="display:none"></div>
     <div style="display:flex;gap:8px;padding:4px 4px 0" id="pdesc-actions"></div>
   </div>
 </div>
@@ -2330,10 +2331,11 @@ async function loadStockLocations() {
   }
 }
 
-// Devolve { total, locais[] } ou null se não houver registo desse material
+// Devolve { total, locais[] } ou null se não houver registo desse material.
+// Serve carga e pintura: como o parque só tem acessórios, a própria
+// correspondência faz de filtro (verificado: 0 colunas dão match).
 function stockFor(item) {
   if (!stockIndex || !item) return null;
-  if (!ACESSORIOS_TIPOS.includes(item.tipoGalva)) return null;   // só acessórios
   const tentar = [item.ref, item.model];
   for (const chave of tentar) {
     if (!chave) continue;
@@ -3218,6 +3220,21 @@ function stockBadge(item) {
   return `<div class="stock-badge">📍 ${resumo} · <b>${s.total}</b> ${t('dash_unidades')}</div>`;
 }
 
+// Preenche um contentor com a lista de cestas onde o material está (ou esconde-o)
+function renderStockLocations(el, item) {
+  if (!el) return;
+  const s = stockFor(item);
+  if (!s) { el.style.display = 'none'; el.innerHTML = ''; return; }
+  el.innerHTML = `
+    <div class="stock-loc-title">${t('stock_titulo')} — <b>${s.total}</b> ${t('dash_unidades')}</div>
+    ${s.locais.map(l => `
+      <div class="stock-loc-row">
+        <span class="stock-loc-cesta">📍 ${escHtml(l.cesta || '—')}${l.fiada ? ' · ' + escHtml(l.fiada) : ''}</span>
+        <span class="stock-loc-qty">${l.qty}</span>
+      </div>`).join('')}`;
+  el.style.display = '';
+}
+
 function renderItemRow(item, plan, opts) {
   opts = opts || {};
   const tipo = plan.tipo;
@@ -3306,6 +3323,7 @@ function renderItemRow(item, plan, opts) {
           ${qtyHtml}
         </div>
         <div style="font-size:13px;color:var(--text-muted);margin-top:1px">OV ${escHtml(item.ov || '—')}</div>
+        ${stockBadge(item)}
         ${(utilizacaoHtml || tipoPinturaHtml) ? `<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:3px">${utilizacaoHtml}${tipoPinturaHtml}</div>` : ''}
       </div>
       <div class="pintura-actions" style="display:flex;flex-direction:column;gap:4px;align-items:flex-end">
@@ -3348,21 +3366,7 @@ function openQtyModal(planId, itemId, action) {
     `<span>📦 ${escHtml(item.cesta || '—')}</span><span>🗂 ${escHtml(item.fiada || '—')}</span>`;
 
   // Localizações no parque de acessórios (app externa) — onde ir buscar o material
-  const stockEl = document.getElementById('qty-modal-stock');
-  const s = stockFor(item);
-  if (s) {
-    const linhas = s.locais.map(l => `
-      <div class="stock-loc-row">
-        <span class="stock-loc-cesta">📍 ${escHtml(l.cesta || '—')}${l.fiada ? ' · ' + escHtml(l.fiada) : ''}</span>
-        <span class="stock-loc-qty">${l.qty}</span>
-      </div>`).join('');
-    stockEl.innerHTML = `
-      <div class="stock-loc-title">${t('stock_titulo')} — <b>${s.total}</b> ${t('dash_unidades')}</div>
-      ${linhas}`;
-    stockEl.style.display = '';
-  } else {
-    stockEl.style.display = 'none';
-  }
+  renderStockLocations(document.getElementById('qty-modal-stock'), item);
 
   const input = document.getElementById('qty-input');
   input.value = currentVal > 0 ? currentVal : maxQty;
@@ -3949,6 +3953,9 @@ function openPinturaDescModal(planId, itemId) {
   if (item.fiada && item.fiada !== '—') parts.push(`<span style="background:var(--warning-light);color:var(--warning);border-radius:6px;padding:3px 10px;font-size:12px;font-weight:600">${t('label_prioridade_val', { fiada: item.fiada })}</span>`);
   if (item.entregueNota) parts.push(`<span style="background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:3px 10px;font-size:12px">📋 ${escHtml(item.entregueNota)}</span>`);
   metaEl.innerHTML = parts.join('');
+
+  // Localizações no parque de acessórios
+  renderStockLocations(document.getElementById('pdesc-stock'), item);
 
   // action buttons
   const actEl = document.getElementById('pdesc-actions');
