@@ -17,7 +17,7 @@ SUPABASE_KEY = os.environ["SUPABASE_KEY"]
 ANTHROPIC_KEY = os.environ["ANTHROPIC_API_KEY"]
 MS_TENANT_ID  = os.environ["MS_TENANT_ID"]
 MS_CLIENT_ID  = os.environ["MS_CLIENT_ID"]
-MS_CLIENT_SECRET = os.environ["MS_CLIENT_SECRET"]
+MS_CLIENT_SECRET = os.environ.get("MS_CLIENT_SECRET", "")
 MS_REFRESH_TOKEN = os.environ["MS_REFRESH_TOKEN"]
 MS_USER_EMAIL = os.environ.get("MS_USER_EMAIL", "brunopessoa@metalogalva.pt")
 
@@ -31,15 +31,17 @@ SUPABASE_HEADERS = {
 
 # ── Microsoft Graph — autenticação ───────────────────────────────────────
 def get_ms_token():
+    data = {
+        "grant_type":    "refresh_token",
+        "client_id":     MS_CLIENT_ID,
+        "refresh_token": MS_REFRESH_TOKEN,
+        "scope":         "https://graph.microsoft.com/Mail.Read offline_access",
+    }
+    if MS_CLIENT_SECRET:
+        data["client_secret"] = MS_CLIENT_SECRET
     resp = requests.post(
         f"https://login.microsoftonline.com/{MS_TENANT_ID}/oauth2/v2.0/token",
-        data={
-            "grant_type":    "refresh_token",
-            "client_id":     MS_CLIENT_ID,
-            "client_secret": MS_CLIENT_SECRET,
-            "refresh_token": MS_REFRESH_TOKEN,
-            "scope":         "https://graph.microsoft.com/Mail.Read offline_access",
-        },
+        data=data,
         timeout=15,
     )
     resp.raise_for_status()
@@ -186,7 +188,7 @@ def analyze_with_claude(pdf_b64, subject, email_body, received_date):
     client = anthropic.Anthropic(api_key=ANTHROPIC_KEY)
 
     msg = client.messages.create(
-        model="claude-sonnet-4-6",
+        model="claude-sonnet-5",
         max_tokens=8192,
         messages=[{
             "role": "user",
