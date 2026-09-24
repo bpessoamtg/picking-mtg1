@@ -637,6 +637,44 @@ input, textarea, select { font-family: inherit; font-size: inherit; }
   color: var(--text-muted);
   margin-top: 2px;
 }
+/* Localização no parque de acessórios (dados da app de stock) */
+.stock-badge {
+  display: inline-block;
+  margin-top: 3px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #0e7490;
+  background: #ecfeff;
+  border: 1px solid #a5e8f5;
+  border-radius: 5px;
+  padding: 2px 7px;
+}
+.stock-loc-box {
+  background: #ecfeff;
+  border: 1px solid #a5e8f5;
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  margin: 4px 0 8px;
+  max-height: 168px;
+  overflow-y: auto;
+}
+.stock-loc-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: #0e7490;
+  margin-bottom: 6px;
+}
+.stock-loc-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  padding: 3px 0;
+  border-top: 1px solid rgba(14,116,144,0.13);
+}
+.stock-loc-cesta { color: var(--text); font-weight: 600; }
+.stock-loc-qty { font-weight: 800; color: #0e7490; flex-shrink: 0; }
 .montagem-extra-badge {
   display: inline-flex;
   align-items: center;
@@ -1311,6 +1349,7 @@ input, textarea, select { font-family: inherit; font-size: inherit; }
     <div class="qty-modal-desc" id="qty-modal-desc"></div>
     <div id="qty-modal-montagem-extra" style="display:none"></div>
     <div class="qty-modal-location" id="qty-modal-location"></div>
+    <div id="qty-modal-stock" class="stock-loc-box" style="display:none"></div>
     <div class="qty-input-wrap">
       <button onclick="adjustQty(-1)" style="font-size:24px;width:44px;height:44px;border-radius:50%;background:var(--bg);border:2px solid var(--border);">−</button>
       <input type="number" class="qty-input" id="qty-input" min="0" oninput="clampQty()">
@@ -1570,6 +1609,9 @@ const I18N = {
     dash_sem_atividade: 'Ainda sem registos hoje',
     dash_lb_separadas: 'sep.',
     dash_lb_entregues: 'entr. pintura',
+    // Stock do parque
+    stock_titulo: 'Stock no parque',
+    stock_n_locais: '{n} cestas',
     // Filters
     filter_hoje: 'Hoje',
     filter_amanha: 'Amanhã',
@@ -1765,6 +1807,9 @@ const I18N = {
     dash_sem_atividade: 'Nothing recorded yet today',
     dash_lb_separadas: 'picked',
     dash_lb_entregues: 'delivered',
+    // Stock do parque
+    stock_titulo: 'Stock in the yard',
+    stock_n_locais: '{n} baskets',
     // Filters
     filter_hoje: 'Today',
     filter_amanha: 'Tomorrow',
@@ -2244,6 +2289,63 @@ async function loadPlans() {
 
 function savePlans() { /* substituído por writes individuais */ }
 
+// =====================================================
+// STOCK DO PARQUE DE ACESSÓRIOS (app externa, base de dados separada)
+// Leitura apenas — serve para mostrar ao operador onde está o material.
+// Só cobre acessórios; as colunas não estão nessa app.
+// =====================================================
+const STOCK_URL  = 'https://cjqnidiydxpjxdgfphit.supabase.co/rest/v1';
+const STOCK_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNqcW5pZGl5ZHhwanhkZ2ZwaGl0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM4MjM1NTcsImV4cCI6MjA4OTM5OTU1N30.YhBsA_JBQ_B0EB50LMx1b4d3OoNgRz-xwCIJ4nij9YU';
+
+// chave (código SAP ou modelo, em maiúsculas) → [{cesta, fiada, quantidade}, ...]
+let stockIndex = null;
+
+async function loadStockLocations() {
+  try {
+    const res = await fetch(
+      `${STOCK_URL}/stock_items?select=modelo,cod_sap,cesta,fiada,quantidade`,
+      { headers: { apikey: STOCK_ANON, Authorization: 'Bearer ' + STOCK_ANON } }
+    );
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const rows = await res.json();
+
+    const idx = new Map();
+    const add = (key, row) => {
+      if (!key) return;
+      const k = String(key).trim().toUpperCase();
+      if (!k) return;
+      if (!idx.has(k)) idx.set(k, []);
+      idx.get(k).push(row);
+    };
+    rows.forEach(r => {
+      const row = { cesta: r.cesta, fiada: r.fiada, qty: r.quantidade || 0 };
+      add(r.cod_sap, row);
+      add(r.modelo, row);
+    });
+    stockIndex = idx;
+  } catch (e) {
+    // O stock é um extra: se falhar, a app tem de continuar a funcionar na mesma.
+    console.warn('Stock do parque indisponível:', e.message);
+    stockIndex = null;
+  }
+}
+
+// Devolve { total, locais[] } ou null se não houver registo desse material
+function stockFor(item) {
+  if (!stockIndex || !item) return null;
+  if (!ACESSORIOS_TIPOS.includes(item.tipoGalva)) return null;   // só acessórios
+  const tentar = [item.ref, item.model];
+  for (const chave of tentar) {
+    if (!chave) continue;
+    const hit = stockIndex.get(String(chave).trim().toUpperCase());
+    if (hit && hit.length) {
+      const locais = [...hit].sort((a, b) => b.qty - a.qty);
+      return { total: locais.reduce((s, l) => s + l.qty, 0), locais };
+    }
+  }
+  return null;
+}
+
 async function dbUpdateItem(itemId, fields) {
   try {
     await sbFetch(`/plan_items?id=eq.${itemId}`, { method: 'PATCH', body: fields });
@@ -2386,6 +2488,8 @@ async function showApp() {
       new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 8000))
     ]);
     subscribeRealtime();
+    // Localizações do parque: extra opcional, nunca bloqueia o arranque da app
+    loadStockLocations().then(() => { if (stockIndex) renderAll(); });
   } catch(e) {
     console.error('showApp:', e);
     showToast(e.message === 'timeout'
@@ -3103,6 +3207,17 @@ function renderDetail(plan) {
   document.getElementById('detail-content').innerHTML = html;
 }
 
+// Resumo de localização do parque para a linha do item (só acessórios com registo)
+function stockBadge(item) {
+  const s = stockFor(item);
+  if (!s) return '';
+  const p = s.locais[0];
+  const resumo = s.locais.length === 1
+    ? `${escHtml(p.cesta || '—')}${p.fiada ? ' · ' + escHtml(p.fiada) : ''}`
+    : t('stock_n_locais', { n: s.locais.length });
+  return `<div class="stock-badge">📍 ${resumo} · <b>${s.total}</b> ${t('dash_unidades')}</div>`;
+}
+
 function renderItemRow(item, plan, opts) {
   opts = opts || {};
   const tipo = plan.tipo;
@@ -3136,6 +3251,7 @@ function renderItemRow(item, plan, opts) {
         </div>
         <div class="item-desc">${escHtml(item.desc)}</div>
         <div class="item-info">📦 ${escHtml(item.cesta || '—')} · OV ${escHtml(item.ov || '—')}</div>
+        ${stockBadge(item)}
         ${item.montagemExtra ? `<div class="montagem-extra-badge">⚙️ ${escHtml(item.montagemExtra)}</div>` : ''}
       </div>
       <div class="item-status-wrap">
@@ -3230,6 +3346,23 @@ function openQtyModal(planId, itemId, action) {
   }
   document.getElementById('qty-modal-location').innerHTML =
     `<span>📦 ${escHtml(item.cesta || '—')}</span><span>🗂 ${escHtml(item.fiada || '—')}</span>`;
+
+  // Localizações no parque de acessórios (app externa) — onde ir buscar o material
+  const stockEl = document.getElementById('qty-modal-stock');
+  const s = stockFor(item);
+  if (s) {
+    const linhas = s.locais.map(l => `
+      <div class="stock-loc-row">
+        <span class="stock-loc-cesta">📍 ${escHtml(l.cesta || '—')}${l.fiada ? ' · ' + escHtml(l.fiada) : ''}</span>
+        <span class="stock-loc-qty">${l.qty}</span>
+      </div>`).join('');
+    stockEl.innerHTML = `
+      <div class="stock-loc-title">${t('stock_titulo')} — <b>${s.total}</b> ${t('dash_unidades')}</div>
+      ${linhas}`;
+    stockEl.style.display = '';
+  } else {
+    stockEl.style.display = 'none';
+  }
 
   const input = document.getElementById('qty-input');
   input.value = currentVal > 0 ? currentVal : maxQty;
