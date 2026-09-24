@@ -200,26 +200,26 @@ input, textarea, select { font-family: inherit; font-size: inherit; }
 .group-toggle {
   display: flex;
   gap: 4px;
-  background: rgba(255,255,255,0.15);
+  background: var(--card);
+  border: 1.5px solid var(--border);
   border-radius: 20px;
   padding: 3px;
   margin: 8px 16px 0;
 }
 .group-toggle button {
   flex: 1;
-  padding: 6px 10px;
+  padding: 7px 10px;
   border-radius: 16px;
   font-size: 13px;
   font-weight: 700;
-  color: #fff;
-  background: rgba(255,255,255,0.18);
+  color: var(--text-muted);
+  background: transparent;
   transition: all 0.2s;
-  border: 1.5px solid rgba(255,255,255,0.25);
+  border: none;
 }
 .group-toggle button.active {
-  background: #fff;
-  color: var(--primary);
-  border-color: #fff;
+  background: var(--primary);
+  color: #fff;
 }
 
 /* Tabs */
