@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>Parque MTG1 — Picking</title>
+<title>Expedição MTG1 - M3</title>
 
 <!-- pdf.js CDN -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
@@ -12,7 +12,7 @@
 <!-- Sem CDN Supabase — usa REST API nativa -->
 <!-- PWA manifest -->
 <link rel="manifest" href="manifest.webmanifest">
-<meta name="theme-color" content="#1a5fa8">
+<meta name="theme-color" content="#092642">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -73,7 +73,7 @@ input, textarea, select { font-family: inherit; font-size: inherit; }
   align-items: center;
   justify-content: center;
   padding: 24px;
-  background: linear-gradient(135deg, var(--primary) 0%, #1e40af 100%);
+  background: linear-gradient(160deg, #123a63 0%, #092642 60%, #071d33 100%);
 }
 .login-card {
   background: var(--card);
@@ -87,6 +87,7 @@ input, textarea, select { font-family: inherit; font-size: inherit; }
   text-align: center;
   margin-bottom: 28px;
 }
+.login-logo-img { width: 54px; height: auto; margin-bottom: 10px; }
 .login-logo h1 {
   font-size: 22px;
   font-weight: 700;
@@ -147,20 +148,43 @@ input, textarea, select { font-family: inherit; font-size: inherit; }
   background: var(--bg);
 }
 .app-header {
-  background: var(--primary);
+  /* Fundo institucional Metalogalva + véu escuro para o texto continuar legível */
+  background-image:
+    linear-gradient(rgba(9, 38, 66, 0.66), rgba(9, 38, 66, 0.86)),
+    url('header-bg.png');
+  background-size: cover;
+  background-position: center 90%;
   color: #fff;
-  padding: 14px 16px 10px;
+  padding: 11px 16px;
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 12px;
   position: sticky;
   top: 0;
   z-index: 100;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  box-shadow: 0 2px 10px rgba(0,0,0,0.18);
 }
-.app-header-left { display: flex; align-items: center; gap: 10px; }
-.app-header h1 { font-size: 17px; font-weight: 700; letter-spacing: -0.3px; }
-.app-header-sub { font-size: 12px; opacity: 0.8; }
+.app-header-left { display: flex; align-items: center; gap: 11px; min-width: 0; }
+/* Logótipo: se o ficheiro logo.png não existir, cai no emblema abaixo */
+.brand-logo { height: 34px; width: auto; max-width: 140px; object-fit: contain; flex-shrink: 0; }
+.brand-mark {
+  width: 34px; height: 34px; border-radius: 9px;
+  background: rgba(255,255,255,0.16);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px; flex-shrink: 0;
+}
+.app-title { font-size: 16px; font-weight: 800; letter-spacing: -0.2px; line-height: 1.15; }
+.app-header-sub {
+  font-size: 11.5px;
+  opacity: 0.85;
+  margin-top: 2px;
+  display: flex;
+  align-items: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 .btn-logout {
   background: rgba(255,255,255,0.2);
   color: #fff;
@@ -233,6 +257,11 @@ input, textarea, select { font-family: inherit; font-size: inherit; }
   display: none;
 }
 .tab-badge.has-count { display: inline-block; }
+/* Com três separadores, em ecrãs estreitos é preciso apertar para o badge não cortar */
+@media (max-width: 430px) {
+  .tab-btn { font-size: 12px; padding: 11px 3px; gap: 4px; }
+  .tab-badge { font-size: 10px; padding: 1px 5px; min-width: 17px; }
+}
 
 /* Tab content */
 .tab-content { display: none; flex: 1; padding: 12px; flex-direction: column; gap: 10px; }
@@ -927,6 +956,122 @@ input, textarea, select { font-family: inherit; font-size: inherit; }
 .empty-state .emoji { font-size: 48px; margin-bottom: 12px; }
 .empty-state p { font-size: 15px; }
 
+/* =====================================================
+   DASHBOARD (admin)
+===================================================== */
+.dash-section { margin-bottom: 22px; }
+.dash-section-title {
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--text-muted);
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.dash-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 10px;
+}
+.dash-card {
+  background: var(--card);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  padding: 14px 14px 12px;
+  box-shadow: var(--shadow);
+  position: relative;
+  overflow: hidden;
+}
+.dash-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  background: var(--accent, var(--primary));
+}
+.dash-card-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+}
+.dash-card-value {
+  font-size: 26px;
+  font-weight: 800;
+  color: var(--text);
+  line-height: 1.1;
+}
+.dash-card-value small { font-size: 14px; font-weight: 600; color: var(--text-muted); }
+.dash-card-sub {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 4px;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.dash-card-sub .ok { color: var(--success); font-weight: 700; }
+.dash-card-sub .pending { color: var(--warning); font-weight: 700; }
+
+.dash-splitbar-card { background: var(--card); border-radius: var(--radius-sm); border: 1px solid var(--border); padding: 14px; box-shadow: var(--shadow); }
+.dash-splitbar-title { font-size: 13px; font-weight: 700; color: var(--text); margin-bottom: 10px; }
+.dash-splitbar-row { margin-bottom: 12px; }
+.dash-splitbar-row:last-child { margin-bottom: 0; }
+.dash-splitbar-labels { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 4px; }
+.dash-splitbar-labels .l1 { color: var(--cg-color); font-weight: 700; }
+.dash-splitbar-labels .l2 { color: var(--ag-color); font-weight: 700; }
+.dash-splitbar-track { display: flex; height: 10px; border-radius: 6px; overflow: hidden; background: var(--bg); }
+.dash-splitbar-seg1 { background: var(--cg-color); height: 100%; }
+.dash-splitbar-seg2 { background: var(--ag-color); height: 100%; }
+
+.dash-weekchart {
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+  height: 110px;
+  background: var(--card);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  padding: 14px 10px 8px;
+  box-shadow: var(--shadow);
+}
+.dash-weekchart-col { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; gap: 4px; }
+.dash-weekchart-bar { width: 100%; max-width: 28px; border-radius: 4px 4px 0 0; background: var(--primary); min-height: 3px; transition: height 0.3s; position: relative; }
+.dash-weekchart-bar.today { background: var(--success); }
+.dash-weekchart-n { font-size: 11px; font-weight: 700; color: var(--text); }
+.dash-weekchart-lbl { font-size: 10px; color: var(--text-muted); font-weight: 600; }
+
+.dash-list-card { background: var(--card); border-radius: var(--radius-sm); border: 1px solid var(--border); box-shadow: var(--shadow); overflow: hidden; }
+.dash-list-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+}
+.dash-list-row:last-child { border-bottom: none; }
+.dash-list-rank {
+  width: 22px; height: 22px; border-radius: 50%;
+  background: var(--bg); color: var(--text-muted);
+  font-size: 11px; font-weight: 800;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.dash-list-row:nth-child(1) .dash-list-rank { background: #fde68a; color: #92400e; }
+.dash-list-row:nth-child(2) .dash-list-rank { background: #e5e7eb; color: #374151; }
+.dash-list-row:nth-child(3) .dash-list-rank { background: #fed7aa; color: #9a3412; }
+.dash-list-main { flex: 1; min-width: 0; }
+.dash-list-name { font-weight: 700; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dash-list-detail { font-size: 11px; color: var(--text-muted); }
+.dash-list-value { font-weight: 800; color: var(--primary); font-size: 14px; flex-shrink: 0; }
+.dash-empty { text-align: center; color: var(--text-muted); font-size: 13px; padding: 20px; }
+
 /* Toast */
 #toast {
   position: fixed;
@@ -1004,7 +1149,8 @@ input, textarea, select { font-family: inherit; font-size: inherit; }
 <div id="screen-login" class="screen active">
   <div class="login-card">
     <div class="login-logo">
-      <h1>🏭 Parque MTG1</h1>
+      <img src="logo.png" alt="Metalogalva" class="login-logo-img" onerror="this.style.display='none'">
+      <h1>Expedição MTG1 - M3</h1>
       <p data-i18n="login_subtitle">metalogalva.pt — Gestão de Picking</p>
     </div>
     <div class="form-group">
@@ -1041,8 +1187,12 @@ input, textarea, select { font-family: inherit; font-size: inherit; }
   <!-- Header -->
   <div class="app-header">
     <div class="app-header-left">
-      <div>
-        <div class="app-header h1">🏭 Parque MTG1</div>
+      <img class="brand-logo" id="brand-logo" src="logo.png" alt="Metalogalva"
+           onload="document.getElementById('brand-mark').style.display='none'"
+           onerror="this.style.display='none'">
+      <div class="brand-mark" id="brand-mark">🏭</div>
+      <div style="min-width:0">
+        <div class="app-title">Expedição MTG1 - M3</div>
         <div class="app-header-sub" id="header-user-info"><span id="realtime-dot" class="offline"></span>—</div>
       </div>
     </div>
@@ -1065,6 +1215,9 @@ input, textarea, select { font-family: inherit; font-size: inherit; }
     <button class="tab-btn" id="tab-pintura-btn" onclick="switchTab('pintura')">
       <span data-i18n="tab_pintura">🎨 Planos de Pintura</span>
       <span class="tab-badge" id="badge-pintura">0</span>
+    </button>
+    <button class="tab-btn" id="tab-dashboard-btn" onclick="switchTab('dashboard')">
+      <span data-i18n="tab_dashboard">📊 Dashboard</span>
     </button>
   </div>
 
@@ -1097,6 +1250,11 @@ input, textarea, select { font-family: inherit; font-size: inherit; }
       <button class="btn-primary admin-only" id="btn-novo-pintura" onclick="openNewPlanModal('pintura')" style="display:none" data-i18n="btn_novo">+ Novo</button>
     </div>
     <div id="list-pintura"></div>
+  </div>
+
+  <!-- Dashboard Tab (admin) -->
+  <div class="tab-content" id="tab-dashboard">
+    <div id="dashboard-content"></div>
   </div>
 </div>
 
@@ -1394,6 +1552,24 @@ const I18N = {
     // Tabs
     tab_carga: '🚚 Planos de Carga',
     tab_pintura: '🎨 Planos de Pintura',
+    tab_dashboard: '📊 Dashboard',
+    // Dashboard
+    dash_planos: 'planos',
+    dash_prontos: 'prontos',
+    dash_pendentes: 'pendentes',
+    dash_unidades: 'un.',
+    dash_section_cargas: 'Cargas',
+    dash_section_colunas_acessorios: 'Colunas vs Acessórios',
+    dash_section_pintura: 'Pintura — pendente',
+    dash_falta_separar: 'Falta separar',
+    dash_falta_entregar: 'Falta entregar',
+    dash_section_semana: 'Cargas por dia — esta semana',
+    dash_section_prioridade: 'Prioridade (hoje + amanhã)',
+    dash_sem_pendentes: 'Sem itens pendentes 🎉',
+    dash_section_produtividade: 'Produtividade de hoje',
+    dash_sem_atividade: 'Ainda sem registos hoje',
+    dash_lb_separadas: 'sep.',
+    dash_lb_entregues: 'entr. pintura',
     // Filters
     filter_hoje: 'Hoje',
     filter_amanha: 'Amanhã',
@@ -1571,6 +1747,24 @@ const I18N = {
     // Tabs
     tab_carga: '🚚 Load Plans',
     tab_pintura: '🎨 Painting Plans',
+    tab_dashboard: '📊 Dashboard',
+    // Dashboard
+    dash_planos: 'plans',
+    dash_prontos: 'ready',
+    dash_pendentes: 'pending',
+    dash_unidades: 'pcs',
+    dash_section_cargas: 'Loads',
+    dash_section_colunas_acessorios: 'Columns vs Accessories',
+    dash_section_pintura: 'Painting — pending',
+    dash_falta_separar: 'Left to pick',
+    dash_falta_entregar: 'Left to deliver',
+    dash_section_semana: 'Loads by day — this week',
+    dash_section_prioridade: 'Priority (today + tomorrow)',
+    dash_sem_pendentes: 'No pending items 🎉',
+    dash_section_produtividade: "Today's productivity",
+    dash_sem_atividade: 'Nothing recorded yet today',
+    dash_lb_separadas: 'picked',
+    dash_lb_entregues: 'delivered',
     // Filters
     filter_hoje: 'Today',
     filter_amanha: 'Tomorrow',
@@ -1845,6 +2039,7 @@ function dbItemToLocal(i) {
     entregue: i.entregue,
     qtyEntregue: i.qty_entregue,
     entregueEm: i.entregue_em,
+    entreguePor: i.entregue_por,
     entregueNota: i.entregue_nota,
   };
 }
@@ -1888,6 +2083,7 @@ function localItemToDB(item, planId) {
     entregue: item.entregue || false,
     qty_entregue: item.qtyEntregue || 0,
     entregue_em: item.entregueEm || null,
+    entregue_por: item.entreguePor || null,
     entregue_nota: item.entregueNota || null,
   };
 }
@@ -2157,6 +2353,7 @@ function doLogout() {
   state.currentUser = null;
   state.lang = 'pt';
   applyI18n();
+  if (state.activeTab === 'dashboard') switchTab('carga');
   document.getElementById('screen-app').classList.remove('active');
   document.getElementById('screen-login').classList.add('active');
   document.getElementById('login-pin').value = '';
@@ -2237,8 +2434,11 @@ function switchTab(tab) {
   state.activeTab = tab;
   document.getElementById('tab-carga-btn').classList.toggle('active', tab === 'carga');
   document.getElementById('tab-pintura-btn').classList.toggle('active', tab === 'pintura');
+  document.getElementById('tab-dashboard-btn').classList.toggle('active', tab === 'dashboard');
   document.getElementById('tab-carga').classList.toggle('active', tab === 'carga');
   document.getElementById('tab-pintura').classList.toggle('active', tab === 'pintura');
+  document.getElementById('tab-dashboard').classList.toggle('active', tab === 'dashboard');
+  if (tab === 'dashboard') renderDashboard();
 }
 
 function getISOWeek(date) {
@@ -2403,6 +2603,246 @@ function renderAll() {
   renderList('carga');
   renderList('pintura');
   updateBadges();
+  if (state.currentUser) renderDashboard();
+}
+
+// =====================================================
+// DASHBOARD (admin)
+// =====================================================
+function renderDashboard() {
+  const el = document.getElementById('dashboard-content');
+  if (!el) return;
+
+  const today = todayStr();
+  const tomorrow = thisWeekDate(1);
+  const now = new Date(); now.setHours(0, 0, 0, 0);
+  const monThis = new Date(now); monThis.setDate(now.getDate() - (now.getDay() + 6) % 7);
+  const sunThis = new Date(monThis); sunThis.setDate(monThis.getDate() + 6);
+  const monNext = new Date(monThis); monNext.setDate(monThis.getDate() + 7);
+  const sunNext = new Date(monNext); sunNext.setDate(monNext.getDate() + 6);
+
+  // O dashboard respeita sempre o grupo em vigor: um perfil de acessórios não vê
+  // números de colunas e vice-versa (admins com "Todos" veem tudo).
+  const u = state.currentUser;
+  const effGroup = u.role === 'admin' ? state.groupView : u.group;
+  const showBothGroups = effGroup === 'todos';
+
+  const cargaPlans   = plans.filter(p => p.tipo === 'carga'   && planVisibleToUser(p));
+  const pinturaPlans = plans.filter(p => p.tipo === 'pintura' && planVisibleToUser(p));
+
+  const inRange = (dateStr, mon, sun) => {
+    if (!dateStr) return false;
+    const d = localDateStr(dateStr);
+    return d >= mon && d <= sun;
+  };
+
+  // ---- Cargas KPIs ----
+  function cargaStats(filterFn) {
+    const list = cargaPlans.filter(filterFn);
+    let totalUnits = 0, doneUnits = 0, prontos = 0;
+    list.forEach(p => {
+      const pr = planProgress(p);
+      totalUnits += pr.totalUnits;
+      doneUnits += pr.doneUnits;
+      if (pr.done === pr.total && pr.total > 0) prontos++;
+    });
+    return { count: list.length, prontos, pendentes: list.length - prontos, totalUnits, doneUnits };
+  }
+
+  const cHoje       = cargaStats(p => p.data === today);
+  const cAmanha      = cargaStats(p => p.data === tomorrow);
+  const cSemana      = cargaStats(p => inRange(p.data, monThis, sunThis));
+  const cProxSemana  = cargaStats(p => inRange(p.data, monNext, sunNext));
+
+  const kpiCard = (label, stat, accent) => `
+    <div class="dash-card" style="--accent:${accent}">
+      <div class="dash-card-label">${escHtml(label)}</div>
+      <div class="dash-card-value">${stat.count} <small>${t('dash_planos')}</small></div>
+      <div class="dash-card-sub">
+        <span class="ok">✓ ${stat.prontos} ${t('dash_prontos')}</span>
+        ${stat.pendentes > 0 ? `<span class="pending">⏳ ${stat.pendentes} ${t('dash_pendentes')}</span>` : ''}
+      </div>
+      <div class="dash-card-sub">${stat.doneUnits}/${stat.totalUnits} ${t('dash_unidades')}</div>
+    </div>`;
+
+  let html = '';
+  html += `<div class="dash-section">
+    <div class="dash-section-title">🚚 ${t('dash_section_cargas')}</div>
+    <div class="dash-grid">
+      ${kpiCard(t('filter_hoje'), cHoje, 'var(--primary)')}
+      ${kpiCard(t('filter_amanha'), cAmanha, '#0891b2')}
+      ${kpiCard(t('filter_semana'), cSemana, '#7c3aed')}
+      ${kpiCard(t('filter_prox_semana'), cProxSemana, '#be185d')}
+    </div>
+  </div>`;
+
+  // ---- Colunas vs Acessórios split ----
+  function tipoSplit(filterFn) {
+    const list = cargaPlans.filter(filterFn);
+    let colTotal = 0, colDone = 0, acTotal = 0, acDone = 0;
+    list.forEach(p => {
+      p.items.filter(i => userCanSeeItem(i, p)).forEach(i => {
+        if (i.tipoGalva === 'CG') { colTotal += i.qtyPedida; colDone += i.qtySeparada; }
+        else if (['BG', 'TG', 'AG'].includes(i.tipoGalva)) { acTotal += i.qtyPedida; acDone += i.qtySeparada; }
+      });
+    });
+    return { colTotal, colDone, acTotal, acDone };
+  }
+  const splitHoje   = tipoSplit(p => p.data === today);
+  const splitSemana = tipoSplit(p => inRange(p.data, monThis, sunThis));
+
+  function splitBarRow(label, s) {
+    const total = s.colTotal + s.acTotal || 1;
+    const colPct = Math.round(s.colTotal / total * 100);
+    return `<div class="dash-splitbar-row">
+      <div class="dash-splitbar-labels"><span>${escHtml(label)}</span></div>
+      <div class="dash-splitbar-labels">
+        <span class="l1">🏛 ${s.colDone}/${s.colTotal}</span>
+        <span class="l2">🔩 ${s.acDone}/${s.acTotal}</span>
+      </div>
+      <div class="dash-splitbar-track">
+        <div class="dash-splitbar-seg1" style="width:${colPct}%"></div>
+        <div class="dash-splitbar-seg2" style="width:${100 - colPct}%"></div>
+      </div>
+    </div>`;
+  }
+
+  // Só faz sentido comparar colunas vs acessórios quando se veem os dois grupos.
+  if (showBothGroups) {
+    html += `<div class="dash-section">
+      <div class="dash-section-title">🏛🔩 ${t('dash_section_colunas_acessorios')}</div>
+      <div class="dash-splitbar-card">
+        ${splitBarRow(t('filter_hoje'), splitHoje)}
+        ${splitBarRow(t('filter_semana'), splitSemana)}
+      </div>
+    </div>`;
+  }
+
+  // ---- Pintura pendente ----
+  const curWeekMon  = getMondayOfISOWeek(getISOWeek(now));
+  const nextWeekRef = new Date(now); nextWeekRef.setDate(now.getDate() + 7);
+  const nextWeekMon = getMondayOfISOWeek(getISOWeek(nextWeekRef));
+
+  function pinturaStats(weekMonday) {
+    const list = pinturaPlans.filter(p => p.data === weekMonday);
+    let pendSep = 0, pendEntr = 0;
+    list.forEach(p => {
+      p.items.filter(i => userCanSeeItem(i, p)).forEach(i => {
+        pendSep  += Math.max(0, i.qtyPedida - (i.qtySeparada || 0));
+        pendEntr += Math.max(0, i.qtyPedida - (i.qtyEntregue || 0));
+      });
+    });
+    return { planos: list.length, pendSep, pendEntr };
+  }
+
+  function pinturaCard(label, s) {
+    return `<div class="dash-card" style="--accent:#7c3aed">
+      <div class="dash-card-label">${escHtml(label)}</div>
+      <div class="dash-card-value">${s.planos} <small>${t('dash_planos')}</small></div>
+      <div class="dash-card-sub"><span class="pending">📦 ${t('dash_falta_separar')}: ${s.pendSep}</span></div>
+      <div class="dash-card-sub"><span class="pending">✅ ${t('dash_falta_entregar')}: ${s.pendEntr}</span></div>
+    </div>`;
+  }
+
+  html += `<div class="dash-section">
+    <div class="dash-section-title">🎨 ${t('dash_section_pintura')}</div>
+    <div class="dash-grid">
+      ${pinturaCard(t('filter_semana'), pinturaStats(curWeekMon))}
+      ${pinturaCard(t('filter_prox_semana'), pinturaStats(nextWeekMon))}
+    </div>
+  </div>`;
+
+  // ---- Cargas por dia (esta semana) ----
+  const locale = state.lang === 'en' ? 'en-US' : 'pt-PT';
+  const weekDays = [];
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(monThis); d.setDate(monThis.getDate() + i);
+    const y = d.getFullYear(), m = String(d.getMonth() + 1).padStart(2, '0'), dd = String(d.getDate()).padStart(2, '0');
+    const dateStr = `${y}-${m}-${dd}`;
+    const count = cargaPlans.filter(p => p.data === dateStr).length;
+    weekDays.push({ count, isToday: dateStr === today, label: d.toLocaleDateString(locale, { weekday: 'short' }).replace('.', '') });
+  }
+  const maxCount = Math.max(1, ...weekDays.map(w => w.count));
+  const chartBars = weekDays.map(w => `
+    <div class="dash-weekchart-col">
+      <div class="dash-weekchart-n">${w.count || ''}</div>
+      <div class="dash-weekchart-bar ${w.isToday ? 'today' : ''}" style="height:${w.count ? Math.max(8, w.count / maxCount * 70) : 3}px"></div>
+      <div class="dash-weekchart-lbl">${escHtml(w.label)}</div>
+    </div>`).join('');
+
+  html += `<div class="dash-section">
+    <div class="dash-section-title">📅 ${t('dash_section_semana')}</div>
+    <div class="dash-weekchart">${chartBars}</div>
+  </div>`;
+
+  // ---- Prioridade: planos hoje/amanhã com mais unidades em falta ----
+  const gaps = cargaPlans
+    .filter(p => p.data === today || p.data === tomorrow)
+    .map(p => {
+      const pr = planProgress(p);
+      return { nome: p.nome, falta: pr.totalUnits - pr.doneUnits, data: p.data, hora: p.horaCarregar };
+    })
+    .filter(r => r.falta > 0)
+    .sort((a, b) => b.falta - a.falta)
+    .slice(0, 5);
+
+  html += `<div class="dash-section">
+    <div class="dash-section-title">⚠️ ${t('dash_section_prioridade')}</div>
+    <div class="dash-list-card">
+      ${gaps.length ? gaps.map((g, idx) => `
+        <div class="dash-list-row">
+          <div class="dash-list-rank">${idx + 1}</div>
+          <div class="dash-list-main">
+            <div class="dash-list-name">${escHtml(g.nome)}</div>
+            <div class="dash-list-detail">${formatDate(g.data)}${g.hora ? ' · ⏰ ' + escHtml(g.hora) : ''}</div>
+          </div>
+          <div class="dash-list-value">${g.falta}</div>
+        </div>`).join('') : `<div class="dash-empty">${t('dash_sem_pendentes')}</div>`}
+    </div>
+  </div>`;
+
+  // ---- Produtividade de hoje (leaderboard) ----
+  // Conta dois tipos de trabalho: unidades separadas (carga + pintura) e
+  // unidades entregues na pintura — cada uma atribuída a quem a registou.
+  const leadMap = {};
+  const bump = (name, field, qty) => {
+    if (!name || !qty) return;
+    if (!leadMap[name]) leadMap[name] = { sep: 0, entr: 0 };
+    leadMap[name][field] += qty;
+  };
+  [...cargaPlans, ...pinturaPlans].forEach(p => {
+    p.items.filter(i => userCanSeeItem(i, p)).forEach(i => {
+      if (i.separadoEm && i.separadoEm.slice(0, 10) === today) {
+        bump(i.separadoPor, 'sep', i.qtySeparada || 0);
+      }
+      if (p.tipo === 'pintura' && i.entregueEm && i.entregueEm.slice(0, 10) === today) {
+        bump(i.entreguePor, 'entr', i.qtyEntregue || 0);
+      }
+    });
+  });
+  const leaderboard = Object.entries(leadMap)
+    .map(([name, v]) => ({ name, sep: v.sep, entr: v.entr, total: v.sep + v.entr }))
+    .sort((a, b) => b.total - a.total)
+    .slice(0, 5);
+
+  html += `<div class="dash-section">
+    <div class="dash-section-title">🏆 ${t('dash_section_produtividade')}</div>
+    <div class="dash-list-card">
+      ${leaderboard.length ? leaderboard.map((l, idx) => `
+        <div class="dash-list-row">
+          <div class="dash-list-rank">${idx + 1}</div>
+          <div class="dash-list-main">
+            <div class="dash-list-name">${escHtml(l.name)}</div>
+            <div class="dash-list-detail">
+              ${l.sep ? `📦 ${l.sep} ${t('dash_lb_separadas')}` : ''}${l.sep && l.entr ? ' · ' : ''}${l.entr ? `🎨 ${l.entr} ${t('dash_lb_entregues')}` : ''}
+            </div>
+          </div>
+          <div class="dash-list-value">${l.total} ${t('dash_unidades')}</div>
+        </div>`).join('') : `<div class="dash-empty">${t('dash_sem_atividade')}</div>`}
+    </div>
+  </div>`;
+
+  el.innerHTML = html;
 }
 
 function renderList(tipo) {
@@ -2855,7 +3295,20 @@ async function confirmQty() {
     item.qtyEntregue = qty;
     item.entregue = qty >= (item.qtySeparada || item.qtyPedida);
     item.entregueEm = now;
-    dbFields = { qty_entregue: qty, entregue: item.entregue, entregue_em: now };
+    item.entreguePor = u.name;
+    dbFields = { qty_entregue: qty, entregue: item.entregue, entregue_em: now, entregue_por: u.name };
+    // Entregar implica ter separado: se entregaram mais do que está registado
+    // como separado, essa quantidade passa também a contar como separada.
+    if (qty > (item.qtySeparada || 0)) {
+      item.qtySeparada = qty;
+      item.separado = qty >= item.qtyPedida;
+      item.separadoPor = item.separadoPor || u.name;
+      item.separadoEm = item.separadoEm || now;
+      dbFields.qty_separada = item.qtySeparada;
+      dbFields.separado = item.separado;
+      dbFields.separado_por = item.separadoPor;
+      dbFields.separado_em = item.separadoEm;
+    }
   }
 
   closeModal('modal-qty');

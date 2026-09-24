@@ -40,6 +40,7 @@ create table if not exists plan_items (
   entregue        boolean default false,
   qty_entregue    integer default 0,
   entregue_em     timestamptz,
+  entregue_por    text,
   entregue_nota   text,
   montagem_extra  text
 );
@@ -70,3 +71,9 @@ alter table plans add column if not exists observacao text;
 -- pernos DRV, tampa(s) DRV, tampa de topo)
 -- =====================================================
 alter table plan_items add column if not exists montagem_extra text;
+
+-- =====================================================
+-- MIGRAÇÃO: coluna entregue_por (quem entregou o material na pintura —
+-- usada no KPI de produtividade do dashboard)
+-- =====================================================
+alter table plan_items add column if not exists entregue_por text;
