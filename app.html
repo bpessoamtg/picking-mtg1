@@ -608,6 +608,19 @@ input, textarea, select { font-family: inherit; font-size: inherit; }
   color: var(--text-muted);
   margin-top: 2px;
 }
+.montagem-extra-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  background: #fff3cd;
+  color: #92400e;
+  border: 1px solid #f5c451;
+  border-radius: 5px;
+  padding: 2px 7px;
+  font-size: 11px;
+  font-weight: 700;
+  margin-top: 3px;
+}
 .item-status-wrap { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; flex-shrink: 0; }
 .item-qty {
   font-size: 13px;
@@ -1138,6 +1151,7 @@ input, textarea, select { font-family: inherit; font-size: inherit; }
       <div class="qty-modal-sap" id="qty-modal-sap"></div>
     </div>
     <div class="qty-modal-desc" id="qty-modal-desc"></div>
+    <div id="qty-modal-montagem-extra" style="display:none"></div>
     <div class="qty-modal-location" id="qty-modal-location"></div>
     <div class="qty-input-wrap">
       <button onclick="adjustQty(-1)" style="font-size:24px;width:44px;height:44px;border-radius:50%;background:var(--bg);border:2px solid var(--border);">−</button>
@@ -1362,6 +1376,8 @@ const USERS = {
 // =====================================================
 const I18N = {
   pt: {
+    // Item extras
+    montar: 'Montar',
     // Login
     login_subtitle: 'metalogalva.pt — Gestão de Picking',
     login_user_label: 'Utilizador',
@@ -1539,6 +1555,8 @@ const I18N = {
     email_alert_template: 'De: {from}\nAssunto: {subject}\n\nConteúdo simulado:\nAnexo: {attachment}\n\nPlano de carga para semana 23. Ver PDF em anexo.',
   },
   en: {
+    // Item extras
+    montar: 'Fit',
     // Login
     login_subtitle: 'metalogalva.pt — Picking Management',
     login_user_label: 'User',
@@ -1818,6 +1836,7 @@ function dbItemToLocal(i) {
     ref: i.ref,
     desc: i.desc_item,
     tipoGalva: i.tipo_galva,
+    montagemExtra: i.montagem_extra,
     ov: i.ov,
     descarga: i.descarga,
     fiada: i.fiada,
@@ -1860,6 +1879,7 @@ function localItemToDB(item, planId) {
     ref: item.ref || null,
     desc_item: item.desc,
     tipo_galva: item.tipoGalva,
+    montagem_extra: item.montagemExtra || null,
     ov: item.ov || null,
     descarga: item.descarga || null,
     fiada: item.fiada || null,
@@ -2680,6 +2700,7 @@ function renderItemRow(item, plan, opts) {
         </div>
         <div class="item-desc">${escHtml(item.desc)}</div>
         <div class="item-info">📦 ${escHtml(item.cesta || '—')} · OV ${escHtml(item.ov || '—')}</div>
+        ${item.montagemExtra ? `<div class="montagem-extra-badge">⚙️ ${t('montar')} ${escHtml(item.montagemExtra)}</div>` : ''}
       </div>
       <div class="item-status-wrap">
         ${qtyDisplay}
@@ -2764,6 +2785,13 @@ function openQtyModal(planId, itemId, action) {
   document.getElementById('qty-modal-model').textContent = item.model;
   document.getElementById('qty-modal-sap').textContent = item.ref || '';
   document.getElementById('qty-modal-desc').textContent = item.desc;
+  const montagemEl = document.getElementById('qty-modal-montagem-extra');
+  if (item.montagemExtra) {
+    montagemEl.innerHTML = `<div class="montagem-extra-badge" style="font-size:13px;padding:5px 10px">⚙️ ${t('montar')} ${escHtml(item.montagemExtra)}</div>`;
+    montagemEl.style.display = '';
+  } else {
+    montagemEl.style.display = 'none';
+  }
   document.getElementById('qty-modal-location').innerHTML =
     `<span>📦 ${escHtml(item.cesta || '—')}</span><span>🗂 ${escHtml(item.fiada || '—')}</span>`;
 

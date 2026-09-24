@@ -40,7 +40,8 @@ create table if not exists plan_items (
   entregue        boolean default false,
   qty_entregue    integer default 0,
   entregue_em     timestamptz,
-  entregue_nota   text
+  entregue_nota   text,
+  montagem_extra  text
 );
 
 -- =====================================================
@@ -63,3 +64,9 @@ create index if not exists idx_plans_tipo         on plans(tipo);
 -- MIGRAÇÃO: coluna observacao (correr se a tabela já existir sem ela)
 -- =====================================================
 alter table plans add column if not exists observacao text;
+
+-- =====================================================
+-- MIGRAÇÃO: coluna montagem_extra (acessórios de montagem em colunas CG:
+-- pernos DRV, tampa(s) DRV, tampa de topo)
+-- =====================================================
+alter table plan_items add column if not exists montagem_extra text;
