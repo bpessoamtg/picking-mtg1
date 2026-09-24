@@ -1376,8 +1376,6 @@ const USERS = {
 // =====================================================
 const I18N = {
   pt: {
-    // Item extras
-    montar: 'Montar',
     // Login
     login_subtitle: 'metalogalva.pt — Gestão de Picking',
     login_user_label: 'Utilizador',
@@ -1555,8 +1553,6 @@ const I18N = {
     email_alert_template: 'De: {from}\nAssunto: {subject}\n\nConteúdo simulado:\nAnexo: {attachment}\n\nPlano de carga para semana 23. Ver PDF em anexo.',
   },
   en: {
-    // Item extras
-    montar: 'Fit',
     // Login
     login_subtitle: 'metalogalva.pt — Picking Management',
     login_user_label: 'User',
@@ -2700,7 +2696,7 @@ function renderItemRow(item, plan, opts) {
         </div>
         <div class="item-desc">${escHtml(item.desc)}</div>
         <div class="item-info">📦 ${escHtml(item.cesta || '—')} · OV ${escHtml(item.ov || '—')}</div>
-        ${item.montagemExtra ? `<div class="montagem-extra-badge">⚙️ ${t('montar')} ${escHtml(item.montagemExtra)}</div>` : ''}
+        ${item.montagemExtra ? `<div class="montagem-extra-badge">⚙️ ${escHtml(item.montagemExtra)}</div>` : ''}
       </div>
       <div class="item-status-wrap">
         ${qtyDisplay}
@@ -2787,7 +2783,7 @@ function openQtyModal(planId, itemId, action) {
   document.getElementById('qty-modal-desc').textContent = item.desc;
   const montagemEl = document.getElementById('qty-modal-montagem-extra');
   if (item.montagemExtra) {
-    montagemEl.innerHTML = `<div class="montagem-extra-badge" style="font-size:13px;padding:5px 10px">⚙️ ${t('montar')} ${escHtml(item.montagemExtra)}</div>`;
+    montagemEl.innerHTML = `<div class="montagem-extra-badge" style="font-size:13px;padding:5px 10px">⚙️ ${escHtml(item.montagemExtra)}</div>`;
     montagemEl.style.display = '';
   } else {
     montagemEl.style.display = 'none';
