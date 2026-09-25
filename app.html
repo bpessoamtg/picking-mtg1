@@ -2747,7 +2747,7 @@ function filterPlansByDate(tipo, filter) {
     if (!d) return false;
     if (tipo === 'carga') {
       if (filter === 'hoje')   return d === today;
-      if (filter === 'amanha') return d === thisWeekDate(1);
+      if (filter === 'amanha') return d === proximoDiaUtil().iso;
       if (filter === 'semana') {
         const now = new Date(); now.setHours(0, 0, 0, 0);
         const mon = new Date(now);
@@ -2776,6 +2776,9 @@ function filterPlansByDate(tipo, filter) {
 // RENDER ALL
 // =====================================================
 function renderAll() {
+  // O separador "Amanhã" mostra o próximo dia útil, por isso à sexta diz "Segunda"
+  const btnAmanha = document.querySelector('#date-filter-carga button[onclick*="amanha"]');
+  if (btnAmanha) btnAmanha.textContent = rotuloProximoDiaUtil();
   populateWeekSelect('pintura');
   renderList('carga');
   renderList('pintura');
@@ -2793,6 +2796,14 @@ function proximoDiaUtil() {
   do { d.setDate(d.getDate() + 1); } while (d.getDay() === 0 || d.getDay() === 6);
   const y = d.getFullYear(), m = String(d.getMonth() + 1).padStart(2, '0'), dd = String(d.getDate()).padStart(2, '0');
   return { iso: `${y}-${m}-${dd}`, date: d };
+}
+
+// Rótulo do próximo dia útil: "amanhã" de segunda a quinta, senão o nome do dia.
+function rotuloProximoDiaUtil() {
+  const p = proximoDiaUtil();
+  if (p.iso === thisWeekDate(1)) return t('filter_amanha');
+  const nome = p.date.toLocaleDateString(state.lang === 'en' ? 'en-US' : 'pt-PT', { weekday: 'long' });
+  return nome.charAt(0).toUpperCase() + nome.slice(1);
 }
 
 function renderDashboard() {
@@ -2836,7 +2847,7 @@ function renderDashboard() {
   }
 
   const cHoje       = cargaStats(p => p.data === today);
-  const cAmanha      = cargaStats(p => p.data === tomorrow);
+  const cAmanha      = cargaStats(p => p.data === proximoDiaUtil().iso);
   const cSemana      = cargaStats(p => inRange(p.data, monThis, sunThis));
   const cProxSemana  = cargaStats(p => inRange(p.data, monNext, sunNext));
 
@@ -2856,7 +2867,7 @@ function renderDashboard() {
     <div class="dash-section-title">🚚 ${t('dash_section_cargas')}</div>
     <div class="dash-grid">
       ${kpiCard(t('filter_hoje'), cHoje, 'var(--primary)')}
-      ${kpiCard(t('filter_amanha'), cAmanha, '#0891b2')}
+      ${kpiCard(rotuloProximoDiaUtil(), cAmanha, '#0891b2')}
       ${kpiCard(t('filter_semana'), cSemana, '#7c3aed')}
       ${kpiCard(t('filter_prox_semana'), cProxSemana, '#be185d')}
     </div>
@@ -2963,10 +2974,7 @@ function renderDashboard() {
 
   // ---- Prioridade: planos de hoje e do próximo dia útil ----
   const proximo = proximoDiaUtil();
-  const ehAmanha = proximo.iso === tomorrow;
-  const rotuloProximo = ehAmanha
-    ? t('filter_amanha').toLowerCase()
-    : proximo.date.toLocaleDateString(state.lang === 'en' ? 'en-US' : 'pt-PT', { weekday: 'long' });
+  const rotuloProximo = rotuloProximoDiaUtil().toLowerCase();
   const gaps = cargaPlans
     .filter(p => p.data === today || p.data === proximo.iso)
     .map(p => {
