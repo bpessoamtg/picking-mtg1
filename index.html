@@ -2338,8 +2338,19 @@ async function loadStockLocations() {
 // Devolve { total, locais[] } ou null se não houver registo desse material.
 // Serve carga e pintura: como o parque só tem acessórios, a própria
 // correspondência faz de filtro (verificado: 0 colunas dão match).
+// Codigos genericos de familia (ex.: CIBR0000G, CITR0000G) cobrem produtos
+// diferentes entre si, por isso o stock agregado nesse codigo nao diz nada ao
+// operador. Identificam-se por serem codigos sem espacos com 3+ zeros seguidos
+// — descricoes reais como "TOP EXTENSION POLES 76 1000" tem espacos e ficam de fora.
+function codigoGenerico(c) {
+  if (!c) return false;
+  const s = String(c).trim().toUpperCase();
+  return !s.includes(' ') && /0{3,}/.test(s);
+}
+
 function stockFor(item) {
   if (!stockIndex || !item) return null;
+  if (codigoGenerico(item.ref) || codigoGenerico(item.model)) return null;
   const tentar = [item.ref, item.model];
   for (const chave of tentar) {
     if (!chave) continue;
