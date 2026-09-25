@@ -677,6 +677,29 @@ input, textarea, select { font-family: inherit; font-size: inherit; }
   border-radius: 5px;
   padding: 2px 7px;
 }
+/* Stock do SAP (ultima extracao ZMB52 importada pelo admin) */
+.sap-badge {
+  display: inline-block;
+  margin-top: 3px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #6d28d9;
+  background: #f5f3ff;
+  border: 1px solid #ddd6fe;
+  border-radius: 5px;
+  padding: 2px 7px;
+}
+.sap-badge.zero { color: #b91c1c; background: #fef2f2; border-color: #fecaca; }
+.sap-loc-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(14,116,144,0.13);
+}
 .stock-loc-box {
   background: #ecfeff;
   border: 1px solid #a5e8f5;
@@ -1549,6 +1572,25 @@ input, textarea, select { font-family: inherit; font-size: inherit; }
 <!-- =====================================================
      EMAIL SYNC MODAL
 ===================================================== -->
+<!-- =====================================================
+     IMPORT STOCK SAP (admin)
+===================================================== -->
+<div class="modal-overlay" id="modal-sap" onclick="handleOverlayClick(event,'modal-sap')">
+  <div class="modal-sheet">
+    <div class="modal-top">
+      <div class="modal-title">🏭 <span data-i18n="sap_import_titulo">Importar stock do SAP</span></div>
+      <button class="btn-close" onclick="closeModal('modal-sap')">✕</button>
+    </div>
+    <div class="baixa-aviso" data-i18n="sap_import_hint">Abre a extração do ZMB52 no Excel, seleciona tudo (Ctrl+A), copia (Ctrl+C) e cola aqui.</div>
+    <textarea id="sap-paste-area" rows="6" oninput="onSapPaste()"
+      style="width:100%;font-family:'Courier New',monospace;font-size:12px;padding:8px;border:2px dashed var(--border);border-radius:8px;background:var(--bg-card);color:var(--text-main);resize:vertical"
+      placeholder="Cola aqui as linhas do Excel..." data-i18n-placeholder="sap_paste_placeholder"></textarea>
+    <div id="sap-paste-count" style="font-size:12px;color:var(--text-muted);margin-top:6px"></div>
+    <div id="sap-paste-preview" style="display:none;margin-top:8px;overflow-x:auto;max-height:200px;overflow-y:auto"></div>
+    <button class="btn-confirm" id="sap-save-btn" onclick="guardarStockSap()" data-i18n="sap_import_guardar">Guardar stock</button>
+  </div>
+</div>
+
 <div class="modal-overlay" id="modal-email" onclick="handleOverlayClick(event,'modal-email')">
   <div class="modal-sheet">
     <div class="modal-top">
@@ -1662,6 +1704,23 @@ const I18N = {
     // Stock do parque
     stock_titulo: 'Stock no parque',
     stock_n_locais: '{n} cestas',
+    // Stock do SAP
+    sap_badge: 'SAP',
+    sap_stock_titulo: 'Stock SAP',
+    sap_atualizado: '(de {d})',
+    sap_dash_titulo: 'Stock SAP (extração ZMB52)',
+    sap_dash_info: '{n} materiais · atualizado a {d}',
+    sap_dash_vazio: 'Ainda não foi importada nenhuma extração do SAP.',
+    sap_import_btn: '📥 Importar extração',
+    sap_import_titulo: 'Importar stock do SAP',
+    sap_import_hint: 'Abre a extração do ZMB52 no Excel, seleciona tudo (Ctrl+A), copia (Ctrl+C) e cola aqui — inclui a linha de cabeçalho. Substitui o stock anterior.',
+    sap_paste_placeholder: 'Cola aqui as linhas do Excel…',
+    sap_import_guardar: 'Guardar stock',
+    sap_import_count: '{n} materiais lidos ({l} linhas)',
+    sap_import_vazio: 'Não foi possível ler materiais. Confirma que copiaste também a linha de cabeçalho.',
+    sap_import_ok: 'Stock SAP atualizado — {n} materiais ✓',
+    sap_import_erro: 'Não foi possível guardar o stock SAP: {msg}',
+    sap_a_guardar: 'A guardar…',
     // Filters
     filter_hoje: 'Hoje',
     filter_amanha: 'Amanhã',
@@ -1871,6 +1930,23 @@ const I18N = {
     // Stock do parque
     stock_titulo: 'Stock in the yard',
     stock_n_locais: '{n} baskets',
+    // Stock do SAP
+    sap_badge: 'SAP',
+    sap_stock_titulo: 'SAP stock',
+    sap_atualizado: '(as of {d})',
+    sap_dash_titulo: 'SAP stock (ZMB52 extract)',
+    sap_dash_info: '{n} materials · updated on {d}',
+    sap_dash_vazio: 'No SAP extract has been imported yet.',
+    sap_import_btn: '📥 Import extract',
+    sap_import_titulo: 'Import SAP stock',
+    sap_import_hint: 'Open the ZMB52 extract in Excel, select all (Ctrl+A), copy (Ctrl+C) and paste here. Include the header row. This replaces the previous stock.',
+    sap_paste_placeholder: 'Paste the Excel rows here...',
+    sap_import_guardar: 'Save stock',
+    sap_import_count: '{n} materials read ({l} rows)',
+    sap_import_vazio: 'No materials could be read. Make sure you also copied the header row.',
+    sap_import_ok: 'SAP stock updated — {n} materials ✓',
+    sap_import_erro: 'Could not save the SAP stock: {msg}',
+    sap_a_guardar: 'Saving...',
     // Filters
     filter_hoje: 'Today',
     filter_amanha: 'Tomorrow',
@@ -2419,6 +2495,184 @@ function stockFor(item) {
   return null;
 }
 
+// =====================================================
+// STOCK DO SAP (extracao ZMB52 importada pelo admin)
+// As colunas nao estao em nenhuma app de parque, por isso a unica forma de
+// dizer ao operador quanto material existe e o stock do SAP. E uma fotografia
+// do momento da extracao, nao um stock em tempo real -- por isso mostra-se
+// sempre a data ao lado do numero.
+// =====================================================
+let sapIndex = null;        // ref (maiusculas) -> { qty, desc }
+let sapAtualizado = null;   // timestamp da ultima importacao
+
+async function loadStockSap() {
+  try {
+    const rows = await sbFetch('/stock_sap?select=ref,descricao,quantidade,atualizado_em&limit=5000');
+    const idx = new Map();
+    let max = null;
+    (rows || []).forEach(r => {
+      const k = String(r.ref || '').trim().toUpperCase();
+      if (!k) return;
+      idx.set(k, { qty: Number(r.quantidade) || 0, desc: r.descricao || '' });
+      if (!max || r.atualizado_em > max) max = r.atualizado_em;
+    });
+    sapIndex = idx;
+    sapAtualizado = max;
+  } catch (e) {
+    // Tal como o parque, o stock e um extra: se falhar a app continua na mesma.
+    console.warn('Stock SAP indisponivel:', e.message);
+    sapIndex = null;
+  }
+}
+
+// Devolve { qty, desc } ou null se o material estiver fora do ambito da extracao.
+// A extracao e filtrada por CI* + *_V*: se o codigo cabe nesse filtro e nao veio
+// na lista, e porque esta a zero -- e isso ao operador tambem interessa saber.
+function sapStockFor(item) {
+  if (!sapIndex || !sapIndex.size || !item) return null;
+  if (codigoGenerico(item.ref) || codigoGenerico(item.model)) return null;
+  const chaves = [item.ref, item.model].filter(Boolean).map(c => String(c).trim().toUpperCase());
+  for (const k of chaves) {
+    const hit = sapIndex.get(k);
+    if (hit) return { qty: Math.round(hit.qty), desc: hit.desc };
+  }
+  // Nao se infere zero em cima de material que o parque diz ter em cesta: um
+  // 'SAP: 0' ao lado de 6 unidades numa cesta so semeava duvidas.
+  if (!stockFor(item) && chaves.some(k => k.startsWith('CI') || k.endsWith('_V'))) return { qty: 0, desc: '' };
+  return null;
+}
+
+// Numeros como o Excel os copia: "1.009,000" (PT) ou "1,009.000" (EN).
+// O formato do ZMB52 tem sempre 3 decimais, por isso um separador sozinho e
+// sempre decimal -- o de milhares nunca aparece sem ele.
+function parseNumeroExcel(v) {
+  let s = String(v == null ? '' : v).replace(/[\s\u00a0]/g, '');
+  if (!s) return 0;
+  const neg = s.includes('-');
+  s = s.replace(/-/g, '');
+  const temPonto = s.includes('.'), temVirgula = s.includes(',');
+  if (temPonto && temVirgula) {
+    const dec = s.lastIndexOf('.') > s.lastIndexOf(',') ? '.' : ',';
+    const mil = dec === '.' ? ',' : '.';
+    s = s.split(mil).join('').replace(dec, '.');
+  } else if (temPonto || temVirgula) {
+    const ch = temPonto ? '.' : ',';
+    const partes = s.split(ch);
+    s = partes.length > 2 ? partes.join('') : partes[0] + '.' + partes[1];
+  }
+  const n = parseFloat(s);
+  return isNaN(n) ? 0 : (neg ? -n : n);
+}
+
+// Le a extracao colada do Excel. As colunas sao encontradas pelo cabecalho
+// (a ordem do ZMB52 pode mudar), com as posicoes do relatorio atual como recurso.
+// O mesmo material aparece em varias linhas quando tem varios lotes: soma-se.
+function parseSapPaste(texto) {
+  const linhas = String(texto || '').split(/\r?\n/).filter(l => l.trim());
+  if (!linhas.length) return { rows: [], linhas: 0 };
+  const norm = h => String(h || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+
+  let iRef = 0, iDesc = 2, iQty = 5, inicio = 0;
+  for (let i = 0; i < Math.min(linhas.length, 10); i++) {
+    const cs = linhas[i].split('\t').map(norm);
+    const r = cs.indexOf('material');
+    if (r === -1) continue;
+    const d = cs.findIndex(c => c.includes('texto breve'));
+    const q = cs.findIndex(c => c.includes('utiliza') && c.includes('livre'));
+    iRef = r;
+    if (d !== -1) iDesc = d;
+    if (q !== -1) iQty = q;
+    inicio = i + 1;
+    break;
+  }
+
+  const agg = new Map();
+  for (let i = inicio; i < linhas.length; i++) {
+    const cs = linhas[i].split('\t');
+    const ref = String(cs[iRef] || '').trim().toUpperCase();
+    // As linhas de total do relatorio vem sem material: ignoram-se.
+    if (!ref) continue;
+    const qty = parseNumeroExcel(cs[iQty]);
+    const desc = String(cs[iDesc] || '').trim();
+    if (agg.has(ref)) {
+      const a = agg.get(ref);
+      a.quantidade += qty;
+      if (!a.descricao) a.descricao = desc;
+    } else {
+      agg.set(ref, { ref, descricao: desc, quantidade: qty });
+    }
+  }
+  const rows = [...agg.values()].map(r => ({ ref: r.ref, descricao: r.descricao, quantidade: Math.round(r.quantidade) }));
+  return { rows, linhas: linhas.length - inicio };
+}
+
+function abrirImportSap() {
+  state.sapImport = null;
+  const area = document.getElementById('sap-paste-area');
+  if (area) area.value = '';
+  document.getElementById('sap-paste-count').textContent = '';
+  const prev = document.getElementById('sap-paste-preview');
+  prev.style.display = 'none';
+  prev.innerHTML = '';
+  openModal('modal-sap');
+}
+
+function onSapPaste() {
+  const texto = document.getElementById('sap-paste-area').value;
+  const lido = parseSapPaste(texto);
+  state.sapImport = lido.rows;
+  const count = document.getElementById('sap-paste-count');
+  const prev = document.getElementById('sap-paste-preview');
+  if (!lido.rows.length) {
+    count.textContent = texto.trim() ? t('sap_import_vazio') : '';
+    prev.style.display = 'none';
+    prev.innerHTML = '';
+    return;
+  }
+  count.textContent = t('sap_import_count', { n: lido.rows.length, l: lido.linhas });
+  const cell = 'padding:3px 6px;border-bottom:1px solid var(--border)';
+  prev.innerHTML = '<table style="width:100%;border-collapse:collapse;font-size:11px">' +
+    lido.rows.slice(0, 12).map(r =>
+      '<tr><td style="' + cell + ';font-family:\'Courier New\',monospace">' + escHtml(r.ref) + '</td>' +
+      '<td style="' + cell + ';color:var(--text-muted)">' + escHtml(r.descricao) + '</td>' +
+      '<td style="' + cell + ';text-align:right;font-weight:700">' + r.quantidade + '</td></tr>'
+    ).join('') + '</table>';
+  prev.style.display = '';
+}
+
+async function guardarStockSap() {
+  const rows = state.sapImport || [];
+  if (!rows.length) { showToast(t('sap_import_vazio')); return; }
+  const btn = document.getElementById('sap-save-btn');
+  const txtOriginal = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = t('sap_a_guardar');
+  try {
+    const ts = new Date().toISOString();
+    const payload = rows.map(r => ({
+      ref: r.ref, descricao: r.descricao, quantidade: r.quantidade,
+      atualizado_em: ts, atualizado_por: state.currentUser ? state.currentUser.name : null
+    }));
+    // Upsert + limpeza do que ficou para tras: se falhar a meio, nunca fica uma
+    // tabela vazia a dizer ao operador que nao ha stock nenhum de nada.
+    for (let i = 0; i < payload.length; i += 200) {
+      await sbFetch('/stock_sap', { method: 'POST', body: payload.slice(i, i + 200), prefer: 'return=minimal,resolution=merge-duplicates' });
+    }
+    await sbFetch('/stock_sap?atualizado_em=lt.' + encodeURIComponent(ts), { method: 'DELETE', prefer: 'return=minimal' });
+    await loadStockSap();
+    closeModal('modal-sap');
+    state.sapImport = null;
+    renderAll();
+    showToast(t('sap_import_ok', { n: rows.length }));
+  } catch (e) {
+    showToast(t('sap_import_erro', { msg: e.message }));
+  } finally {
+    btn.disabled = false;
+    btn.textContent = txtOriginal;
+  }
+}
+
+
 async function dbUpdateItem(itemId, fields) {
   try {
     await sbFetch(`/plan_items?id=eq.${itemId}`, { method: 'PATCH', body: fields });
@@ -2563,6 +2817,7 @@ async function showApp() {
     subscribeRealtime();
     // Localizações do parque: extra opcional, nunca bloqueia o arranque da app
     loadStockLocations().then(() => { if (stockIndex) renderAll(); });
+    loadStockSap().then(() => { if (sapIndex) renderAll(); });
   } catch(e) {
     console.error('showApp:', e);
     showToast(e.message === 'timeout'
@@ -3041,6 +3296,22 @@ function renderDashboard() {
     </div>
   </div>`;
 
+  // Import da extracao do SAP -- so o admin importa, mas o numero que dela
+  // resulta e visto por toda a gente nas linhas dos planos.
+  if (u.role === 'admin') {
+    const nSap = sapIndex ? sapIndex.size : 0;
+    const dSap = sapAtualizado ? formatDate(String(sapAtualizado).slice(0, 10)) : '\u2014';
+    html += `<div class="dash-section">
+      <div class="dash-section-title">\u{1F3ED} ${t('sap_dash_titulo')}</div>
+      <div class="dash-list-card" style="padding:14px">
+        <div style="font-size:13px;color:var(--text-muted);margin-bottom:10px">
+          ${nSap ? t('sap_dash_info', { n: nSap, d: dSap }) : t('sap_dash_vazio')}
+        </div>
+        <button class="btn-primary" onclick="abrirImportSap()">${t('sap_import_btn')}</button>
+      </div>
+    </div>`;
+  }
+
   el.innerHTML = html;
 }
 
@@ -3385,18 +3656,36 @@ function stockBadge(item) {
   return `<div class="stock-badge">📍 ${resumo} · <b>${s.total}</b> ${t('dash_unidades')}</div>`;
 }
 
-// Preenche um contentor com a lista de cestas onde o material está (ou esconde-o)
+// Stock do SAP para a linha do item. Nas colunas e a unica pista que o
+// operador tem sobre quanto material existe.
+function sapBadge(item) {
+  const s = sapStockFor(item);
+  if (!s) return '';
+  return `<div class="sap-badge${s.qty > 0 ? '' : ' zero'}">\u{1F3ED} ${t('sap_badge')}: <b>${s.qty}</b> ${t('dash_unidades')}</div>`;
+}
+
+// Preenche um contentor com o stock do material (ou esconde-o). Sao duas
+// fontes independentes: as cestas do parque de acessorios e a ultima extracao
+// do SAP -- as colunas so tem a segunda, os acessorios podem ter as duas.
 function renderStockLocations(el, item) {
   if (!el) return;
   const s = stockFor(item);
-  if (!s) { el.style.display = 'none'; el.innerHTML = ''; return; }
+  const sp = sapStockFor(item);
+  if (!s && !sp) { el.style.display = 'none'; el.innerHTML = ''; return; }
+  const blocoSap = sp ? `
+    <div class="sap-loc-row">
+      <span>\u{1F3ED} ${t('sap_stock_titulo')}${sapAtualizado ? ` <span style="color:var(--text-muted);font-weight:400">${t('sap_atualizado', { d: formatDate(String(sapAtualizado).slice(0, 10)) })}</span>` : ''}</span>
+      <span class="stock-loc-qty">${sp.qty}</span>
+    </div>` : '';
+  if (!s) { el.innerHTML = blocoSap; el.style.display = ''; return; }
   el.innerHTML = `
     <div class="stock-loc-title">${t('stock_titulo')} — <b>${s.total}</b> ${t('dash_unidades')}</div>
     ${s.locais.map(l => `
       <div class="stock-loc-row">
         <span class="stock-loc-cesta">📍 ${escHtml(l.cesta || '—')}${l.fiada ? ' · ' + escHtml(l.fiada) : ''}</span>
         <span class="stock-loc-qty">${l.qty}</span>
-      </div>`).join('')}`;
+      </div>`).join('')}
+    ${blocoSap}`;
   el.style.display = '';
 }
 
@@ -3434,6 +3723,7 @@ function renderItemRow(item, plan, opts) {
         <div class="item-desc">${escHtml(item.desc)}</div>
         <div class="item-info">📦 ${escHtml(item.cesta || '—')} · OV ${escHtml(item.ov || '—')}</div>
         ${stockBadge(item)}
+        ${sapBadge(item)}
         ${item.montagemExtra ? `<div class="montagem-extra-badge">⚙️ ${escHtml(item.montagemExtra)}</div>` : ''}
       </div>
       <div class="item-status-wrap">
@@ -3489,6 +3779,7 @@ function renderItemRow(item, plan, opts) {
         </div>
         <div style="font-size:13px;color:var(--text-muted);margin-top:1px">OV ${escHtml(item.ov || '—')}</div>
         ${stockBadge(item)}
+        ${sapBadge(item)}
         ${(utilizacaoHtml || tipoPinturaHtml) ? `<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:3px">${utilizacaoHtml}${tipoPinturaHtml}</div>` : ''}
       </div>
       <div class="pintura-actions" style="display:flex;flex-direction:column;gap:4px;align-items:flex-end">
