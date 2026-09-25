@@ -1642,7 +1642,7 @@ const I18N = {
     dash_falta_separar: 'Falta separar',
     dash_falta_entregar: 'Falta entregar',
     dash_section_semana: 'Cargas por dia — esta semana',
-    dash_section_prioridade: 'Prioridade (hoje + amanhã)',
+    dash_section_prioridade: 'Prioridade (hoje + {proximo})',
     dash_sem_pendentes: 'Sem itens pendentes 🎉',
     dash_section_produtividade: 'Produtividade de hoje',
     dash_sem_atividade: 'Ainda sem registos hoje',
@@ -1851,7 +1851,7 @@ const I18N = {
     dash_falta_separar: 'Left to pick',
     dash_falta_entregar: 'Left to deliver',
     dash_section_semana: 'Loads by day — this week',
-    dash_section_prioridade: 'Priority (today + tomorrow)',
+    dash_section_prioridade: 'Priority (today + {proximo})',
     dash_sem_pendentes: 'No pending items 🎉',
     dash_section_produtividade: "Today's productivity",
     dash_sem_atividade: 'Nothing recorded yet today',
@@ -2786,6 +2786,15 @@ function renderAll() {
 // =====================================================
 // DASHBOARD (admin)
 // =====================================================
+// Próximo dia útil a contar de hoje: à sexta salta o fim de semana e cai
+// na segunda, que é o dia que interessa ao operador.
+function proximoDiaUtil() {
+  const d = new Date(); d.setHours(0, 0, 0, 0);
+  do { d.setDate(d.getDate() + 1); } while (d.getDay() === 0 || d.getDay() === 6);
+  const y = d.getFullYear(), m = String(d.getMonth() + 1).padStart(2, '0'), dd = String(d.getDate()).padStart(2, '0');
+  return { iso: `${y}-${m}-${dd}`, date: d };
+}
+
 function renderDashboard() {
   const el = document.getElementById('dashboard-content');
   if (!el) return;
@@ -2952,9 +2961,14 @@ function renderDashboard() {
     <div class="dash-weekchart">${chartBars}</div>
   </div>`;
 
-  // ---- Prioridade: planos hoje/amanhã com mais unidades em falta ----
+  // ---- Prioridade: planos de hoje e do próximo dia útil ----
+  const proximo = proximoDiaUtil();
+  const ehAmanha = proximo.iso === tomorrow;
+  const rotuloProximo = ehAmanha
+    ? t('filter_amanha').toLowerCase()
+    : proximo.date.toLocaleDateString(state.lang === 'en' ? 'en-US' : 'pt-PT', { weekday: 'long' });
   const gaps = cargaPlans
-    .filter(p => p.data === today || p.data === tomorrow)
+    .filter(p => p.data === today || p.data === proximo.iso)
     .map(p => {
       const pr = planProgress(p);
       return { nome: p.nome, falta: pr.totalUnits - pr.doneUnits, data: p.data, hora: p.horaCarregar };
@@ -2964,7 +2978,7 @@ function renderDashboard() {
     .slice(0, 5);
 
   html += `<div class="dash-section">
-    <div class="dash-section-title">⚠️ ${t('dash_section_prioridade')}</div>
+    <div class="dash-section-title">⚠️ ${t('dash_section_prioridade', { proximo: rotuloProximo })}</div>
     <div class="dash-list-card">
       ${gaps.length ? gaps.map((g, idx) => `
         <div class="dash-list-row">
