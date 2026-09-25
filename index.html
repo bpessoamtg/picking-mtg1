@@ -641,6 +641,30 @@ input, textarea, select { font-family: inherit; font-size: inherit; }
   color: var(--text-muted);
   margin-top: 2px;
 }
+/* Baixa de stock no parque */
+.baixa-pergunta { font-size: 14px; font-weight: 600; color: var(--text); margin: 4px 0 10px; }
+.baixa-loc {
+  width: 100%; display: flex; justify-content: space-between; align-items: center;
+  gap: 10px; padding: 11px 13px; margin-bottom: 7px;
+  background: #ecfeff; border: 1.5px solid #a5e8f5; border-radius: var(--radius-sm);
+  font-size: 14px; font-weight: 600; color: var(--text); cursor: pointer; transition: all .15s;
+}
+.baixa-loc:hover { background: #d8f7fd; border-color: #0e7490; }
+.baixa-loc-qty { font-weight: 800; color: #0e7490; flex-shrink: 0; }
+.baixa-skip {
+  width: 100%; margin-top: 4px; padding: 9px; background: none; border: none;
+  color: var(--text-muted); font-size: 13px; text-decoration: underline; cursor: pointer;
+}
+.baixa-sobra {
+  text-align: center; font-size: 19px; color: var(--text);
+  background: var(--bg); border-radius: var(--radius-sm); padding: 14px; margin-bottom: 12px;
+}
+.baixa-corrigir {
+  width: 100%; margin-top: 8px; padding: 11px; border-radius: var(--radius-sm);
+  background: var(--warning-light); color: var(--warning);
+  border: 1.5px solid #f5c451; font-size: 14px; font-weight: 700; cursor: pointer;
+}
+.baixa-aviso { font-size: 12px; color: var(--text-muted); margin-bottom: 10px; line-height: 1.45; }
 /* Localização no parque de acessórios (dados da app de stock) */
 .stock-badge {
   display: inline-block;
@@ -1403,6 +1427,16 @@ input, textarea, select { font-family: inherit; font-size: inherit; }
   </div>
 </div>
 
+<div class="modal-overlay" id="modal-baixa-stock" onclick="handleOverlayClick(event,'modal-baixa-stock')">
+  <div class="modal-sheet">
+    <div class="modal-top">
+      <div class="modal-title">📦 <span data-i18n="baixa_titulo">Dar baixa no parque</span></div>
+      <button class="btn-close" onclick="closeModal('modal-baixa-stock')">✕</button>
+    </div>
+    <div id="baixa-body"></div>
+  </div>
+</div>
+
 <!-- =====================================================
      OBSERVAÇÃO MODAL
 ===================================================== -->
@@ -1614,6 +1648,17 @@ const I18N = {
     dash_sem_atividade: 'Ainda sem registos hoje',
     dash_lb_separadas: 'sep.',
     dash_lb_entregues: 'entr. pintura',
+    // Baixa de stock
+    baixa_titulo: 'Dar baixa no parque',
+    baixa_de_que_cesta: 'De que cesta retiraste as {qty} un.?',
+    baixa_nao_registar: 'Não retirei do parque — não registar',
+    baixa_vao_sobrar: 'Vão sobrar',
+    baixa_sim: 'Sim, está correto',
+    baixa_nao_bate: 'Não bate certo',
+    baixa_quanto_sobra: 'Quantas unidades ficaram mesmo na cesta?',
+    baixa_aviso_msg: 'A diferença fica registada e é enviada uma mensagem ao administrador do parque.',
+    baixa_ok: 'Baixa de {qty} un. registada no parque ✓',
+    baixa_erro: 'Não foi possível dar baixa no parque: {msg}',
     // Stock do parque
     stock_titulo: 'Stock no parque',
     stock_n_locais: '{n} cestas',
@@ -1812,6 +1857,17 @@ const I18N = {
     dash_sem_atividade: 'Nothing recorded yet today',
     dash_lb_separadas: 'picked',
     dash_lb_entregues: 'delivered',
+    // Baixa de stock
+    baixa_titulo: 'Remove from yard stock',
+    baixa_de_que_cesta: 'Which basket did you take the {qty} pcs from?',
+    baixa_nao_registar: 'Not from the yard — do not record',
+    baixa_vao_sobrar: 'Remaining will be',
+    baixa_sim: 'Yes, that is right',
+    baixa_nao_bate: 'That does not match',
+    baixa_quanto_sobra: 'How many are actually left in the basket?',
+    baixa_aviso_msg: 'The difference is recorded and a message is sent to the yard administrator.',
+    baixa_ok: '{qty} pcs removed from yard stock ✓',
+    baixa_erro: 'Could not update yard stock: {msg}',
     // Stock do parque
     stock_titulo: 'Stock in the yard',
     stock_n_locais: '{n} baskets',
@@ -2323,7 +2379,7 @@ async function loadStockLocations() {
       idx.get(k).push(row);
     };
     rows.forEach(r => {
-      const row = { cesta: r.cesta, fiada: r.fiada, qty: r.quantidade || 0 };
+      const row = { modelo: r.modelo, cesta: r.cesta, fiada: r.fiada, qty: r.quantidade || 0 };
       add(r.cod_sap, row);
       add(r.modelo, row);
     });
@@ -3224,6 +3280,78 @@ function renderDetail(plan) {
   document.getElementById('detail-content').innerHTML = html;
 }
 
+// ── Baixa de stock no parque (Edge Function da app de acessórios) ──────
+// Enquanto STOCK_FN_TOKEN estiver vazio o fluxo fica inativo e a app
+// comporta-se exatamente como antes.
+const STOCK_FN_URL = 'https://cjqnidiydxpjxdgfphit.supabase.co/functions/v1/picking-saida';
+const STOCK_FN_TOKEN = '';
+
+function abrirBaixaStock(plan, item, delta) {
+  const s = stockFor(item);
+  if (!s || !STOCK_FN_TOKEN || delta <= 0) return;
+  state.baixaStock = { planId: plan.id, itemId: item.id, delta, locais: s.locais, escolhido: null };
+  const el = document.getElementById('baixa-body');
+  el.innerHTML = `
+    <div class="baixa-pergunta">${t('baixa_de_que_cesta', { qty: delta })}</div>
+    ${s.locais.map((l, i) => `
+      <button class="baixa-loc" onclick="escolherCestaBaixa(${i})">
+        <span>📍 ${escHtml(l.cesta || '—')}${l.fiada ? ' · ' + escHtml(l.fiada) : ''}</span>
+        <span class="baixa-loc-qty">${l.qty}</span>
+      </button>`).join('')}
+    <button class="baixa-skip" onclick="closeModal('modal-baixa-stock')">${t('baixa_nao_registar')}</button>`;
+  openModal('modal-baixa-stock');
+}
+
+function escolherCestaBaixa(i) {
+  const st = state.baixaStock;
+  st.escolhido = st.locais[i];
+  const sobra = st.escolhido.qty - st.delta;
+  document.getElementById('baixa-body').innerHTML = `
+    <div class="baixa-pergunta">📍 ${escHtml(st.escolhido.cesta || '—')}${st.escolhido.fiada ? ' · ' + escHtml(st.escolhido.fiada) : ''}</div>
+    <div class="baixa-sobra">${t('baixa_vao_sobrar')} <b>${sobra}</b> ${t('dash_unidades')}</div>
+    <button class="btn-confirm" onclick="enviarBaixa(null)">${t('baixa_sim')}</button>
+    <button class="baixa-corrigir" onclick="abrirCorrecaoBaixa(${sobra})">${t('baixa_nao_bate')}</button>`;
+}
+
+function abrirCorrecaoBaixa(esperado) {
+  document.getElementById('baixa-body').innerHTML = `
+    <div class="baixa-pergunta">${t('baixa_quanto_sobra')}</div>
+    <input type="number" id="baixa-sobra-real" class="qty-input" min="0" value="${esperado}" style="width:100%;text-align:center;margin:8px 0">
+    <div class="baixa-aviso">${t('baixa_aviso_msg')}</div>
+    <button class="btn-confirm" onclick="enviarBaixa(parseInt(document.getElementById('baixa-sobra-real').value))">${t('btn_guardar')}</button>`;
+}
+
+async function enviarBaixa(sobraConfirmada) {
+  const st = state.baixaStock;
+  const plan = plans.find(p => p.id === st.planId);
+  const item = plan && plan.items.find(i => i.id === st.itemId);
+  closeModal('modal-baixa-stock');
+  if (!item || !st.escolhido) return;
+  const sobra = (sobraConfirmada === null || sobraConfirmada === undefined || isNaN(sobraConfirmada)) ? null : sobraConfirmada;
+  try {
+    const res = await fetch(STOCK_FN_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + STOCK_FN_TOKEN },
+      body: JSON.stringify({
+        modelo: st.escolhido.modelo,
+        cesta: st.escolhido.cesta,
+        fiada: st.escolhido.fiada,
+        quantidade: st.delta,
+        utilizador: state.currentUser.name,
+        sobra_confirmada: sobra,
+        notas: plan.nome + ' (app de picking)'
+      })
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) { showToast(t('baixa_erro', { msg: data.error || ('HTTP ' + res.status) })); return; }
+    showToast(t('baixa_ok', { qty: st.delta }));
+    await loadStockLocations();
+    renderDetail(plan);
+  } catch (e) {
+    showToast(t('baixa_erro', { msg: e.message }));
+  }
+}
+
 // Resumo de localização do parque para a linha do item (só acessórios com registo)
 function stockBadge(item) {
   const s = stockFor(item);
@@ -3433,6 +3561,7 @@ async function confirmQty() {
   const plan = plans.find(p => p.id === planId);
   const item = plan.items.find(i => i.id === itemId);
   const qty = parseInt(document.getElementById('qty-input').value) || 0;
+  const sepAntes = item.qtySeparada || 0;
   const u = state.currentUser;
   const now = new Date().toISOString();
 
@@ -3469,6 +3598,8 @@ async function confirmQty() {
   showToast(action === 'sep' ? t('toast_un_separadas', { qty }) : t('toast_un_entregues', { qty }));
   await dbUpdateItem(item.id, dbFields);
   if (action === 'sep') await checkAutoMarkPronto(plan);
+  // O material sai fisicamente da cesta sempre que a quantidade separada sobe
+  abrirBaixaStock(plan, item, (item.qtySeparada || 0) - sepAntes);
 }
 
 async function checkAutoMarkPronto(plan) {
