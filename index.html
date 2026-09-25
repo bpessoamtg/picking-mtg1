@@ -3283,12 +3283,12 @@ function renderDetail(plan) {
 // ── Baixa de stock no parque (Edge Function da app de acessórios) ──────
 // Enquanto STOCK_FN_TOKEN estiver vazio o fluxo fica inativo e a app
 // comporta-se exatamente como antes.
-const STOCK_FN_URL = SUPABASE_URL + '/functions/v1/picking-saida';
-const STOCK_FN_TOKEN = '';
+const STOCK_BAIXA_ATIVA = true;   // requer a funcao picking_saida na base de dados
+
 
 function abrirBaixaStock(plan, item, delta) {
   const s = stockFor(item);
-  if (!s || !STOCK_FN_TOKEN || delta <= 0) return;
+  if (!s || !STOCK_BAIXA_ATIVA || delta <= 0) return;
   state.baixaStock = { planId: plan.id, itemId: item.id, delta, locais: s.locais, escolhido: null };
   const el = document.getElementById('baixa-body');
   el.innerHTML = `
@@ -3329,21 +3329,21 @@ async function enviarBaixa(sobraConfirmada) {
   if (!item || !st.escolhido) return;
   const sobra = (sobraConfirmada === null || sobraConfirmada === undefined || isNaN(sobraConfirmada)) ? null : sobraConfirmada;
   try {
-    const res = await fetch(STOCK_FN_URL, {
+    const res = await fetch(SB_API + '/rpc/picking_saida', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + STOCK_FN_TOKEN },
+      headers: SB_HDR,
       body: JSON.stringify({
-        modelo: st.escolhido.modelo,
-        cesta: st.escolhido.cesta,
-        fiada: st.escolhido.fiada,
-        quantidade: st.delta,
-        utilizador: state.currentUser.name,
-        sobra_confirmada: sobra,
-        notas: plan.nome + ' (app de picking)'
+        p_modelo: st.escolhido.modelo,
+        p_cesta: st.escolhido.cesta,
+        p_fiada: st.escolhido.fiada,
+        p_quantidade: st.delta,
+        p_utilizador: state.currentUser.name,
+        p_sobra_confirmada: sobra,
+        p_notas: plan.nome + ' (app de picking)'
       })
     });
     const data = await res.json().catch(() => ({}));
-    if (!res.ok) { showToast(t('baixa_erro', { msg: data.error || ('HTTP ' + res.status) })); return; }
+    if (!res.ok || data.ok === false) { showToast(t('baixa_erro', { msg: data.erro || data.message || ('HTTP ' + res.status) })); return; }
     showToast(t('baixa_ok', { qty: st.delta }));
     await loadStockLocations();
     renderDetail(plan);
