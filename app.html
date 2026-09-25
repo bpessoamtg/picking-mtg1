@@ -691,6 +691,32 @@ input, textarea, select { font-family: inherit; font-size: inherit; }
 }
 .sap-badge.zero { color: #b91c1c; background: #fef2f2; border-color: #fecaca; }
 .sap-loc-refs { font-size: 11px; color: var(--text-muted); text-align: right; margin-top: 2px; }
+/* Consulta livre de stock SAP a partir da barra do topo */
+.app-header-right { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.btn-header-icon {
+  background: rgba(255,255,255,0.2);
+  color: #fff;
+  width: 34px; height: 34px;
+  border-radius: 50%;
+  font-size: 16px;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  transition: background 0.2s;
+}
+.btn-header-icon:hover { background: rgba(255,255,255,0.32); }
+.sap-find-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 2px;
+  border-bottom: 1px solid var(--border);
+}
+.sap-find-main { flex: 1; min-width: 0; }
+.sap-find-ref { font-family: 'Courier New', monospace; font-size: 13px; font-weight: 700; color: var(--text-main); }
+.sap-find-desc {
+  font-size: 12px; color: var(--text-muted);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.sap-find-qty { font-size: 15px; font-weight: 800; color: #6d28d9; flex-shrink: 0; }
+.sap-find-qty.zero { color: #b91c1c; }
 .sap-loc-row {
   display: flex;
   justify-content: space-between;
@@ -1286,7 +1312,11 @@ input, textarea, select { font-family: inherit; font-size: inherit; }
         <div class="app-header-sub" id="header-user-info"><span id="realtime-dot" class="offline"></span>—</div>
       </div>
     </div>
-    <button class="btn-logout" onclick="doLogout()" data-i18n="btn_logout">Sair</button>
+    <div class="app-header-right">
+      <button class="btn-header-icon" id="btn-consulta-sap" onclick="abrirConsultaSap()"
+              title="Consultar stock SAP" data-i18n-attr="title:sap_find_titulo">🏭</button>
+      <button class="btn-logout" onclick="doLogout()" data-i18n="btn_logout">Sair</button>
+    </div>
   </div>
 
   <!-- Admin group toggle -->
@@ -1574,6 +1604,23 @@ input, textarea, select { font-family: inherit; font-size: inherit; }
      EMAIL SYNC MODAL
 ===================================================== -->
 <!-- =====================================================
+     CONSULTA LIVRE DE STOCK SAP
+===================================================== -->
+<div class="modal-overlay" id="modal-sap-find" onclick="handleOverlayClick(event,'modal-sap-find')">
+  <div class="modal-sheet">
+    <div class="modal-top">
+      <div class="modal-title">🏭 <span data-i18n="sap_find_titulo">Consultar stock SAP</span></div>
+      <button class="btn-close" onclick="closeModal('modal-sap-find')">✕</button>
+    </div>
+    <input type="text" id="sap-find-input" oninput="onConsultaSap()" autocomplete="off"
+      style="width:100%;padding:11px 13px;border:1.5px solid var(--border);border-radius:10px;font-size:15px;font-family:'Courier New',monospace;background:var(--bg-card);color:var(--text-main)"
+      placeholder="Modelo ou código…" data-i18n-placeholder="sap_find_placeholder">
+    <div id="sap-find-info" style="font-size:11.5px;color:var(--text-muted);margin-top:6px"></div>
+    <div id="sap-find-results" style="margin-top:8px;max-height:320px;overflow-y:auto"></div>
+  </div>
+</div>
+
+<!-- =====================================================
      IMPORT STOCK SAP (admin)
 ===================================================== -->
 <div class="modal-overlay" id="modal-sap" onclick="handleOverlayClick(event,'modal-sap')">
@@ -1722,6 +1769,13 @@ const I18N = {
     sap_import_ok: 'Stock SAP atualizado — {n} materiais ✓',
     sap_import_erro: 'Não foi possível guardar o stock SAP: {msg}',
     sap_a_guardar: 'A guardar…',
+    sap_find_titulo: 'Consultar stock SAP',
+    sap_find_placeholder: 'Modelo ou código…',
+    sap_find_hint: 'Escreve o modelo ou o código. {n} materiais na extração de {d}.',
+    sap_find_resultados: '{n} materiais · {total} un. · extração de {d}',
+    sap_find_resultado_um: '1 material · {total} un. · extração de {d}',
+    sap_find_nada: 'Nada encontrado para "{q}" na extração de {d}.',
+    sap_find_mais: '+ {n} não mostrados — escreve mais para afinar.',
     // Filters
     filter_hoje: 'Hoje',
     filter_amanha: 'Amanhã',
@@ -1947,7 +2001,14 @@ const I18N = {
     sap_import_vazio: 'No materials could be read. Make sure you also copied the header row.',
     sap_import_ok: 'SAP stock updated — {n} materials ✓',
     sap_import_erro: 'Could not save the SAP stock: {msg}',
-    sap_a_guardar: 'Saving...',
+    sap_a_guardar: 'Saving…',
+    sap_find_titulo: 'Look up SAP stock',
+    sap_find_placeholder: 'Model or code…',
+    sap_find_hint: 'Type the model or the code. {n} materials in the extract of {d}.',
+    sap_find_resultados: '{n} materials · {total} pcs · extract of {d}',
+    sap_find_resultado_um: '1 material · {total} pcs · extract of {d}',
+    sap_find_nada: 'Nothing found for "{q}" in the extract of {d}.',
+    sap_find_mais: '+ {n} not shown — type more to narrow it down.',
     // Filters
     filter_hoje: 'Today',
     filter_amanha: 'Tomorrow',
@@ -2505,6 +2566,7 @@ function stockFor(item) {
 // =====================================================
 let sapIndex = null;        // ref (maiusculas) -> { qty, desc }
 let sapModelIndex = null;   // modelo comercial -> { qty, refs[] }
+let sapLista = null;        // lista plana para a consulta livre
 let sapAtualizado = null;   // timestamp da ultima importacao
 
 async function loadStockSap() {
@@ -2542,11 +2604,19 @@ async function loadStockSap() {
     sapIndex = idx;
     sapModelIndex = mIdx;
     sapAtualizado = max;
+    // Lista plana para a consulta livre: procura-se por codigo ou por qualquer
+    // palavra da descricao, que e onde vive o modelo comercial.
+    sapLista = (rows || []).map(r => {
+      const ref = String(r.ref || '').trim().toUpperCase();
+      const desc = String(r.descricao || '').trim();
+      return { ref: ref, desc: desc, qty: Math.round(Number(r.quantidade) || 0), busca: normalizarBusca(ref + ' ' + desc) };
+    }).filter(r => r.ref);
   } catch (e) {
     // Tal como o parque, o stock e um extra: se falhar a app continua na mesma.
     console.warn('Stock SAP indisponivel:', e.message);
     sapIndex = null;
     sapModelIndex = null;
+    sapLista = null;
   }
 }
 
@@ -2636,6 +2706,69 @@ function parseSapPaste(texto) {
   }
   const rows = [...agg.values()].map(r => ({ ref: r.ref, descricao: r.descricao, quantidade: Math.round(r.quantidade) }));
   return { rows, linhas: linhas.length - inicio };
+}
+
+function normalizarBusca(v) {
+  return String(v || '').toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+}
+
+// Consulta livre: o operador quer saber do modelo que tem a frente, sem ter de
+// abrir um plano onde ele apareca.
+function abrirConsultaSap() {
+  const input = document.getElementById('sap-find-input');
+  input.value = '';
+  renderConsultaSap('');
+  openModal('modal-sap-find');
+  setTimeout(() => input.focus(), 80);
+}
+
+function onConsultaSap() {
+  renderConsultaSap(document.getElementById('sap-find-input').value);
+}
+
+function renderConsultaSap(termo) {
+  const info = document.getElementById('sap-find-info');
+  const box = document.getElementById('sap-find-results');
+  const dataTxt = sapAtualizado ? formatDate(String(sapAtualizado).slice(0, 10)) : '\u2014';
+
+  if (!sapLista || !sapLista.length) {
+    info.textContent = t('sap_dash_vazio');
+    box.innerHTML = '';
+    return;
+  }
+  const q = normalizarBusca(termo).trim();
+  if (q.length < 2) {
+    info.textContent = t('sap_find_hint', { n: sapLista.length, d: dataTxt });
+    box.innerHTML = '';
+    return;
+  }
+
+  // Codigo exato primeiro, depois o que comeca pelo termo, depois o resto:
+  // quem escreve o codigo todo quer essa linha no topo.
+  const hits = sapLista.filter(r => r.busca.includes(q));
+  hits.sort((a, b) => {
+    const pa = a.ref === q ? 0 : (a.ref.startsWith(q) ? 1 : 2);
+    const pb = b.ref === q ? 0 : (b.ref.startsWith(q) ? 1 : 2);
+    return pa !== pb ? pa - pb : b.qty - a.qty;
+  });
+
+  if (!hits.length) {
+    info.textContent = t('sap_find_nada', { q: termo.trim(), d: dataTxt });
+    box.innerHTML = '';
+    return;
+  }
+  const mostra = hits.slice(0, 60);
+  const total = hits.reduce((acc, r) => acc + r.qty, 0);
+  info.textContent = t(hits.length === 1 ? 'sap_find_resultado_um' : 'sap_find_resultados', { n: hits.length, total: total, d: dataTxt });
+  box.innerHTML = mostra.map(r => `
+    <div class="sap-find-row">
+      <div class="sap-find-main">
+        <div class="sap-find-ref">${escHtml(r.ref)}</div>
+        <div class="sap-find-desc">${escHtml(r.desc)}</div>
+      </div>
+      <div class="sap-find-qty${r.qty > 0 ? '' : ' zero'}">${r.qty}</div>
+    </div>`).join('') +
+    (hits.length > mostra.length ? `<div style="font-size:11.5px;color:var(--text-muted);padding:8px 2px">${t('sap_find_mais', { n: hits.length - mostra.length })}</div>` : '');
 }
 
 function abrirImportSap() {
