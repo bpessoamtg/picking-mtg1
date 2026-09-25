@@ -690,6 +690,7 @@ input, textarea, select { font-family: inherit; font-size: inherit; }
   padding: 2px 7px;
 }
 .sap-badge.zero { color: #b91c1c; background: #fef2f2; border-color: #fecaca; }
+.sap-loc-refs { font-size: 11px; color: var(--text-muted); text-align: right; margin-top: 2px; }
 .sap-loc-row {
   display: flex;
   justify-content: space-between;
@@ -2503,6 +2504,7 @@ function stockFor(item) {
 // sempre a data ao lado do numero.
 // =====================================================
 let sapIndex = null;        // ref (maiusculas) -> { qty, desc }
+let sapModelIndex = null;   // modelo comercial -> { qty, refs[] }
 let sapAtualizado = null;   // timestamp da ultima importacao
 
 async function loadStockSap() {
@@ -2516,12 +2518,35 @@ async function loadStockSap() {
       idx.set(k, { qty: Number(r.quantidade) || 0, desc: r.descricao || '' });
       if (!max || r.atualizado_em > max) max = r.atualizado_em;
     });
+
+    // Ponte para os planos de pintura: as linhas de pintura nao trazem codigo
+    // SAP, so o modelo comercial (CBC1E04D). Esse modelo e a ultima palavra do
+    // "Texto breve material" da extracao ("Col. Oct. CAO8E10B"). Exige-se forma
+    // de codigo -- letras e digitos, 6+ caracteres -- para nao indexar palavras
+    // soltas como "IP" ou "16/20M" que tambem acabam descricoes.
+    const mIdx = new Map();
+    (rows || []).forEach(r => {
+      const ref = String(r.ref || '').trim().toUpperCase();
+      if (!ref || codigoGenerico(ref)) return;
+      const d = String(r.descricao || '').trim();
+      if (!d) return;
+      const tok = d.split(/\s+/).pop().toUpperCase();
+      if (!/^[A-Z0-9_]{6,}$/.test(tok) || !/[0-9]/.test(tok) || !/[A-Z]/.test(tok)) return;
+      const q = Number(r.quantidade) || 0;
+      if (!mIdx.has(tok)) mIdx.set(tok, { qty: 0, refs: [] });
+      const e = mIdx.get(tok);
+      e.qty += q;
+      e.refs.push({ ref: ref, qty: Math.round(q) });
+    });
+
     sapIndex = idx;
+    sapModelIndex = mIdx;
     sapAtualizado = max;
   } catch (e) {
     // Tal como o parque, o stock e um extra: se falhar a app continua na mesma.
     console.warn('Stock SAP indisponivel:', e.message);
     sapIndex = null;
+    sapModelIndex = null;
   }
 }
 
@@ -2535,6 +2560,13 @@ function sapStockFor(item) {
   for (const k of chaves) {
     const hit = sapIndex.get(k);
     if (hit) return { qty: Math.round(hit.qty), desc: hit.desc };
+  }
+  // O mesmo modelo pode existir sob mais do que um material no SAP (o
+  // galvanizado CI...G e a variante ..._V): somam-se, e o detalhe por codigo
+  // fica visivel no modal para o numero nao aparecer sem explicacao.
+  for (const k of chaves) {
+    const hit = sapModelIndex && sapModelIndex.get(k);
+    if (hit) return { qty: Math.round(hit.qty), desc: '', refs: hit.refs };
   }
   // Nao se infere zero em cima de material que o parque diz ter em cesta: um
   // 'SAP: 0' ao lado de 6 unidades numa cesta so semeava duvidas.
@@ -3676,7 +3708,8 @@ function renderStockLocations(el, item) {
     <div class="sap-loc-row">
       <span>\u{1F3ED} ${t('sap_stock_titulo')}${sapAtualizado ? ` <span style="color:var(--text-muted);font-weight:400">${t('sap_atualizado', { d: formatDate(String(sapAtualizado).slice(0, 10)) })}</span>` : ''}</span>
       <span class="stock-loc-qty">${sp.qty}</span>
-    </div>` : '';
+    </div>
+    ${sp.refs ? `<div class="sap-loc-refs">${sp.refs.map(r => escHtml(r.ref) + ' ' + r.qty).join(' \u00b7 ')}</div>` : ''}` : '';
   if (!s) { el.innerHTML = blocoSap; el.style.display = ''; return; }
   el.innerHTML = `
     <div class="stock-loc-title">${t('stock_titulo')} — <b>${s.total}</b> ${t('dash_unidades')}</div>
