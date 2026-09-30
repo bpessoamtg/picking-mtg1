@@ -2498,15 +2498,21 @@ const STOCK_ANON = SUPABASE_ANON;
 
 // chave (código SAP ou modelo, em maiúsculas) → [{cesta, fiada, quantidade}, ...]
 let stockIndex = null;
+let stockAssinatura = null;   // resposta crua da ultima leitura, para saber se mudou
 
+// Devolve true se o stock mudou desde a ultima leitura (e so ai vale a pena
+// redesenhar o ecra). A app do parque mexe nas cestas a qualquer momento, por
+// isso isto e chamado muitas vezes -- ver refrescarStock().
 async function loadStockLocations() {
   try {
     const res = await fetch(
-      `${STOCK_URL}/stock_items?select=modelo,cod_sap,cesta,fiada,quantidade`,
+      `${STOCK_URL}/stock_items?select=modelo,cod_sap,cesta,fiada,quantidade&order=id`,
       { headers: { apikey: STOCK_ANON, Authorization: 'Bearer ' + STOCK_ANON } }
     );
     if (!res.ok) throw new Error('HTTP ' + res.status);
-    const rows = await res.json();
+    const txt = await res.text();
+    if (stockIndex && txt === stockAssinatura) return false;
+    const rows = JSON.parse(txt);
 
     const idx = new Map();
     const add = (key, row) => {
@@ -2522,11 +2528,51 @@ async function loadStockLocations() {
       add(r.modelo, row);
     });
     stockIndex = idx;
+    stockAssinatura = txt;
+    return true;
   } catch (e) {
     // O stock é um extra: se falhar, a app tem de continuar a funcionar na mesma.
+    // Numa releitura falhada fica o ultimo stock lido -- apagar tudo por causa
+    // de uma falha de rede momentanea tirava a informacao ao operador.
     console.warn('Stock do parque indisponível:', e.message);
-    stockIndex = null;
+    return false;
   }
+}
+
+// Volta a desenhar tudo o que mostra stock: listas, plano aberto e o modal do
+// item que o operador tiver a frente. O modal de baixa fica de fora de proposito:
+// quem esta a meio de confirmar uma cesta nao pode ver os numeros a mudar.
+function redesenharStock() {
+  renderAll();
+  if (state.openPlanId) {
+    const plan = plans.find(p => p.id === state.openPlanId);
+    if (plan) renderDetail(plan);
+  }
+  const aberto = id => document.getElementById(id).classList.contains('active');
+  const acharItem = (planId, itemId) => {
+    const plan = plans.find(p => p.id === planId);
+    return plan && plan.items.find(i => i.id === itemId);
+  };
+  if (aberto('modal-qty') && state.qtyModal) {
+    const item = acharItem(state.qtyModal.planId, state.qtyModal.itemId);
+    if (item) renderStockLocations(document.getElementById('qty-modal-stock'), item);
+  }
+  if (aberto('modal-pintura-desc') && state.pdescAberto) {
+    const item = acharItem(state.pdescAberto.planId, state.pdescAberto.itemId);
+    if (item) renderStockLocations(document.getElementById('pdesc-stock'), item);
+  }
+}
+
+// Le o stock do parque de novo e so redesenha se alguma cesta mudou.
+// Varias chamadas seguidas partilham a mesma leitura.
+let stockRefresh = null;
+function refrescarStock() {
+  if (!stockRefresh) {
+    stockRefresh = loadStockLocations()
+      .then(mudou => { if (mudou) redesenharStock(); return mudou; })
+      .finally(() => { stockRefresh = null; });
+  }
+  return stockRefresh;
 }
 
 // Devolve { total, locais[] } ou null se não houver registo desse material.
@@ -2880,9 +2926,13 @@ let pollInterval = null;
 function subscribeRealtime() {
   if (pollInterval) clearInterval(pollInterval);
   setDot(true);
+  let tick = 0;
 
   pollInterval = setInterval(async () => {
     if (!state.currentUser) return;
+    // Os planos leem-se a cada 5 s; o stock do parque chega a cada 30 s, que e
+    // mais que suficiente para quem esta a olhar para a lista.
+    if (++tick % 6 === 0) refrescarStock();
     try {
       const oldPlans = JSON.stringify(plans.map(p => ({
         id: p.id, status: p.status,
@@ -2907,6 +2957,15 @@ function subscribeRealtime() {
     }
   }, 5000);
 }
+
+// Um telemovel no bolso suspende os timers: ao voltar a app, le-se logo tudo o
+// que pode ter mudado, em vez de esperar pelo proximo ciclo.
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState !== 'visible' || !state.currentUser) return;
+  refrescarStock();
+  const antes = sapAtualizado;
+  loadStockSap().then(() => { if (sapAtualizado !== antes) redesenharStock(); });
+});
 
 function setDot(online) {
   const dot = document.getElementById('realtime-dot');
@@ -3744,9 +3803,14 @@ function renderDetail(plan) {
 const STOCK_BAIXA_ATIVA = true;   // requer a funcao picking_saida na base de dados
 
 
-function abrirBaixaStock(plan, item, delta) {
+async function abrirBaixaStock(plan, item, delta) {
+  if (!STOCK_BAIXA_ATIVA || delta <= 0) return;
+  // O operador vai confirmar quanto sobra na cesta: tem de ver o stock de agora,
+  // nao o de quando abriu a app. Com uma cesta mexida na app do parque entretanto,
+  // o "vao sobrar" saia errado e ia para o admin uma discrepancia que nao existe.
+  await refrescarStock();
   const s = stockFor(item);
-  if (!s || !STOCK_BAIXA_ATIVA || delta <= 0) return;
+  if (!s) return;
   state.baixaStock = { planId: plan.id, itemId: item.id, delta, locais: s.locais, escolhido: null };
   const el = document.getElementById('baixa-body');
   el.innerHTML = `
@@ -3989,6 +4053,7 @@ function openQtyModal(planId, itemId, action) {
 
   // Localizações no parque de acessórios (app externa) — onde ir buscar o material
   renderStockLocations(document.getElementById('qty-modal-stock'), item);
+  refrescarStock();
 
   const input = document.getElementById('qty-input');
   input.value = currentVal > 0 ? currentVal : maxQty;
@@ -4580,7 +4645,9 @@ function openPinturaDescModal(planId, itemId) {
   metaEl.innerHTML = parts.join('');
 
   // Localizações no parque de acessórios
+  state.pdescAberto = { planId, itemId };
   renderStockLocations(document.getElementById('pdesc-stock'), item);
+  refrescarStock();
 
   // action buttons
   const actEl = document.getElementById('pdesc-actions');
