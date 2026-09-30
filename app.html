@@ -643,28 +643,44 @@ input, textarea, select { font-family: inherit; font-size: inherit; }
 }
 /* Baixa de stock no parque */
 .baixa-pergunta { font-size: 14px; font-weight: 600; color: var(--text); margin: 4px 0 10px; }
-.baixa-loc {
-  width: 100%; display: flex; justify-content: space-between; align-items: center;
-  gap: 10px; padding: 11px 13px; margin-bottom: 7px;
-  background: #ecfeff; border: 1.5px solid #a5e8f5; border-radius: var(--radius-sm);
-  font-size: 14px; font-weight: 600; color: var(--text); cursor: pointer; transition: all .15s;
+.baixa-linha {
+  border: 1.5px solid var(--border); border-radius: var(--radius-sm);
+  padding: 10px 12px; margin-bottom: 8px; background: var(--card);
+  transition: border-color .15s, background .15s;
 }
-.baixa-loc:hover { background: #d8f7fd; border-color: #0e7490; }
-.baixa-loc-qty { font-weight: 800; color: #0e7490; flex-shrink: 0; }
+.baixa-linha.ativa { border-color: #0e7490; background: #ecfeff; }
+.baixa-linha-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; margin-bottom: 8px; }
+.baixa-linha-loc { font-size: 14px; font-weight: 700; color: var(--text); }
+.baixa-reg { font-size: 12px; color: var(--text-muted); margin-top: 1px; }
+.baixa-usar {
+  padding: 6px 11px; border-radius: 16px; border: 1.5px solid #a5e8f5; background: #fff;
+  color: #0e7490; font-size: 12px; font-weight: 700; white-space: nowrap; cursor: pointer; flex-shrink: 0;
+}
+.baixa-linha-ctrl { display: flex; align-items: center; gap: 6px; }
+.baixa-linha-fica { margin-top: 6px; }
+.baixa-lbl { font-size: 12px; color: var(--text-muted); min-width: 92px; }
+.baixa-step {
+  width: 34px; height: 34px; border-radius: 50%; border: 1.5px solid var(--border);
+  background: var(--card); color: var(--text); font-size: 18px; font-weight: 700;
+  flex-shrink: 0; cursor: pointer; line-height: 1;
+}
+.baixa-num {
+  width: 66px; text-align: center; padding: 6px 4px; border: 1.5px solid var(--border);
+  border-radius: 8px; font-size: 16px; font-weight: 700; background: var(--card); color: var(--text);
+}
+.baixa-corr {
+  font-size: 12px; color: #b45309; background: var(--warning-light);
+  border-radius: 6px; padding: 6px 8px; margin-top: 7px; line-height: 1.4;
+}
+.btn-confirm:disabled { opacity: 0.45; cursor: not-allowed; }
+.baixa-total { text-align: center; font-size: 14px; font-weight: 700; padding: 10px; border-radius: var(--radius-sm); margin: 4px 0 10px; }
+.baixa-total.ok { color: var(--success); background: #ecfdf5; }
+.baixa-total.falta { color: #b45309; background: var(--warning-light); }
+.baixa-total.excesso { color: #b91c1c; background: #fef2f2; }
 .baixa-skip {
   width: 100%; margin-top: 4px; padding: 9px; background: none; border: none;
   color: var(--text-muted); font-size: 13px; text-decoration: underline; cursor: pointer;
 }
-.baixa-sobra {
-  text-align: center; font-size: 19px; color: var(--text);
-  background: var(--bg); border-radius: var(--radius-sm); padding: 14px; margin-bottom: 12px;
-}
-.baixa-corrigir {
-  width: 100%; margin-top: 8px; padding: 11px; border-radius: var(--radius-sm);
-  background: var(--warning-light); color: var(--warning);
-  border: 1.5px solid #f5c451; font-size: 14px; font-weight: 700; cursor: pointer;
-}
-.baixa-aviso { font-size: 12px; color: var(--text-muted); margin-bottom: 10px; line-height: 1.45; }
 /* Localização no parque de acessórios (dados da app de stock) */
 .stock-badge {
   display: inline-block;
@@ -1740,15 +1756,22 @@ const I18N = {
     dash_lb_entregues: 'entr. pintura',
     // Baixa de stock
     baixa_titulo: 'Dar baixa no parque',
-    baixa_de_que_cesta: 'De que cesta retiraste as {qty} un.?',
     baixa_nao_registar: 'Não retirei do parque — não registar',
-    baixa_vao_sobrar: 'Vão sobrar',
-    baixa_sim: 'Sim, está correto',
-    baixa_nao_bate: 'Não bate certo',
-    baixa_quanto_sobra: 'Quantas unidades ficaram mesmo na cesta?',
-    baixa_aviso_msg: 'A diferença fica registada e é enviada uma mensagem ao administrador do parque.',
     baixa_ok: 'Baixa de {qty} un. registada no parque ✓',
     baixa_erro: 'Não foi possível dar baixa no parque: {msg}',
+    baixa_de_onde: 'De onde retiraste as {qty} un.?',
+    baixa_registo: 'registo: {n} un.',
+    baixa_retirei: 'Retirei',
+    baixa_ficou: 'Ficou na cesta',
+    baixa_usar: 'Usar {n}',
+    baixa_corrige: 'Pelo registo ficariam {esp} — fica corrigido para {real} e o admin é avisado.',
+    baixa_total_ok: '{soma} de {qty} un. ✓',
+    baixa_total_falta: '{soma} de {qty} un. — faltam {n}',
+    baixa_total_excesso: '{soma} de {qty} un. — {n} a mais do que separaste',
+    baixa_confirmar: 'Confirmar baixa',
+    baixa_registar_so: 'Registar só {n} un.',
+    baixa_ok_multi: 'Baixa de {qty} un. em {n} cestas registada ✓',
+    baixa_parcial: '{qty} un. registadas; falhou: {msg}',
     // Stock do parque
     stock_titulo: 'Stock no parque',
     stock_n_locais: '{n} cestas',
@@ -1973,15 +1996,22 @@ const I18N = {
     dash_lb_entregues: 'delivered',
     // Baixa de stock
     baixa_titulo: 'Remove from yard stock',
-    baixa_de_que_cesta: 'Which basket did you take the {qty} pcs from?',
     baixa_nao_registar: 'Not from the yard — do not record',
-    baixa_vao_sobrar: 'Remaining will be',
-    baixa_sim: 'Yes, that is right',
-    baixa_nao_bate: 'That does not match',
-    baixa_quanto_sobra: 'How many are actually left in the basket?',
-    baixa_aviso_msg: 'The difference is recorded and a message is sent to the yard administrator.',
     baixa_ok: '{qty} pcs removed from yard stock ✓',
     baixa_erro: 'Could not update yard stock: {msg}',
+    baixa_de_onde: 'Where did you take the {qty} pcs from?',
+    baixa_registo: 'on record: {n} pcs',
+    baixa_retirei: 'Taken',
+    baixa_ficou: 'Left in basket',
+    baixa_usar: 'Use {n}',
+    baixa_corrige: 'The record would leave {esp} — it will be corrected to {real} and the admin notified.',
+    baixa_total_ok: '{soma} of {qty} pcs ✓',
+    baixa_total_falta: '{soma} of {qty} pcs — {n} missing',
+    baixa_total_excesso: '{soma} of {qty} pcs — {n} more than you picked',
+    baixa_confirmar: 'Confirm',
+    baixa_registar_so: 'Record only {n} pcs',
+    baixa_ok_multi: '{qty} pcs removed from {n} baskets ✓',
+    baixa_parcial: '{qty} pcs recorded; failed: {msg}',
     // Stock do parque
     stock_titulo: 'Stock in the yard',
     stock_n_locais: '{n} baskets',
@@ -3797,81 +3827,206 @@ function renderDetail(plan) {
   document.getElementById('detail-content').innerHTML = html;
 }
 
-// ── Baixa de stock no parque (Edge Function da app de acessórios) ──────
-// Enquanto STOCK_FN_TOKEN estiver vazio o fluxo fica inativo e a app
-// comporta-se exatamente como antes.
+// ── Baixa de stock no parque ────────────────────────────────────────────
+// Quando o operador separa material de acessórios, pergunta-se de que cestas
+// saiu, para descontar no parque. Cada cesta vai à função picking_saida da base
+// de dados (ver sql/picking_saida.sql), que também regista o movimento e, se o
+// que ficou na cesta não bater com o registo, avisa o administrador.
 const STOCK_BAIXA_ATIVA = true;   // requer a funcao picking_saida na base de dados
 
-
+// Uma separação pode sair de várias cestas (x de uma, y de outra), e o registo
+// do parque pode estar desfasado da realidade (61 no sistema, 62 na cesta).
+// Por isso cada cesta tem duas perguntas: quanto se tirou e quanto ficou. O que
+// ficou é proposto a partir do registo; se o operador o altera -- ou se o registo
+// daria negativo -- a cesta segue como correção e o admin é avisado.
 async function abrirBaixaStock(plan, item, delta) {
   if (!STOCK_BAIXA_ATIVA || delta <= 0) return;
   // O operador vai confirmar quanto sobra na cesta: tem de ver o stock de agora,
   // nao o de quando abriu a app. Com uma cesta mexida na app do parque entretanto,
-  // o "vao sobrar" saia errado e ia para o admin uma discrepancia que nao existe.
+  // o "fica" saia errado e ia para o admin uma discrepancia que nao existe.
   await refrescarStock();
   const s = stockFor(item);
   if (!s) return;
-  state.baixaStock = { planId: plan.id, itemId: item.id, delta, locais: s.locais, escolhido: null };
-  const el = document.getElementById('baixa-body');
-  el.innerHTML = `
-    <div class="baixa-pergunta">${t('baixa_de_que_cesta', { qty: delta })}</div>
-    ${s.locais.map((l, i) => `
-      <button class="baixa-loc" onclick="escolherCestaBaixa(${i})">
-        <span>📍 ${escHtml(l.cesta || '—')}${l.fiada ? ' · ' + escHtml(l.fiada) : ''}</span>
-        <span class="baixa-loc-qty">${l.qty}</span>
-      </button>`).join('')}
-    <button class="baixa-skip" onclick="closeModal('modal-baixa-stock')">${t('baixa_nao_registar')}</button>`;
+  const linhas = s.locais.map(l => ({ loc: l, tirar: 0, fica: l.qty, ficaManual: false }));
+  // Com uma só cesta não há nada a decidir sobre a origem: vem já preenchida.
+  if (linhas.length === 1) {
+    linhas[0].tirar = delta;
+    linhas[0].fica = Math.max(0, linhas[0].loc.qty - delta);
+  }
+  state.baixaStock = { planId: plan.id, itemId: item.id, delta, linhas, aEnviar: false };
+  renderBaixa();
   openModal('modal-baixa-stock');
 }
 
-function escolherCestaBaixa(i) {
+function renderBaixa() {
   const st = state.baixaStock;
-  st.escolhido = st.locais[i];
-  const sobra = st.escolhido.qty - st.delta;
   document.getElementById('baixa-body').innerHTML = `
-    <div class="baixa-pergunta">📍 ${escHtml(st.escolhido.cesta || '—')}${st.escolhido.fiada ? ' · ' + escHtml(st.escolhido.fiada) : ''}</div>
-    <div class="baixa-sobra">${t('baixa_vao_sobrar')} <b>${sobra}</b> ${t('dash_unidades')}</div>
-    <button class="btn-confirm" onclick="enviarBaixa(null)">${t('baixa_sim')}</button>
-    <button class="baixa-corrigir" onclick="abrirCorrecaoBaixa(${sobra})">${t('baixa_nao_bate')}</button>`;
+    <div class="baixa-pergunta">${t('baixa_de_onde', { qty: st.delta })}</div>
+    ${st.linhas.map((r, i) => `
+      <div class="baixa-linha" id="bl-${i}">
+        <div class="baixa-linha-top">
+          <div>
+            <div class="baixa-linha-loc">📍 ${escHtml(r.loc.cesta || '—')}${r.loc.fiada ? ' · ' + escHtml(r.loc.fiada) : ''}</div>
+            <div class="baixa-reg">${t('baixa_registo', { n: r.loc.qty })}</div>
+          </div>
+          <button class="baixa-usar" id="bl-usar-${i}" onclick="baixaUsar(${i})"></button>
+        </div>
+        <div class="baixa-linha-ctrl">
+          <span class="baixa-lbl">${t('baixa_retirei')}</span>
+          <button class="baixa-step" onclick="baixaPasso(${i},-1)">−</button>
+          <input type="number" inputmode="numeric" min="0" class="baixa-num" id="bl-tirar-${i}" value="${r.tirar}" oninput="baixaTirar(${i}, this.value)">
+          <button class="baixa-step" onclick="baixaPasso(${i},1)">+</button>
+        </div>
+        <div class="baixa-linha-ctrl baixa-linha-fica" id="bl-fica-wrap-${i}">
+          <span class="baixa-lbl">${t('baixa_ficou')}</span>
+          <input type="number" inputmode="numeric" min="0" class="baixa-num" id="bl-fica-${i}" value="${r.fica}" oninput="baixaFica(${i}, this.value)">
+        </div>
+        <div class="baixa-corr" id="bl-corr-${i}"></div>
+      </div>`).join('')}
+    <div class="baixa-total" id="baixa-total"></div>
+    <button class="btn-confirm" id="baixa-confirmar" onclick="enviarBaixa()"></button>
+    <button class="baixa-skip" onclick="closeModal('modal-baixa-stock')">${t('baixa_nao_registar')}</button>`;
+  atualizarBaixa();
 }
 
-function abrirCorrecaoBaixa(esperado) {
-  document.getElementById('baixa-body').innerHTML = `
-    <div class="baixa-pergunta">${t('baixa_quanto_sobra')}</div>
-    <input type="number" id="baixa-sobra-real" class="qty-input" min="0" value="${esperado}" style="width:100%;text-align:center;margin:8px 0">
-    <div class="baixa-aviso">${t('baixa_aviso_msg')}</div>
-    <button class="btn-confirm" onclick="enviarBaixa(parseInt(document.getElementById('baixa-sobra-real').value))">${t('btn_guardar')}</button>`;
+// Atualiza só o que deriva dos números, sem redesenhar os campos: redesenhar a
+// cada tecla tirava o foco do campo onde o operador está a escrever.
+function atualizarBaixa() {
+  const st = state.baixaStock;
+  const soma = st.linhas.reduce((a, r) => a + r.tirar, 0);
+  st.linhas.forEach((r, i) => {
+    const ativa = r.tirar > 0;
+    document.getElementById('bl-' + i).classList.toggle('ativa', ativa);
+    document.getElementById('bl-fica-wrap-' + i).style.display = ativa ? '' : 'none';
+    const ficaEl = document.getElementById('bl-fica-' + i);
+    if (document.activeElement !== ficaEl) ficaEl.value = r.fica;
+    const esperado = r.loc.qty - r.tirar;
+    const corr = document.getElementById('bl-corr-' + i);
+    if (ativa && r.fica !== esperado) {
+      corr.textContent = t('baixa_corrige', { esp: esperado, real: r.fica });
+      corr.style.display = '';
+    } else {
+      corr.style.display = 'none';
+    }
+    // "Usar" completa o que falta a partir desta cesta, até ao que o registo lá tem
+    const usar = baixaQuantoUsar(i);
+    const btnUsar = document.getElementById('bl-usar-' + i);
+    btnUsar.textContent = t('baixa_usar', { n: usar });
+    btnUsar.style.visibility = usar > r.tirar ? '' : 'hidden';
+  });
+
+  const tot = document.getElementById('baixa-total');
+  const btn = document.getElementById('baixa-confirmar');
+  const falta = st.delta - soma;
+  if (soma === st.delta) {
+    tot.className = 'baixa-total ok';
+    tot.textContent = t('baixa_total_ok', { soma, qty: st.delta });
+    btn.textContent = t('baixa_confirmar');
+    btn.disabled = false;
+  } else if (soma > st.delta) {
+    // Tirar mais do que se separou quer dizer que a separação está mal, não o parque
+    tot.className = 'baixa-total excesso';
+    tot.textContent = t('baixa_total_excesso', { soma, qty: st.delta, n: -falta });
+    btn.textContent = t('baixa_confirmar');
+    btn.disabled = true;
+  } else {
+    // Pode faltar de propósito: parte veio de um sítio que não está registado
+    tot.className = 'baixa-total falta';
+    tot.textContent = t('baixa_total_falta', { soma, qty: st.delta, n: falta });
+    btn.textContent = soma > 0 ? t('baixa_registar_so', { n: soma }) : t('baixa_confirmar');
+    btn.disabled = soma === 0;
+  }
 }
 
-async function enviarBaixa(sobraConfirmada) {
+function baixaQuantoUsar(i) {
   const st = state.baixaStock;
+  const outras = st.linhas.reduce((a, r, j) => a + (j === i ? 0 : r.tirar), 0);
+  return Math.max(0, Math.min(st.linhas[i].loc.qty, st.delta - outras));
+}
+
+function baixaDefinirTirar(i, n) {
+  const r = state.baixaStock.linhas[i];
+  r.tirar = Math.max(0, n);
+  if (r.tirar === 0) r.ficaManual = false;
+  if (!r.ficaManual) r.fica = Math.max(0, r.loc.qty - r.tirar);
+}
+
+function baixaTirar(i, v) {
+  baixaDefinirTirar(i, parseInt(v, 10) || 0);
+  atualizarBaixa();
+}
+
+function baixaPasso(i, d) {
+  baixaDefinirTirar(i, state.baixaStock.linhas[i].tirar + d);
+  document.getElementById('bl-tirar-' + i).value = state.baixaStock.linhas[i].tirar;
+  atualizarBaixa();
+}
+
+function baixaUsar(i) {
+  baixaDefinirTirar(i, baixaQuantoUsar(i));
+  document.getElementById('bl-tirar-' + i).value = state.baixaStock.linhas[i].tirar;
+  atualizarBaixa();
+}
+
+function baixaFica(i, v) {
+  const r = state.baixaStock.linhas[i];
+  r.fica = Math.max(0, parseInt(v, 10) || 0);
+  r.ficaManual = true;
+  atualizarBaixa();
+}
+
+async function enviarBaixa() {
+  const st = state.baixaStock;
+  if (!st || st.aEnviar) return;
   const plan = plans.find(p => p.id === st.planId);
   const item = plan && plan.items.find(i => i.id === st.itemId);
+  const usadas = st.linhas.filter(r => r.tirar > 0);
+  if (!item || !usadas.length) return;
+  st.aEnviar = true;
   closeModal('modal-baixa-stock');
-  if (!item || !st.escolhido) return;
-  const sobra = (sobraConfirmada === null || sobraConfirmada === undefined || isNaN(sobraConfirmada)) ? null : sobraConfirmada;
-  try {
-    const res = await fetch(SB_API + '/rpc/picking_saida', {
-      method: 'POST',
-      headers: SB_HDR,
-      body: JSON.stringify({
-        p_modelo: st.escolhido.modelo,
-        p_cesta: st.escolhido.cesta,
-        p_fiada: st.escolhido.fiada,
-        p_quantidade: st.delta,
-        p_utilizador: state.currentUser.name,
-        p_sobra_confirmada: sobra,
-        p_notas: plan.nome + ' (app de picking)'
-      })
-    });
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok || data.ok === false) { showToast(t('baixa_erro', { msg: data.erro || data.message || ('HTTP ' + res.status) })); return; }
-    showToast(t('baixa_ok', { qty: st.delta }));
-    await loadStockLocations();
-    renderDetail(plan);
-  } catch (e) {
-    showToast(t('baixa_erro', { msg: e.message }));
+
+  // Uma chamada por cesta: se uma falhar, as outras ficam registadas e o
+  // operador fica a saber exatamente qual não passou.
+  let registadas = 0, cestasOk = 0;
+  const falhas = [];
+  for (const r of usadas) {
+    const correcao = r.fica !== r.loc.qty - r.tirar;
+    const nomeCesta = r.loc.cesta + (r.loc.fiada ? '/' + r.loc.fiada : '');
+    try {
+      const res = await fetch(SB_API + '/rpc/picking_saida', {
+        method: 'POST',
+        headers: SB_HDR,
+        body: JSON.stringify({
+          p_modelo: r.loc.modelo,          // modelo do PARQUE, não do plano
+          p_cesta: r.loc.cesta,
+          p_fiada: r.loc.fiada,
+          p_quantidade: r.tirar,
+          p_utilizador: state.currentUser.name,
+          p_sobra_confirmada: correcao ? r.fica : null,
+          p_notas: plan.nome + ' (app de picking)'
+        })
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || data.ok === false) {
+        falhas.push(nomeCesta + ': ' + (data.erro || data.message || ('HTTP ' + res.status)));
+      } else {
+        registadas += r.tirar;
+        cestasOk++;
+      }
+    } catch (e) {
+      falhas.push(nomeCesta + ': ' + e.message);
+    }
   }
+
+  if (!falhas.length) {
+    showToast(cestasOk === 1 ? t('baixa_ok', { qty: registadas }) : t('baixa_ok_multi', { qty: registadas, n: cestasOk }));
+  } else if (cestasOk) {
+    showToast(t('baixa_parcial', { qty: registadas, msg: falhas.join(' · ') }));
+  } else {
+    showToast(t('baixa_erro', { msg: falhas.join(' · ') }));
+  }
+  await refrescarStock();
+  renderDetail(plan);
 }
 
 // Resumo de localização do parque para a linha do item (só acessórios com registo)
