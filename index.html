@@ -199,6 +199,29 @@ input, textarea, select { font-family: inherit; font-size: inherit; }
   transition: background 0.2s;
 }
 .btn-logout:hover { background: rgba(255,255,255,0.3); }
+.btn-header-pill {
+  background: rgba(255,255,255,0.2);
+  color: #fff;
+  padding: 7px 12px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  transition: background 0.2s;
+}
+.btn-header-pill:hover { background: rgba(255,255,255,0.32); }
+/* Telemóvel: com três botões no topo, o espaço vem das margens e não do texto
+   do perfil -- o nome de quem está a usar a app não pode ficar cortado. */
+@media (max-width: 430px) {
+  .app-header { gap: 8px; padding: 11px 12px; }
+  .app-header-left { gap: 8px; }
+  .app-header-right { gap: 6px; }
+  .btn-header-pill { padding: 6px 9px; font-size: 12px; }
+  .btn-logout { padding: 6px 11px; font-size: 12px; }
+  .btn-header-icon { width: 32px; height: 32px; font-size: 15px; }
+  .app-title { font-size: 15px; }
+  .app-header-sub { white-space: normal; line-height: 1.25; }
+}
 
 /* Group toggle for admins */
 .group-toggle {
@@ -1329,6 +1352,8 @@ input, textarea, select { font-family: inherit; font-size: inherit; }
       </div>
     </div>
     <div class="app-header-right">
+      <button class="btn-header-pill" id="btn-ir-parque" onclick="irParaParque()" style="display:none"
+              title="Abrir a app do parque" data-i18n-attr="title:tooltip_ir_parque">⇄ <span data-i18n="btn_parque">Parque</span></button>
       <button class="btn-header-icon" id="btn-consulta-sap" onclick="abrirConsultaSap()"
               title="Consultar stock SAP" data-i18n-attr="title:sap_find_titulo">🏭</button>
       <button class="btn-logout" onclick="doLogout()" data-i18n="btn_logout">Sair</button>
@@ -1793,6 +1818,8 @@ const I18N = {
     sap_import_erro: 'Não foi possível guardar o stock SAP: {msg}',
     sap_a_guardar: 'A guardar…',
     sap_find_titulo: 'Consultar stock SAP',
+    btn_parque: 'Parque',
+    tooltip_ir_parque: 'Abrir a app do parque (entradas e transferências)',
     sap_find_placeholder: 'Modelo ou código…',
     sap_find_hint: 'Escreve o modelo ou o código. {n} materiais na extração de {d}.',
     sap_find_resultados: '{n} materiais · {total} un. · extração de {d}',
@@ -1995,10 +2022,10 @@ const I18N = {
     dash_lb_separadas: 'picked',
     dash_lb_entregues: 'delivered',
     // Baixa de stock
-    baixa_titulo: 'Remove from yard stock',
-    baixa_nao_registar: 'Not from the yard — do not record',
-    baixa_ok: '{qty} pcs removed from yard stock ✓',
-    baixa_erro: 'Could not update yard stock: {msg}',
+    baixa_titulo: 'Remove from park stock',
+    baixa_nao_registar: 'Not from the park — do not record',
+    baixa_ok: '{qty} pcs removed from park stock ✓',
+    baixa_erro: 'Could not update park stock: {msg}',
     baixa_de_onde: 'Where did you take the {qty} pcs from?',
     baixa_registo: 'on record: {n} pcs',
     baixa_retirei: 'Taken',
@@ -2013,7 +2040,7 @@ const I18N = {
     baixa_ok_multi: '{qty} pcs removed from {n} baskets ✓',
     baixa_parcial: '{qty} pcs recorded; failed: {msg}',
     // Stock do parque
-    stock_titulo: 'Stock in the yard',
+    stock_titulo: 'Stock in the park',
     stock_n_locais: '{n} baskets',
     // Stock do SAP
     sap_badge: 'SAP',
@@ -2033,6 +2060,8 @@ const I18N = {
     sap_import_erro: 'Could not save the SAP stock: {msg}',
     sap_a_guardar: 'Saving…',
     sap_find_titulo: 'Look up SAP stock',
+    btn_parque: 'Park',
+    tooltip_ir_parque: 'Open the park app (entries and transfers)',
     sap_find_placeholder: 'Model or code…',
     sap_find_hint: 'Type the model or the code. {n} materials in the extract of {d}.',
     sap_find_resultados: '{n} materials · {total} pcs · extract of {d}',
@@ -2104,7 +2133,7 @@ const I18N = {
     btn_guardar: 'Save',
     modal_title_observacao: '📝 Note',
     label_local_separacao: 'Picking location / Basket(s)',
-    obs_placeholder_example: 'E.g.: Picked in Yard B, baskets 12 and 13',
+    obs_placeholder_example: 'E.g.: Picked in Park B, baskets 12 and 13',
     // New plan modal
     new_plan_title_carga: '🚚 New Load Plan',
     new_plan_title_pintura: '🎨 New Painting Plan',
@@ -3005,6 +3034,23 @@ function setDot(online) {
 // =====================================================
 // AUTH
 // =====================================================
+// Quem entrou fica lembrado neste aparelho até carregar em "Sair": saltar para a
+// app do parque e voltar não pode obrigar a meter o PIN outra vez. Guarda-se só o
+// utilizador, nunca o PIN -- e os PINs já estão no código da página, por isso
+// lembrar o nome não abre nada que hoje não esteja aberto.
+const SESSAO_KEY = 'picking_utilizador';
+const PARQUE_URL = 'https://bpessoamtg.github.io/acessorios-mtg1/';
+
+// Quem existe nas duas apps (nome aqui -> nome no parque): entra numa, está
+// dentro da outra. Os admins ficam de fora -- há dois aqui e um só "Admin" no
+// parque, por isso não se sabe quem é quem.
+const PARQUE_UTILIZADORES = { Carmona: 'Carmona', Deepak: 'Deepak' };
+// Onde a app do parque guarda a sua sessão (supabase-js, mesmo domínio e projeto)
+const PARQUE_SESSAO_KEY = 'sb-cpoghfbbawubcmdtmpfj-auth-token';
+// Sessão do parque aberta a partir daqui, à espera que o parque a use
+const PARQUE_HANDOFF_KEY = 'parque_sessao_do_picking';
+let parqueSessaoPendente = null;
+
 function doLogin() {
   const user = document.getElementById('login-user').value.trim();
   const pin  = document.getElementById('login-pin').value.trim();
@@ -3016,6 +3062,48 @@ function doLogin() {
     return;
   }
   err.style.display = 'none';
+  try { localStorage.setItem(SESSAO_KEY, user); } catch (e) { /* sem memória: pede o PIN da próxima vez */ }
+  parqueSessaoPendente = abrirSessaoNoParque(user, pin);
+  entrarComo(user);
+}
+
+// O PIN só existe neste momento (não se guarda), por isso é agora que se abre
+// também a sessão do parque: a função de login do parque verifica-o no servidor,
+// exatamente como se o operador tivesse entrado lá. Se o PIN não for o mesmo nas
+// duas apps, não acontece nada e o parque pede o login como sempre.
+async function abrirSessaoNoParque(user, pin) {
+  const nomeParque = PARQUE_UTILIZADORES[user];
+  if (!nomeParque) return;
+  try {
+    const res = await fetch(SUPABASE_URL + '/functions/v1/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', apikey: SUPABASE_ANON, Authorization: 'Bearer ' + SUPABASE_ANON },
+      body: JSON.stringify({ username: nomeParque, password: pin })
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || !data.access_token || !data.refresh_token) return;
+    localStorage.setItem(PARQUE_HANDOFF_KEY, JSON.stringify({
+      username: data.username || nomeParque,
+      access_token: data.access_token,
+      refresh_token: data.refresh_token,
+      em: Date.now()
+    }));
+  } catch (e) { /* sem rede: o parque pede o login */ }
+}
+
+// Quem tem sessão aberta na app do parque, já com o nome que tem aqui
+function utilizadorDoParque() {
+  try {
+    const s = JSON.parse(localStorage.getItem(PARQUE_SESSAO_KEY) || 'null');
+    const u = s && (s.user || (s.currentSession && s.currentSession.user));
+    const nome = u && u.user_metadata && u.user_metadata.username;
+    const par = Object.entries(PARQUE_UTILIZADORES).find(([, p]) => p === nome);
+    return par ? par[0] : null;
+  } catch (e) { return null; }
+}
+
+function entrarComo(user) {
+  const found = USERS[user];
   state.currentUser = { username: user, ...found };
   state.lang = found.lang || 'pt';
   applyI18n();
@@ -3025,7 +3113,28 @@ function doLogin() {
   showApp();
 }
 
+// Entradas e transferências fazem-se na app do parque: as duas apps estão no mesmo
+// domínio, por isso cada uma mantém o seu login e o salto é só um toque.
+async function irParaParque() {
+  // Quem toca no botão logo a seguir a entrar não pode chegar ao parque antes da
+  // sessão: espera-se por ela, mas nunca mais de 4 s.
+  if (parqueSessaoPendente) {
+    await Promise.race([parqueSessaoPendente, new Promise(r => setTimeout(r, 4000))]);
+  }
+  window.location.href = PARQUE_URL;
+}
+
 function doLogout() {
+  try {
+    // "Sair" sai das duas apps: num telemóvel partilhado, quem pegar nele a seguir
+    // não pode abrir o parque com a sessão de quem saiu. Só se fecha a do parque
+    // se for da mesma pessoa -- a de outro utilizador não é desta saída.
+    const eu = state.currentUser && state.currentUser.username;
+    if (eu && utilizadorDoParque() === eu) localStorage.removeItem(PARQUE_SESSAO_KEY);
+    localStorage.removeItem(PARQUE_HANDOFF_KEY);
+    localStorage.removeItem(SESSAO_KEY);
+  } catch (e) {}
+  parqueSessaoPendente = null;
   if (pollInterval) { clearInterval(pollInterval); pollInterval = null; }
   // closeDetail primeiro (usa currentUser); só depois anular
   if (state.openPlanId) {
@@ -3093,6 +3202,8 @@ async function showApp() {
   document.querySelectorAll('.admin-only').forEach(el => {
     el.style.display = isAdmin ? '' : 'none';
   });
+  // A app do parque só tem acessórios: as colunas não têm lá nada para fazer
+  document.getElementById('btn-ir-parque').style.display = (isAdmin || u.group === 'acessorios') ? '' : 'none';
 
   if (isAdmin) {
     setGroupView(state.groupView);
@@ -5071,6 +5182,18 @@ function escHtml(s) {
 document.addEventListener('visibilitychange', () => {
   if (!document.hidden && state.currentUser) renderAll();
 });
+
+// Quem já tinha entrado neste aparelho volta direto à app, sem PIN
+(function retomarSessao() {
+  let guardado = null;
+  try { guardado = localStorage.getItem(SESSAO_KEY); } catch (e) {}
+  // Sem ninguém aqui mas com alguém no parque: é a mesma pessoa, entra direto
+  if (!guardado) {
+    guardado = utilizadorDoParque();
+    if (guardado) { try { localStorage.setItem(SESSAO_KEY, guardado); } catch (e) {} }
+  }
+  if (guardado && USERS[guardado]) entrarComo(guardado);
+})();
 </script>
 </body>
 </html>
