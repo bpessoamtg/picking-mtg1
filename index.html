@@ -879,6 +879,54 @@ input, textarea, select { font-family: inherit; font-size: inherit; }
   justify-content: center;
 }
 .modal-overlay.active { display: flex; }
+/* Entregas à pintura (admin): semana, dias e lista */
+.btn-outline {
+  padding: 7px 14px;
+  background: var(--card);
+  color: var(--primary);
+  border: 1.5px solid var(--primary);
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.actions-bar-botoes { display: flex; gap: 8px; align-items: center; flex-shrink: 0; }
+.entregas-semana { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
+.entregas-semana-label { font-size: 14px; font-weight: 700; color: var(--text); text-align: center; flex: 1; }
+.entregas-nav {
+  width: 34px; height: 34px; border-radius: 50%; border: 1.5px solid var(--border);
+  background: var(--card); color: var(--text); font-size: 18px; font-weight: 700; flex-shrink: 0;
+}
+.entregas-dias { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px; margin-bottom: 10px; }
+.entregas-dia {
+  flex: 1 0 auto; min-width: 54px; padding: 6px 8px; border-radius: 10px;
+  border: 1.5px solid var(--border); background: var(--card); text-align: center; cursor: pointer;
+}
+.entregas-dia .dn { font-size: 12px; font-weight: 700; color: var(--text); }
+.entregas-dia .dc { font-size: 11px; color: var(--text-muted); margin-top: 1px; }
+.entregas-dia.vazio .dn { color: var(--text-muted); font-weight: 600; }
+.entregas-dia.ativo { background: var(--primary); border-color: var(--primary); }
+.entregas-dia.ativo .dn, .entregas-dia.ativo .dc { color: #fff; }
+.entregas-resumo {
+  font-size: 13px; font-weight: 700; color: var(--primary); background: var(--bg);
+  border-radius: var(--radius-sm); padding: 9px 12px; margin-bottom: 8px;
+}
+.entregas-dia-titulo {
+  font-size: 12px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;
+  letter-spacing: .3px; margin: 12px 0 4px;
+}
+.entregas-plano { font-size: 12px; font-weight: 700; color: var(--text); margin: 10px 0 2px; }
+.entregas-linha {
+  display: flex; gap: 10px; align-items: flex-start;
+  padding: 7px 0; border-bottom: 1px solid var(--border);
+}
+.entregas-hora { font-size: 12px; color: var(--text-muted); width: 40px; flex-shrink: 0; padding-top: 2px; }
+.entregas-corpo { flex: 1; min-width: 0; }
+.entregas-modelo { font-family: 'Courier New', monospace; font-size: 13px; font-weight: 700; color: var(--text); }
+.entregas-info { font-size: 12px; color: var(--text-muted); margin-top: 1px; }
+.entregas-qtd { font-size: 15px; font-weight: 800; color: var(--success); flex-shrink: 0; }
+.entregas-qtd.negativa { color: var(--danger); }
+.entregas-aviso { font-size: 11.5px; color: var(--text-muted); margin-top: 10px; line-height: 1.45; }
 .modal-sheet {
   background: var(--card);
   border-radius: 18px 18px 0 0;
@@ -1408,7 +1456,10 @@ input, textarea, select { font-family: inherit; font-size: inherit; }
       <div class="date-filters" id="date-filter-pintura">
         <select id="week-select-pintura" onchange="setWeekFilter('pintura',this.value)" style="font-size:14px;padding:6px 10px;border-radius:20px;border:1.5px solid var(--border);background:var(--bg-card);color:var(--text-main);cursor:pointer;min-width:160px"></select>
       </div>
-      <button class="btn-primary admin-only" id="btn-novo-pintura" onclick="openNewPlanModal('pintura')" style="display:none" data-i18n="btn_novo">+ Novo</button>
+      <div class="actions-bar-botoes">
+        <button class="btn-outline admin-only" id="btn-entregas-pintura" onclick="abrirEntregasPintura()" style="display:none" data-i18n="btn_entregas">📋 Entregas</button>
+        <button class="btn-primary admin-only" id="btn-novo-pintura" onclick="openNewPlanModal('pintura')" style="display:none" data-i18n="btn_novo">+ Novo</button>
+      </div>
     </div>
     <div id="list-pintura"></div>
   </div>
@@ -1647,6 +1698,23 @@ input, textarea, select { font-family: inherit; font-size: inherit; }
 <!-- =====================================================
      CONSULTA LIVRE DE STOCK SAP
 ===================================================== -->
+<div class="modal-overlay" id="modal-entregas" onclick="handleOverlayClick(event,'modal-entregas')">
+  <div class="modal-sheet">
+    <div class="modal-top">
+      <div class="modal-title">📋 <span data-i18n="entregas_titulo">Entregas à pintura</span></div>
+      <button class="btn-close" onclick="closeModal('modal-entregas')">✕</button>
+    </div>
+    <div class="entregas-semana">
+      <button class="entregas-nav" onclick="mudarSemanaEntregas(-1)" aria-label="Semana anterior">‹</button>
+      <div class="entregas-semana-label" id="entregas-semana-label"></div>
+      <button class="entregas-nav" onclick="mudarSemanaEntregas(1)" aria-label="Semana seguinte">›</button>
+    </div>
+    <div class="entregas-dias" id="entregas-dias"></div>
+    <div class="entregas-resumo" id="entregas-resumo"></div>
+    <div id="entregas-lista"></div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="modal-sap-find" onclick="handleOverlayClick(event,'modal-sap-find')">
   <div class="modal-sheet">
     <div class="modal-top">
@@ -1818,6 +1886,18 @@ const I18N = {
     sap_import_erro: 'Não foi possível guardar o stock SAP: {msg}',
     sap_a_guardar: 'A guardar…',
     sap_find_titulo: 'Consultar stock SAP',
+    btn_entregas: '📋 Entregas',
+    entregas_titulo: 'Entregas à pintura',
+    entregas_semana_toda: 'Semana',
+    entregas_dias_semana: 'Dom,Seg,Ter,Qua,Qui,Sex,Sáb',
+    entregas_resumo: '{n} entregas · {un} un. · {modelos} modelos',
+    entregas_resumo_um: '1 entrega · {un} un.',
+    entregas_vazio_dia: 'Sem entregas neste dia.',
+    entregas_vazio_semana: 'Sem entregas nesta semana.',
+    entregas_a_carregar: 'A carregar…',
+    entregas_erro: 'Não foi possível carregar as entregas: {msg}',
+    entregas_aviso_historico: '≈ Entregas registadas antes desta lista existir: só ficava guardada a última entrega de cada linha, por isso numa entrega feita em vários dias a data é a da última.',
+    entregas_correcao: 'correção',
     btn_parque: 'Parque',
     tooltip_ir_parque: 'Abrir a app do parque (entradas e transferências)',
     sap_find_placeholder: 'Modelo ou código…',
@@ -2060,6 +2140,18 @@ const I18N = {
     sap_import_erro: 'Could not save the SAP stock: {msg}',
     sap_a_guardar: 'Saving…',
     sap_find_titulo: 'Look up SAP stock',
+    btn_entregas: '📋 Deliveries',
+    entregas_titulo: 'Deliveries to painting',
+    entregas_semana_toda: 'Week',
+    entregas_dias_semana: 'Sun,Mon,Tue,Wed,Thu,Fri,Sat',
+    entregas_resumo: '{n} deliveries · {un} pcs · {modelos} models',
+    entregas_resumo_um: '1 delivery · {un} pcs',
+    entregas_vazio_dia: 'No deliveries on this day.',
+    entregas_vazio_semana: 'No deliveries this week.',
+    entregas_a_carregar: 'Loading…',
+    entregas_erro: 'Could not load the deliveries: {msg}',
+    entregas_aviso_historico: '≈ Delivered before this list existed: only the last delivery of each line was kept, so for a line delivered over several days the date is the last one.',
+    entregas_correcao: 'correction',
     btn_parque: 'Park',
     tooltip_ir_parque: 'Open the park app (entries and transfers)',
     sap_find_placeholder: 'Model or code…',
@@ -2991,7 +3083,10 @@ function subscribeRealtime() {
     if (!state.currentUser) return;
     // Os planos leem-se a cada 5 s; o stock do parque chega a cada 30 s, que e
     // mais que suficiente para quem esta a olhar para a lista.
-    if (++tick % 6 === 0) refrescarStock();
+    if (++tick % 6 === 0) {
+      refrescarStock();
+      if (state.activeTab === 'dashboard') carregarEntregasHoje();
+    }
     try {
       const oldPlans = JSON.stringify(plans.map(p => ({
         id: p.id, status: p.status,
@@ -3181,6 +3276,7 @@ async function showApp() {
     // Localizações do parque: extra opcional, nunca bloqueia o arranque da app
     loadStockLocations().then(() => { if (stockIndex) renderAll(); });
     loadStockSap().then(() => { if (sapIndex) renderAll(); });
+    carregarEntregasHoje();
   } catch(e) {
     console.error('showApp:', e);
     showToast(e.message === 'timeout'
@@ -3235,7 +3331,7 @@ function switchTab(tab) {
   document.getElementById('tab-carga').classList.toggle('active', tab === 'carga');
   document.getElementById('tab-pintura').classList.toggle('active', tab === 'pintura');
   document.getElementById('tab-dashboard').classList.toggle('active', tab === 'dashboard');
-  if (tab === 'dashboard') renderDashboard();
+  if (tab === 'dashboard') { renderDashboard(); carregarEntregasHoje(); }
 }
 
 function getISOWeek(date) {
@@ -3634,11 +3730,19 @@ function renderDashboard() {
       if (i.separadoEm && i.separadoEm.slice(0, 10) === today) {
         bump(i.separadoPor, 'sep', i.qtySeparada || 0);
       }
-      if (p.tipo === 'pintura' && i.entregueEm && i.entregueEm.slice(0, 10) === today) {
-        bump(i.entreguePor, 'entr', i.qtyEntregue || 0);
-      }
     });
   });
+  // Entregas na pintura: do registo de entregas, não do total da linha -- uma
+  // linha que já tinha 10 e recebe mais 15 hoje conta 15 para hoje, não 25, e
+  // uma correção para baixo desconta. É o mesmo número da lista "Entregas".
+  if (entregasHoje && entregasHoje.dia === dataLocalISO(new Date())) {
+    const porItem = new Map();
+    pinturaPlans.forEach(p => p.items.forEach(i => porItem.set(i.id, { p, i })));
+    entregasHoje.linhas.forEach(e => {
+      const x = porItem.get(e.plan_item_id);
+      if (x && userCanSeeItem(x.i, x.p)) bump(e.entregue_por, 'entr', e.quantidade);
+    });
+  }
   const leaderboard = Object.entries(leadMap)
     .map(([name, v]) => ({ name, sep: v.sep, entr: v.entr, total: v.sep + v.entr }))
     .sort((a, b) => b.total - a.total)
@@ -4372,6 +4476,7 @@ async function confirmQty() {
   const item = plan.items.find(i => i.id === itemId);
   const qty = parseInt(document.getElementById('qty-input').value) || 0;
   const sepAntes = item.qtySeparada || 0;
+  const entrAntes = item.qtyEntregue || 0;
   const u = state.currentUser;
   const now = new Date().toISOString();
 
@@ -4407,9 +4512,199 @@ async function confirmQty() {
   updateBadges();
   showToast(action === 'sep' ? t('toast_un_separadas', { qty }) : t('toast_un_entregues', { qty }));
   await dbUpdateItem(item.id, dbFields);
+  if (action === 'entr' && qty !== entrAntes) registarEntregaPintura(plan, item, qty - entrAntes, qty, now, u.name);
   if (action === 'sep') await checkAutoMarkPronto(plan);
   // O material sai fisicamente da cesta sempre que a quantidade separada sobe
   abrirBaixaStock(plan, item, (item.qtySeparada || 0) - sepAntes);
+}
+
+// ── Entregas à pintura (admin) ─────────────────────────────────────────
+// A linha de pintura só guarda o total entregue e a última data, por isso cada
+// entrega fica também registada à parte (sql/entregas_pintura.sql): é daí que
+// sai a lista por dia. Um registo falhado nunca impede a entrega -- a linha já
+// ficou gravada; perde-se só o detalhe dessa vez na lista.
+async function registarEntregaPintura(plan, item, quantidade, totalApos, quando, quem) {
+  try {
+    await sbFetch('/entregas_pintura', {
+      method: 'POST', prefer: 'return=minimal',
+      body: { plan_id: plan.id, plan_item_id: item.id, quantidade, total_apos: totalApos,
+              entregue_em: quando, entregue_por: quem, origem: 'app' }
+    });
+    if (entregasHoje && entregasHoje.dia === dataLocalISO(new Date(quando))) {
+      entregasHoje.linhas.push({ plan_item_id: item.id, quantidade, entregue_por: quem, entregue_em: quando });
+    }
+  } catch (e) {
+    console.warn('Registo da entrega falhou:', e.message);
+  }
+}
+
+// Entregas de hoje, para o KPI de produtividade do Dashboard. Lê-se ao abrir o
+// Dashboard e de 30 em 30 s enquanto está aberto; as entregas feitas neste
+// aparelho entram logo, sem esperar pela leitura.
+let entregasHoje = null;   // { dia: 'YYYY-MM-DD', linhas: [...] }
+
+async function carregarEntregasHoje() {
+  const agora = new Date();
+  const inicio = new Date(agora);
+  inicio.setHours(0, 0, 0, 0);
+  try {
+    const linhas = await sbFetch('/entregas_pintura?select=plan_item_id,quantidade,entregue_por,entregue_em'
+      + '&entregue_em=gte.' + encodeURIComponent(inicio.toISOString()) + '&limit=5000') || [];
+    const antes = JSON.stringify(entregasHoje);
+    entregasHoje = { dia: dataLocalISO(agora), linhas };
+    if (antes !== JSON.stringify(entregasHoje) && state.activeTab === 'dashboard') renderDashboard();
+  } catch (e) {
+    console.warn('Entregas de hoje indisponíveis:', e.message);
+  }
+}
+
+function dataLocalISO(d) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+function segundaDaSemana(d) {
+  const x = new Date(d);
+  x.setHours(0, 0, 0, 0);
+  x.setDate(x.getDate() - (x.getDay() + 6) % 7);
+  return x;
+}
+
+async function abrirEntregasPintura() {
+  const hoje = new Date();
+  state.entregas = { segunda: segundaDaSemana(hoje), dia: dataLocalISO(hoje), linhas: null, erro: null };
+  openModal('modal-entregas');
+  await carregarEntregas();
+}
+
+async function mudarSemanaEntregas(passo) {
+  const st = state.entregas;
+  const s = new Date(st.segunda);
+  s.setDate(s.getDate() + 7 * passo);
+  st.segunda = s;
+  // Na semana corrente abre no dia de hoje; nas outras, na semana inteira
+  const hoje = new Date();
+  st.dia = dataLocalISO(segundaDaSemana(hoje)) === dataLocalISO(s) ? dataLocalISO(hoje) : 'semana';
+  await carregarEntregas();
+}
+
+function escolherDiaEntregas(dia) {
+  state.entregas.dia = dia;
+  renderEntregas();
+}
+
+async function carregarEntregas() {
+  const st = state.entregas;
+  st.linhas = null;
+  st.erro = null;
+  renderEntregas();
+  const fim = new Date(st.segunda);
+  fim.setDate(fim.getDate() + 7);
+  try {
+    st.linhas = await sbFetch('/entregas_pintura?select=*'
+      + '&entregue_em=gte.' + encodeURIComponent(st.segunda.toISOString())
+      + '&entregue_em=lt.' + encodeURIComponent(fim.toISOString())
+      + '&order=entregue_em.asc&limit=5000') || [];
+  } catch (e) {
+    st.erro = e.message;
+  }
+  renderEntregas();
+}
+
+function renderEntregas() {
+  const st = state.entregas;
+  if (!st) return;
+  document.getElementById('entregas-semana-label').textContent = weekLabel(getISOWeek(st.segunda));
+  const diasEl = document.getElementById('entregas-dias');
+  const resumoEl = document.getElementById('entregas-resumo');
+  const listaEl = document.getElementById('entregas-lista');
+
+  if (st.erro || !st.linhas) {
+    diasEl.innerHTML = '';
+    resumoEl.style.display = 'none';
+    listaEl.innerHTML = `<div class="entregas-aviso">${st.erro ? escHtml(t('entregas_erro', { msg: st.erro })) : t('entregas_a_carregar')}</div>`;
+    return;
+  }
+
+  // Juntar cada entrega à sua linha e plano (que a app já tem em memória) e
+  // respeitar o filtro Acessórios / Colunas / Todos do admin
+  const porItem = new Map();
+  plans.forEach(p => { if (p.tipo === 'pintura') p.items.forEach(i => porItem.set(i.id, { plan: p, item: i })); });
+  const entregas = st.linhas
+    .map(e => ({ ...e, ...(porItem.get(e.plan_item_id) || {}), dia: dataLocalISO(new Date(e.entregue_em)) }))
+    .filter(e => e.plan && planVisibleToUser(e.plan));
+
+  const nomesDias = t('entregas_dias_semana').split(',');
+  const dias = [...Array(7)].map((_, k) => { const d = new Date(st.segunda); d.setDate(d.getDate() + k); return d; });
+  const doDia = iso => entregas.filter(e => e.dia === iso);
+  const somar = lista => lista.reduce((a, e) => a + e.quantidade, 0);
+
+  // Segunda a sexta aparecem sempre; sábado e domingo só se houve entregas
+  diasEl.innerHTML = dias.map((d, k) => {
+    const iso = dataLocalISO(d), lista = doDia(iso);
+    if (k >= 5 && !lista.length) return '';
+    return `<div class="entregas-dia${st.dia === iso ? ' ativo' : ''}${lista.length ? '' : ' vazio'}" onclick="escolherDiaEntregas('${iso}')">
+      <div class="dn">${nomesDias[d.getDay()]} ${String(d.getDate()).padStart(2, '0')}</div>
+      <div class="dc">${lista.length ? somar(lista) + ' ' + t('dash_unidades') : '—'}</div>
+    </div>`;
+  }).join('') + `<div class="entregas-dia${st.dia === 'semana' ? ' ativo' : ''}" onclick="escolherDiaEntregas('semana')">
+      <div class="dn">${t('entregas_semana_toda')}</div>
+      <div class="dc">${entregas.length ? somar(entregas) + ' ' + t('dash_unidades') : '—'}</div>
+    </div>`;
+
+  const mostrar = st.dia === 'semana' ? entregas : doDia(st.dia);
+  if (!mostrar.length) {
+    resumoEl.style.display = 'none';
+    listaEl.innerHTML = `<div class="entregas-aviso">${t(st.dia === 'semana' ? 'entregas_vazio_semana' : 'entregas_vazio_dia')}</div>`;
+    return;
+  }
+  const modelos = new Set(mostrar.map(e => e.item.model)).size;
+  resumoEl.textContent = mostrar.length === 1
+    ? t('entregas_resumo_um', { un: somar(mostrar) })
+    : t('entregas_resumo', { n: mostrar.length, un: somar(mostrar), modelos });
+  resumoEl.style.display = '';
+
+  // Por dia (na vista da semana) e, dentro do dia, por plano -- é assim que a
+  // pintura recebe: um plano de cada vez.
+  const linhaHtml = e => {
+    const hora = new Date(e.entregue_em).toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' });
+    const info = [
+      'OV ' + escHtml(e.item.ov || '—'),
+      escHtml(e.entregue_por || '—'),
+      e.item.entregueNota ? '\u{1F4CB} ' + escHtml(e.item.entregueNota) : '',
+      e.item.cesta ? '\u{1F3A8} ' + escHtml(e.item.cesta) : '',
+      e.quantidade < 0 ? t('entregas_correcao') : ''
+    ].filter(Boolean).join(' · ');
+    return `<div class="entregas-linha">
+      <div class="entregas-hora">${e.origem === 'historico' ? '\u2248' : hora}</div>
+      <div class="entregas-corpo">
+        <div class="entregas-modelo">${escHtml(e.item.model || '—')}</div>
+        <div class="entregas-info">${info}</div>
+      </div>
+      <div class="entregas-qtd${e.quantidade < 0 ? ' negativa' : ''}">${e.quantidade > 0 ? '+' : ''}${e.quantidade}</div>
+    </div>`;
+  };
+  const porPlano = lista => {
+    const grupos = new Map();
+    lista.forEach(e => { if (!grupos.has(e.plan.id)) grupos.set(e.plan.id, []); grupos.get(e.plan.id).push(e); });
+    return [...grupos.values()].map(g =>
+      `<div class="entregas-plano">${escHtml(g[0].plan.nome)} · ${somar(g)} ${t('dash_unidades')}</div>${g.map(linhaHtml).join('')}`
+    ).join('');
+  };
+
+  let html;
+  if (st.dia === 'semana') {
+    html = dias.map(d => {
+      const lista = doDia(dataLocalISO(d));
+      if (!lista.length) return '';
+      return `<div class="entregas-dia-titulo">${nomesDias[d.getDay()]} ${formatDate(dataLocalISO(d))} · ${somar(lista)} ${t('dash_unidades')}</div>${porPlano(lista)}`;
+    }).join('');
+  } else {
+    html = porPlano(mostrar);
+  }
+  if (mostrar.some(e => e.origem === 'historico')) {
+    html += `<div class="entregas-aviso">${t('entregas_aviso_historico')}</div>`;
+  }
+  listaEl.innerHTML = html;
 }
 
 async function checkAutoMarkPronto(plan) {
