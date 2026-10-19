@@ -1337,6 +1337,15 @@ input, textarea, select { font-family: inherit; font-size: inherit; }
   animation: pulse-dot 2s infinite;
 }
 #realtime-dot.offline { background: #f87171; animation: none; }
+/* Aviso de "sem rede": fixo em baixo, por cima das listas mas por baixo dos
+   modais, para estar sempre à vista sem tapar o cabeçalho. */
+.aviso-offline {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 150;
+  background: #fef3c7; color: #92400e; border-top: 2px solid #f59e0b;
+  font-size: 13px; font-weight: 700; line-height: 1.35;
+  padding: 10px 16px; text-align: center;
+}
+body.com-aviso-offline { padding-bottom: 56px; }
 @keyframes pulse-dot {
   0%   { box-shadow: 0 0 0 0 rgba(74,222,128,0.6); }
   70%  { box-shadow: 0 0 0 6px rgba(74,222,128,0); }
@@ -1407,6 +1416,8 @@ input, textarea, select { font-family: inherit; font-size: inherit; }
       <button class="btn-logout" onclick="doLogout()" data-i18n="btn_logout">Sair</button>
     </div>
   </div>
+
+  <div class="aviso-offline" id="aviso-offline" style="display:none" role="status"></div>
 
   <!-- Admin group toggle -->
   <div class="group-toggle" id="group-toggle" style="display:none">
@@ -1887,6 +1898,10 @@ const I18N = {
     sap_a_guardar: 'A guardar…',
     sap_find_titulo: 'Consultar stock SAP',
     btn_entregas: '📋 Entregas',
+    offline_aviso: '📡 Sem rede — a mostrar os dados de {hora}. Nada é gravado até a rede voltar.',
+    offline_aviso_sem_hora: '📡 Sem rede — nada é gravado até a rede voltar.',
+    erro_sem_rede: 'Sem rede — não foi gravado. Tenta outra vez quando a rede voltar.',
+    rede_voltou: 'Rede de volta ✓',
     entregas_titulo: 'Entregas à pintura',
     entregas_semana_toda: 'Semana',
     entregas_dias_semana: 'Dom,Seg,Ter,Qua,Qui,Sex,Sáb',
@@ -2141,6 +2156,10 @@ const I18N = {
     sap_a_guardar: 'Saving…',
     sap_find_titulo: 'Look up SAP stock',
     btn_entregas: '📋 Deliveries',
+    offline_aviso: '📡 No network — showing data from {hora}. Nothing is saved until the network is back.',
+    offline_aviso_sem_hora: '📡 No network — nothing is saved until the network is back.',
+    erro_sem_rede: 'No network — not saved. Try again when the network is back.',
+    rede_voltou: 'Network back ✓',
     entregas_titulo: 'Deliveries to painting',
     entregas_semana_toda: 'Week',
     entregas_dias_semana: 'Sun,Mon,Tue,Wed,Thu,Fri,Sat',
@@ -2375,6 +2394,7 @@ const SB_HDR = {
 };
 
 async function sbFetch(path, opts = {}) {
+  if (opts.method && opts.method !== 'GET' && semRede()) throw new Error(t('erro_sem_rede'));
   const headers = { ...SB_HDR };
   if (opts.prefer) headers['Prefer'] = opts.prefer;
   const res = await fetch(SB_API + path, {
@@ -2624,13 +2644,126 @@ function buildDemoData() {
 // =====================================================
 // PERSISTENCE — Supabase REST API
 // =====================================================
+// =====================================================
+// SEM REDE (fase 1): a app abre e mostra os últimos dados que este aparelho
+// recebeu, com a hora, e não deixa gravar nada até a rede voltar -- para o
+// operador nunca ficar a pensar que uma separação ficou registada quando não
+// ficou. A fila de gravações para mais tarde é a fase seguinte.
+// =====================================================
+
+// Sem rede = o browser diz que não há ligação, ou a última leitura do servidor
+// falhou (Wi-Fi ligado mas sem internet engana o browser).
+function semRede() {
+  return !navigator.onLine || state.online === false;
+}
+
+function definirLigacao(ok) {
+  const antes = state.online;
+  state.online = ok;
+  setDot(ok);
+  atualizarAvisoOffline();
+  if (ok && antes === false) showToast(t('rede_voltou'));
+}
+
+function atualizarAvisoOffline() {
+  const el = document.getElementById('aviso-offline');
+  if (!el) return;
+  const mostrar = !!state.currentUser && semRede();
+  if (mostrar) {
+    let hora = '';
+    if (state.dadosDe) {
+      const d = new Date(state.dadosDe);
+      const hm = d.toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' });
+      hora = dataLocalISO(d) === dataLocalISO(new Date()) ? hm : formatDate(dataLocalISO(d)) + ' ' + hm;
+    }
+    el.textContent = hora ? t('offline_aviso', { hora }) : t('offline_aviso_sem_hora');
+  }
+  el.style.display = mostrar ? '' : 'none';
+  document.body.classList.toggle('com-aviso-offline', mostrar);
+}
+
+window.addEventListener('offline', () => definirLigacao(false));
+// O browser diz que voltou: confirma-se logo com o servidor em vez de esperar
+// pelo próximo ciclo de 5 s
+window.addEventListener('online', () => { if (state.currentUser) atualizarPlanosDoServidor(); });
+
+// Cópia local (IndexedDB) do que veio do servidor. É o que se mostra quando a
+// app abre sem rede. Tudo aqui falha em silêncio: sem cópia, a app comporta-se
+// como antes.
+function abrirCopiaLocal() {
+  if (!abrirCopiaLocal.p) {
+    abrirCopiaLocal.p = new Promise(res => {
+      try {
+        const r = indexedDB.open('picking-copia-local', 1);
+        r.onupgradeneeded = () => r.result.createObjectStore('dados');
+        r.onsuccess = () => res(r.result);
+        r.onerror = () => res(null);
+      } catch (e) { res(null); }
+    });
+  }
+  return abrirCopiaLocal.p;
+}
+
+async function guardarCopia(chave, valor) {
+  const db = await abrirCopiaLocal();
+  if (!db) return;
+  try { db.transaction('dados', 'readwrite').objectStore('dados').put({ em: Date.now(), valor }, chave); } catch (e) {}
+}
+
+async function lerCopia(chave) {
+  const db = await abrirCopiaLocal();
+  if (!db) return null;
+  return new Promise(res => {
+    try {
+      const r = db.transaction('dados').objectStore('dados').get(chave);
+      r.onsuccess = () => res(r.result || null);
+      r.onerror = () => res(null);
+    } catch (e) { res(null); }
+  });
+}
+
+// Lê da rede e guarda cópia; sem rede devolve a última cópia (ou relança o erro)
+async function comCopiaLocal(chave, ler) {
+  try {
+    const valor = await ler();
+    guardarCopia(chave, valor);
+    return valor;
+  } catch (e) {
+    const copia = await lerCopia(chave);
+    if (copia) return copia.valor;
+    throw e;
+  }
+}
+
+function comLimiteDeTempo(promessa, ms) {
+  return Promise.race([promessa, new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), ms))]);
+}
+
+let planosGuardados = null;   // texto da última cópia gravada, para não regravar o mesmo a cada 5 s
+
 async function loadPlans() {
   // Excluir pdf_base64 da query normal (pode ser grande) — carregado à parte quando necessário
   const cols = 'id,tipo,nome,data,hora_carregar,transportadora,observacao,status,grupo,criado_por,criado_em,pdf_name,plan_items(*)';
+  const primeiraVez = !plans.length;
   try {
-    const data = await sbFetch(`/plans?select=${cols}&order=data.desc`);
+    // Na abertura não se espera mais de 6 s: com Wi-Fi fraco mais vale mostrar a cópia
+    const data = await comLimiteDeTempo(sbFetch(`/plans?select=${cols}&order=data.desc`), primeiraVez ? 6000 : 20000);
     plans = (data || []).map(dbPlanToLocal);
+    state.dadosDe = Date.now();
+    const txt = JSON.stringify(data || []);
+    if (txt !== planosGuardados) { planosGuardados = txt; guardarCopia('plans', data || []); }
+    definirLigacao(true);
   } catch(e) {
+    definirLigacao(false);
+    // Já há planos no ecrã (ciclo de 5 s): ficam os que estão, sem repetir avisos
+    if (!primeiraVez) throw e;
+    const copia = await lerCopia('plans');
+    if (copia) {
+      plans = (copia.valor || []).map(dbPlanToLocal);
+      state.dadosDe = copia.em;
+      atualizarAvisoOffline();
+      return;
+    }
     console.error('loadPlans:', e);
     showToast(t('toast_erro_carregar_dados', { msg: e.message }));
     throw e;
@@ -2656,12 +2789,14 @@ let stockAssinatura = null;   // resposta crua da ultima leitura, para saber se 
 // isso isto e chamado muitas vezes -- ver refrescarStock().
 async function loadStockLocations() {
   try {
-    const res = await fetch(
-      `${STOCK_URL}/stock_items?select=modelo,cod_sap,cesta,fiada,quantidade&order=id`,
-      { headers: { apikey: STOCK_ANON, Authorization: 'Bearer ' + STOCK_ANON } }
-    );
-    if (!res.ok) throw new Error('HTTP ' + res.status);
-    const txt = await res.text();
+    const txt = await comCopiaLocal('stock_parque', async () => {
+      const res = await fetch(
+        `${STOCK_URL}/stock_items?select=modelo,cod_sap,cesta,fiada,quantidade&order=id`,
+        { headers: { apikey: STOCK_ANON, Authorization: 'Bearer ' + STOCK_ANON } }
+      );
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      return res.text();
+    });
     if (stockIndex && txt === stockAssinatura) return false;
     const rows = JSON.parse(txt);
 
@@ -2768,7 +2903,7 @@ let sapAtualizado = null;   // timestamp da ultima importacao
 
 async function loadStockSap() {
   try {
-    const rows = await sbFetch('/stock_sap?select=ref,descricao,quantidade,atualizado_em&limit=5000');
+    const rows = await comCopiaLocal('stock_sap', () => sbFetch('/stock_sap?select=ref,descricao,quantidade,atualizado_em&limit=5000'));
     const idx = new Map();
     let max = null;
     (rows || []).forEach(r => {
@@ -2810,10 +2945,8 @@ async function loadStockSap() {
     }).filter(r => r.ref);
   } catch (e) {
     // Tal como o parque, o stock e um extra: se falhar a app continua na mesma.
+    // Numa releitura falhada fica o que já estava, como no stock do parque
     console.warn('Stock SAP indisponivel:', e.message);
-    sapIndex = null;
-    sapModelIndex = null;
-    sapLista = null;
   }
 }
 
@@ -3087,6 +3220,13 @@ function subscribeRealtime() {
       refrescarStock();
       if (state.activeTab === 'dashboard') carregarEntregasHoje();
     }
+    await atualizarPlanosDoServidor();
+  }, 5000);
+}
+
+// Uma leitura dos planos: redesenha só se alguma coisa mudou. Corre a cada 5 s
+// e também quando o browser avisa que a rede voltou.
+async function atualizarPlanosDoServidor() {
     try {
       const oldPlans = JSON.stringify(plans.map(p => ({
         id: p.id, status: p.status,
@@ -3105,11 +3245,9 @@ function subscribeRealtime() {
           if (plan) renderDetail(plan);
         }
       }
-      setDot(true);
     } catch(e) {
-      setDot(false);
+      definirLigacao(false);
     }
-  }, 5000);
 }
 
 // Um telemovel no bolso suspende os timers: ao voltar a app, le-se logo tudo o
@@ -4480,6 +4618,14 @@ async function confirmQty() {
   const u = state.currentUser;
   const now = new Date().toISOString();
 
+  // Sem rede não se mexe em nada: o modal fica aberto com o número escrito, para
+  // gravar quando a rede voltar
+  if (semRede()) { showToast(t('erro_sem_rede')); return; }
+  const antes = {
+    qtySeparada: item.qtySeparada, separado: item.separado, separadoPor: item.separadoPor, separadoEm: item.separadoEm,
+    qtyEntregue: item.qtyEntregue, entregue: item.entregue, entregueEm: item.entregueEm, entreguePor: item.entreguePor
+  };
+
   let dbFields = {};
   if (action === 'sep') {
     item.qtySeparada = qty;
@@ -4511,7 +4657,15 @@ async function confirmQty() {
   renderDetail(plan);
   updateBadges();
   showToast(action === 'sep' ? t('toast_un_separadas', { qty }) : t('toast_un_entregues', { qty }));
-  await dbUpdateItem(item.id, dbFields);
+  try {
+    await dbUpdateItem(item.id, dbFields);
+  } catch (e) {
+    // Não gravou (a rede caiu a meio): o ecrã volta ao que está na base de dados
+    Object.assign(item, antes);
+    renderDetail(plan);
+    updateBadges();
+    return;
+  }
   if (action === 'entr' && qty !== entrAntes) registarEntregaPintura(plan, item, qty - entrAntes, qty, now, u.name);
   if (action === 'sep') await checkAutoMarkPronto(plan);
   // O material sai fisicamente da cesta sempre que a quantidade separada sobe
@@ -5477,6 +5631,12 @@ function escHtml(s) {
 document.addEventListener('visibilitychange', () => {
   if (!document.hidden && state.currentUser) renderAll();
 });
+
+// Service worker: deixa a app abrir sem rede (ver sw.js)
+if ('serviceWorker' in navigator && location.protocol !== 'file:') {
+  navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' })
+    .catch(e => console.warn('Service worker:', e.message));
+}
 
 // Quem já tinha entrado neste aparelho volta direto à app, sem PIN
 (function retomarSessao() {
