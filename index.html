@@ -1346,6 +1346,15 @@ input, textarea, select { font-family: inherit; font-size: inherit; }
   padding: 10px 16px; text-align: center;
 }
 body.com-aviso-offline { padding-bottom: 56px; }
+.aviso-offline.pendente { background: #dbeafe; color: #1e3a8a; border-top-color: #3b82f6; }
+.pendente-badge {
+  display: inline-block; margin-top: 3px; font-size: 11px; font-weight: 700;
+  color: #1e40af; background: #dbeafe; border: 1px solid #93c5fd; border-radius: 5px; padding: 2px 7px;
+}
+.conflito-linha { border: 1.5px solid #fecaca; background: #fef2f2; border-radius: var(--radius-sm); padding: 10px 12px; margin-bottom: 8px; }
+.conflito-titulo { font-family: 'Courier New', monospace; font-size: 14px; font-weight: 700; color: var(--text); }
+.conflito-plano { font-size: 12px; color: var(--text-muted); margin-top: 1px; }
+.conflito-txt { font-size: 13px; font-weight: 600; color: #b91c1c; margin-top: 5px; }
 @keyframes pulse-dot {
   0%   { box-shadow: 0 0 0 0 rgba(74,222,128,0.6); }
   70%  { box-shadow: 0 0 0 6px rgba(74,222,128,0); }
@@ -1709,6 +1718,17 @@ body.com-aviso-offline { padding-bottom: 56px; }
 <!-- =====================================================
      CONSULTA LIVRE DE STOCK SAP
 ===================================================== -->
+<div class="modal-overlay" id="modal-conflitos">
+  <div class="modal-sheet">
+    <div class="modal-top">
+      <div class="modal-title">⚠️ <span data-i18n="conflitos_titulo">Não gravado</span></div>
+    </div>
+    <div class="baixa-aviso" data-i18n="conflitos_explica">Entretanto alguém gravou outra coisa nestas linhas. Para não apagar o trabalho dessa pessoa, o teu não foi gravado — confirma de novo se for preciso.</div>
+    <div id="conflitos-lista"></div>
+    <button class="btn-confirm" onclick="fecharConflitos()" data-i18n="conflitos_ok">Percebi</button>
+  </div>
+</div>
+
 <div class="modal-overlay" id="modal-entregas" onclick="handleOverlayClick(event,'modal-entregas')">
   <div class="modal-sheet">
     <div class="modal-top">
@@ -1898,8 +1918,22 @@ const I18N = {
     sap_a_guardar: 'A guardar…',
     sap_find_titulo: 'Consultar stock SAP',
     btn_entregas: '📋 Entregas',
-    offline_aviso: '📡 Sem rede — a mostrar os dados de {hora}. Nada é gravado até a rede voltar.',
-    offline_aviso_sem_hora: '📡 Sem rede — nada é gravado até a rede voltar.',
+    offline_guarda: '📡 Sem rede — o que separares fica guardado no tablet e é gravado quando a rede voltar',
+    offline_pendentes: '📡 Sem rede — {n} por gravar, guardados no tablet até a rede voltar',
+    offline_dados_de: 'dados de {hora}',
+    a_gravar: '⏳ {n} por gravar — a tentar enviar…',
+    toast_guardado_offline: '{qty} un. guardadas no tablet — gravam quando a rede voltar',
+    erro_sem_rede_baixa: 'Sem rede — este material tem baixa no parque. Grava quando a rede voltar.',
+    aviso_baixa_por_fazer: 'A rede caiu a meio: a separação fica na fila, mas a baixa no parque não foi feita — faz na app do parque.',
+    badge_por_gravar: '⏳ por gravar',
+    conflitos_titulo: 'Não gravado',
+    conflitos_explica: 'Entretanto alguém gravou outra coisa nestas linhas. Para não apagar o trabalho dessa pessoa, o teu não foi gravado — confirma de novo se for preciso.',
+    conflitos_ok: 'Percebi',
+    conflito_sep: 'Querias {quer} separadas · estão {esta}',
+    conflito_entr: 'Querias {quer} entregues · estão {esta}',
+    conflito_quem: '(gravado por {quem} às {hora})',
+    conflito_apagada: 'Esta linha já não existe.',
+    conflito_erro: 'Não foi aceite: {msg}',
     erro_sem_rede: 'Sem rede — não foi gravado. Tenta outra vez quando a rede voltar.',
     rede_voltou: 'Rede de volta ✓',
     entregas_titulo: 'Entregas à pintura',
@@ -2156,8 +2190,22 @@ const I18N = {
     sap_a_guardar: 'Saving…',
     sap_find_titulo: 'Look up SAP stock',
     btn_entregas: '📋 Deliveries',
-    offline_aviso: '📡 No network — showing data from {hora}. Nothing is saved until the network is back.',
-    offline_aviso_sem_hora: '📡 No network — nothing is saved until the network is back.',
+    offline_guarda: '📡 No network — what you pick is kept on the tablet and saved when the network is back',
+    offline_pendentes: '📡 No network — {n} waiting, kept on the tablet until the network is back',
+    offline_dados_de: 'data from {hora}',
+    a_gravar: '⏳ {n} waiting — trying to send…',
+    toast_guardado_offline: '{qty} pcs kept on the tablet — saved when the network is back',
+    erro_sem_rede_baixa: 'No network — this item is taken off park stock. Save it when the network is back.',
+    aviso_baixa_por_fazer: 'The network dropped: the picking is queued, but the park stock was not updated — do it in the park app.',
+    badge_por_gravar: '⏳ waiting',
+    conflitos_titulo: 'Not saved',
+    conflitos_explica: 'Meanwhile someone saved something else on these lines. To avoid wiping their work, yours was not saved — confirm again if needed.',
+    conflitos_ok: 'Got it',
+    conflito_sep: 'You wanted {quer} picked · it is {esta}',
+    conflito_entr: 'You wanted {quer} delivered · it is {esta}',
+    conflito_quem: '(saved by {quem} at {hora})',
+    conflito_apagada: 'This line no longer exists.',
+    conflito_erro: 'Not accepted: {msg}',
     erro_sem_rede: 'No network — not saved. Try again when the network is back.',
     rede_voltou: 'Network back ✓',
     entregas_titulo: 'Deliveries to painting',
@@ -2668,16 +2716,25 @@ function definirLigacao(ok) {
 function atualizarAvisoOffline() {
   const el = document.getElementById('aviso-offline');
   if (!el) return;
-  const mostrar = !!state.currentUser && semRede();
-  if (mostrar) {
+  const n = fila ? fila.length : 0;
+  const logado = !!state.currentUser;
+  const offline = logado && semRede();
+  // Com rede, só se avisa do que está mesmo parado -- um envio em curso dura
+  // meio segundo e não merece piscar no ecrã
+  const pendente = logado && !offline && n > 0 && !filaEmEnvio;
+  if (offline) {
     let hora = '';
     if (state.dadosDe) {
       const d = new Date(state.dadosDe);
       const hm = d.toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' });
       hora = dataLocalISO(d) === dataLocalISO(new Date()) ? hm : formatDate(dataLocalISO(d)) + ' ' + hm;
     }
-    el.textContent = hora ? t('offline_aviso', { hora }) : t('offline_aviso_sem_hora');
+    el.textContent = (n ? t('offline_pendentes', { n }) : t('offline_guarda')) + (hora ? ' \u00b7 ' + t('offline_dados_de', { hora }) : '');
+  } else if (pendente) {
+    el.textContent = t('a_gravar', { n });
   }
+  el.classList.toggle('pendente', pendente);
+  const mostrar = offline || pendente;
   el.style.display = mostrar ? '' : 'none';
   document.body.classList.toggle('com-aviso-offline', mostrar);
 }
@@ -2745,10 +2802,12 @@ async function loadPlans() {
   // Excluir pdf_base64 da query normal (pode ser grande) — carregado à parte quando necessário
   const cols = 'id,tipo,nome,data,hora_carregar,transportadora,observacao,status,grupo,criado_por,criado_em,pdf_name,plan_items(*)';
   const primeiraVez = !plans.length;
+  await carregarFila();
   try {
     // Na abertura não se espera mais de 6 s: com Wi-Fi fraco mais vale mostrar a cópia
     const data = await comLimiteDeTempo(sbFetch(`/plans?select=${cols}&order=data.desc`), primeiraVez ? 6000 : 20000);
     plans = (data || []).map(dbPlanToLocal);
+    aplicarFilaAosPlanos();
     state.dadosDe = Date.now();
     const txt = JSON.stringify(data || []);
     if (txt !== planosGuardados) { planosGuardados = txt; guardarCopia('plans', data || []); }
@@ -2760,6 +2819,7 @@ async function loadPlans() {
     const copia = await lerCopia('plans');
     if (copia) {
       plans = (copia.valor || []).map(dbPlanToLocal);
+      aplicarFilaAosPlanos();
       state.dadosDe = copia.em;
       atualizarAvisoOffline();
       return;
@@ -3245,6 +3305,8 @@ async function atualizarPlanosDoServidor() {
           if (plan) renderDetail(plan);
         }
       }
+      if (fila && fila.length) enviarFila();
+      else if (conflitos.length && !document.getElementById('modal-conflitos').classList.contains('active')) mostrarConflitos();
     } catch(e) {
       definirLigacao(false);
     }
@@ -4462,6 +4524,7 @@ function renderItemRow(item, plan, opts) {
         <div class="item-info">📦 ${escHtml(item.cesta || '—')} · OV ${escHtml(item.ov || '—')}</div>
         ${stockBadge(item)}
         ${sapBadge(item)}
+        ${badgePendente(item)}
         ${item.montagemExtra ? `<div class="montagem-extra-badge">⚙️ ${escHtml(item.montagemExtra)}</div>` : ''}
       </div>
       <div class="item-status-wrap">
@@ -4518,6 +4581,7 @@ function renderItemRow(item, plan, opts) {
         <div style="font-size:13px;color:var(--text-muted);margin-top:1px">OV ${escHtml(item.ov || '—')}</div>
         ${stockBadge(item)}
         ${sapBadge(item)}
+        ${badgePendente(item)}
         ${(utilizacaoHtml || tipoPinturaHtml) ? `<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:3px">${utilizacaoHtml}${tipoPinturaHtml}</div>` : ''}
       </div>
       <div class="pintura-actions" style="display:flex;flex-direction:column;gap:4px;align-items:flex-end">
@@ -4618,13 +4682,12 @@ async function confirmQty() {
   const u = state.currentUser;
   const now = new Date().toISOString();
 
-  // Sem rede não se mexe em nada: o modal fica aberto com o número escrito, para
-  // gravar quando a rede voltar
-  if (semRede()) { showToast(t('erro_sem_rede')); return; }
-  const antes = {
-    qtySeparada: item.qtySeparada, separado: item.separado, separadoPor: item.separadoPor, separadoEm: item.separadoEm,
-    qtyEntregue: item.qtyEntregue, entregue: item.entregue, entregueEm: item.entregueEm, entreguePor: item.entreguePor
-  };
+  // A baixa no parque pede ao operador que confirme quanto fica na cesta com o
+  // stock de agora, por isso precisa de rede: material com stock no parque não
+  // se separa sem rede (fica para a fase 3)
+  const sepDepois = action === 'sep' ? qty : Math.max(qty, sepAntes);
+  const precisaBaixa = STOCK_BAIXA_ATIVA && sepDepois > sepAntes && !!stockFor(item);
+  if (precisaBaixa && semRede()) { showToast(t('erro_sem_rede_baixa')); return; }
 
   let dbFields = {};
   if (action === 'sep') {
@@ -4653,44 +4716,253 @@ async function confirmQty() {
     }
   }
 
+  // Tudo passa pela fila, com ou sem rede: um só caminho, e a proteção contra
+  // apagar o trabalho de outro aparelho vale sempre
+  const op = {
+    id: uid(), planId, itemId, campos: dbFields, criadoEm: now, entregas: [],
+    base: { qty_separada: sepAntes, qty_entregue: entrAntes }
+  };
+  if (action === 'entr' && qty !== entrAntes) {
+    op.entregas.push({ id: novoUUID(), plan_id: planId, plan_item_id: itemId, quantidade: qty - entrAntes,
+                       total_apos: qty, entregue_em: now, entregue_por: u.name, origem: 'app' });
+  }
+  await enfileirar(op);
+
   closeModal('modal-qty');
   renderDetail(plan);
   updateBadges();
+  if (semRede()) { showToast(t('toast_guardado_offline', { qty })); return; }
   showToast(action === 'sep' ? t('toast_un_separadas', { qty }) : t('toast_un_entregues', { qty }));
-  try {
-    await dbUpdateItem(item.id, dbFields);
-  } catch (e) {
-    // Não gravou (a rede caiu a meio): o ecrã volta ao que está na base de dados
-    Object.assign(item, antes);
-    renderDetail(plan);
-    updateBadges();
-    return;
-  }
-  if (action === 'entr' && qty !== entrAntes) registarEntregaPintura(plan, item, qty - entrAntes, qty, now, u.name);
-  if (action === 'sep') await checkAutoMarkPronto(plan);
+  const estado = (await enviarFila()).get(op.id);
   // O material sai fisicamente da cesta sempre que a quantidade separada sobe
-  abrirBaixaStock(plan, item, (item.qtySeparada || 0) - sepAntes);
+  if (estado === 'ok' && precisaBaixa) abrirBaixaStock(plan, item, (item.qtySeparada || 0) - sepAntes);
+  else if (estado === 'pendente' && precisaBaixa) showToast(t('aviso_baixa_por_fazer'));
+}
+
+// =====================================================
+// FILA DE GRAVAÇÕES (fase 2 do modo sem rede)
+// Separações e entregas ficam guardadas no aparelho (IndexedDB) e seguem para
+// o servidor pela ordem em que foram feitas, assim que houver rede.
+//
+// Cada gravação leva a quantidade em que o operador se baseou. O servidor só a
+// aceita se a linha ainda tiver esse valor: se entretanto outro aparelho gravou
+// outra coisa, não se sobrescreve -- o operador vê o que ficou por gravar. Os
+// totais são absolutos e o registo de entregas leva um id fixo, por isso
+// reenviar uma gravação cuja resposta se perdeu não duplica nada.
+// =====================================================
+let fila = null;          // [{ id, planId, itemId, campos, base, entregas, criadoEm }]
+let conflitos = [];       // o que não foi gravado e o operador ainda não viu
+let filaEmEnvio = null;   // envio em curso (só um de cada vez)
+
+function novoUUID() {
+  if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+    const r = Math.random() * 16 | 0;
+    return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
+  });
+}
+
+async function carregarFila() {
+  if (fila) return;
+  const f = await lerCopia('fila');
+  const c = await lerCopia('conflitos');
+  if (fila) return;   // outra chamada carregou entretanto
+  fila = (f && f.valor) || [];
+  conflitos = (c && c.valor) || [];
+}
+
+function guardarFila() {
+  guardarCopia('fila', fila);
+  guardarCopia('conflitos', conflitos);
+}
+
+async function enfileirar(op) {
+  await carregarFila();
+  fila.push(op);
+  guardarFila();
+  atualizarAvisoOffline();
+}
+
+// Os dados do servidor chegam sem o que ainda está na fila: volta a pôr-se por
+// cima, senão o ecrã "desfazia" a separação até ela ser enviada
+const CAMPOS_LOCAIS = {
+  qty_separada: 'qtySeparada', separado: 'separado', separado_por: 'separadoPor', separado_em: 'separadoEm',
+  qty_entregue: 'qtyEntregue', entregue: 'entregue', entregue_em: 'entregueEm', entregue_por: 'entreguePor'
+};
+
+function aplicarFilaAosPlanos() {
+  if (!fila || !fila.length) return;
+  const porId = new Map();
+  plans.forEach(p => p.items.forEach(i => porId.set(i.id, i)));
+  fila.forEach(op => {
+    const it = porId.get(op.itemId);
+    if (!it) return;
+    Object.keys(op.campos).forEach(k => { if (CAMPOS_LOCAIS[k]) it[CAMPOS_LOCAIS[k]] = op.campos[k]; });
+  });
+}
+
+function badgePendente(item) {
+  return fila && fila.some(o => o.itemId === item.id)
+    ? `<div class="pendente-badge">${t('badge_por_gravar')}</div>` : '';
+}
+
+// Pedido ao servidor que distingue "não há rede" (tenta-se mais tarde) de
+// "o servidor recusou" (não adianta repetir)
+async function pedidoFila(metodo, caminho, corpo, prefer) {
+  const headers = { ...SB_HDR };
+  if (prefer) headers['Prefer'] = prefer;
+  const ctl = new AbortController();
+  const limite = setTimeout(() => ctl.abort(), 15000);
+  let res;
+  try {
+    res = await fetch(SB_API + caminho, {
+      method: metodo, headers, signal: ctl.signal,
+      body: corpo !== undefined ? JSON.stringify(corpo) : undefined
+    });
+  } catch (e) {
+    const err = new Error(e.message);
+    err.rede = true;
+    throw err;
+  } finally {
+    clearTimeout(limite);
+  }
+  if (res.status >= 500) { const err = new Error('HTTP ' + res.status); err.rede = true; throw err; }
+  if (!res.ok) throw new Error('HTTP ' + res.status + ': ' + await res.text());
+  if (res.status === 204) return null;
+  const txt = await res.text();
+  return txt ? JSON.parse(txt) : null;
+}
+
+async function enviarOperacao(op) {
+  // Só aceite se as quantidades que esta gravação muda ainda forem as que o
+  // operador viu
+  const condicoes = ['qty_separada', 'qty_entregue']
+    .filter(k => k in op.campos).map(k => `&${k}=eq.${op.base[k]}`).join('');
+  const id = encodeURIComponent(op.itemId);
+  const linhas = await pedidoFila('PATCH', `/plan_items?id=eq.${id}${condicoes}`, op.campos, 'return=representation');
+  if (!linhas || !linhas.length) {
+    // Nada mudou: ou já tinha sido gravada (a resposta perdeu-se na rede), ou
+    // alguém mexeu na linha entretanto
+    const atual = await pedidoFila('GET', `/plan_items?id=eq.${id}&select=qty_separada,qty_entregue,separado_por,separado_em,entregue_por,entregue_em`);
+    const a = atual && atual[0];
+    if (!a) return { estado: 'apagada' };
+    const jaGravada = ['qty_separada', 'qty_entregue'].every(k => !(k in op.campos) || a[k] === op.campos[k]);
+    if (!jaGravada) return { estado: 'conflito', atual: a };
+  }
+  if (op.entregas.length) {
+    await pedidoFila('POST', '/entregas_pintura', op.entregas, 'return=minimal,resolution=ignore-duplicates');
+  }
+  return { estado: 'ok' };
+}
+
+function descreverConflito(op, r) {
+  const plan = plans.find(p => p.id === op.planId);
+  const item = plan && plan.items.find(i => i.id === op.itemId);
+  const entr = 'qty_entregue' in op.campos;
+  const a = r.atual || {};
+  return {
+    plano: plan ? plan.nome : '', modelo: item ? item.model : '', ov: item ? item.ov : '',
+    tipo: r.estado === 'conflito' ? (entr ? 'entr' : 'sep') : r.estado,
+    quer: entr ? op.campos.qty_entregue : op.campos.qty_separada,
+    esta: entr ? a.qty_entregue : a.qty_separada,
+    quem: entr ? a.entregue_por : a.separado_por,
+    quando: entr ? a.entregue_em : a.separado_em,
+    msg: r.msg || ''
+  };
+}
+
+function aposGravar(op) {
+  op.entregas.forEach(e => {
+    if (entregasHoje && entregasHoje.dia === dataLocalISO(new Date(e.entregue_em))) {
+      entregasHoje.linhas.push({ plan_item_id: e.plan_item_id, quantidade: e.quantidade, entregue_por: e.entregue_por, entregue_em: e.entregue_em });
+    }
+  });
+  if ('qty_separada' in op.campos) {
+    const plan = plans.find(p => p.id === op.planId);
+    if (plan) checkAutoMarkPronto(plan);
+  }
+}
+
+// Envia a fila por ordem. Devolve, por gravação, 'ok' | 'conflito' | 'pendente'.
+async function enviarFila() {
+  while (filaEmEnvio) await filaEmEnvio.catch(() => {});
+  filaEmEnvio = executarEnvioFila();
+  try { return await filaEmEnvio; } finally { filaEmEnvio = null; atualizarAvisoOffline(); }
+}
+
+async function executarEnvioFila() {
+  await carregarFila();
+  const resultado = new Map();
+  let enviados = 0, conflitoNovo = false;
+  while (fila.length && navigator.onLine) {
+    const op = fila[0];
+    let r;
+    try {
+      r = await enviarOperacao(op);
+    } catch (e) {
+      if (e.rede) { definirLigacao(false); break; }   // fica tudo na fila para a próxima
+      r = { estado: 'erro', msg: e.message };
+    }
+    if (r.estado === 'ok') {
+      fila.shift();
+      resultado.set(op.id, 'ok');
+      enviados++;
+      aposGravar(op);
+    } else {
+      // Não se grava esta nem as seguintes da mesma linha: foram feitas por cima
+      // de um valor que já não é o que está no servidor
+      const daLinha = fila.filter(o => o.itemId === op.itemId);
+      fila = fila.filter(o => o.itemId !== op.itemId);
+      daLinha.forEach(o => resultado.set(o.id, 'conflito'));
+      conflitos.push(descreverConflito(daLinha[daLinha.length - 1], r));
+      conflitoNovo = true;
+    }
+    guardarFila();
+  }
+  fila.forEach(o => { if (!resultado.has(o.id)) resultado.set(o.id, 'pendente'); });
+  if (conflitoNovo) await loadPlans().catch(() => {});   // o ecrã volta ao que está no servidor
+  if (enviados || conflitoNovo) {
+    renderAll();
+    updateBadges();
+    if (state.openPlanId) {
+      const p = plans.find(x => x.id === state.openPlanId);
+      if (p) renderDetail(p);
+    }
+  }
+  if (conflitoNovo) mostrarConflitos();
+  return resultado;
+}
+
+function mostrarConflitos() {
+  if (!conflitos.length) return;
+  const hora = iso => iso ? new Date(iso).toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' }) : '\u2014';
+  document.getElementById('conflitos-lista').innerHTML = conflitos.map(c => {
+    let txt;
+    if (c.tipo === 'apagada') txt = t('conflito_apagada');
+    else if (c.tipo === 'erro') txt = t('conflito_erro', { msg: c.msg });
+    else {
+      txt = t(c.tipo === 'entr' ? 'conflito_entr' : 'conflito_sep', { quer: c.quer, esta: c.esta == null ? 0 : c.esta });
+      if (c.quem) txt += ' ' + t('conflito_quem', { quem: c.quem, hora: hora(c.quando) });
+    }
+    return `<div class="conflito-linha">
+      <div class="conflito-titulo">${escHtml(c.modelo || '\u2014')} \u00b7 OV ${escHtml(c.ov || '\u2014')}</div>
+      <div class="conflito-plano">${escHtml(c.plano)}</div>
+      <div class="conflito-txt">${escHtml(txt)}</div>
+    </div>`;
+  }).join('');
+  openModal('modal-conflitos');
+}
+
+function fecharConflitos() {
+  conflitos = [];
+  guardarFila();
+  closeModal('modal-conflitos');
 }
 
 // ── Entregas à pintura (admin) ─────────────────────────────────────────
 // A linha de pintura só guarda o total entregue e a última data, por isso cada
-// entrega fica também registada à parte (sql/entregas_pintura.sql): é daí que
-// sai a lista por dia. Um registo falhado nunca impede a entrega -- a linha já
-// ficou gravada; perde-se só o detalhe dessa vez na lista.
-async function registarEntregaPintura(plan, item, quantidade, totalApos, quando, quem) {
-  try {
-    await sbFetch('/entregas_pintura', {
-      method: 'POST', prefer: 'return=minimal',
-      body: { plan_id: plan.id, plan_item_id: item.id, quantidade, total_apos: totalApos,
-              entregue_em: quando, entregue_por: quem, origem: 'app' }
-    });
-    if (entregasHoje && entregasHoje.dia === dataLocalISO(new Date(quando))) {
-      entregasHoje.linhas.push({ plan_item_id: item.id, quantidade, entregue_por: quem, entregue_em: quando });
-    }
-  } catch (e) {
-    console.warn('Registo da entrega falhou:', e.message);
-  }
-}
+// entrega fica também registada à parte (sql/entregas_pintura.sql), através da
+// fila acima: é daí que sai a lista por dia.
 
 // Entregas de hoje, para o KPI de produtividade do Dashboard. Lê-se ao abrir o
 // Dashboard e de 30 em 30 s enquanto está aberto; as entregas feitas neste
@@ -4888,14 +5160,25 @@ async function confirmUndo() {
   const { planId, itemId } = state.undoContext;
   const plan = plans.find(p => p.id === planId);
   const item = plan.items.find(i => i.id === itemId);
+  const sepAntes = item.qtySeparada || 0;
   item.qtySeparada = 0;
   item.separado = false;
   item.separadoPor = null;
   item.separadoEm = null;
+  // Pela fila, como separar: sem rede fica guardado, e uma separação antiga que
+  // ainda esteja na fila não passa por cima do anular
+  const op = {
+    id: uid(), planId, itemId, criadoEm: new Date().toISOString(), entregas: [],
+    campos: { qty_separada: 0, separado: false, separado_por: null, separado_em: null },
+    base: { qty_separada: sepAntes, qty_entregue: item.qtyEntregue || 0 }
+  };
+  await enfileirar(op);
   closeModal('modal-undo');
   renderDetail(plan);
   showToast(t('toast_separacao_anulada'));
-  await dbUpdateItem(item.id, { qty_separada: 0, separado: false, separado_por: null, separado_em: null });
+  if (semRede()) return;
+  // O plano só deixa de estar "Pronto" se o anular ficou mesmo gravado
+  if ((await enviarFila()).get(op.id) !== 'ok') return;
   if (plan.tipo === 'carga' && plan.status === 'pronto') {
     plan.status = 'em_separacao';
     renderDetail(plan);
