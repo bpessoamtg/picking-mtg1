@@ -931,6 +931,11 @@ input, textarea, select { font-family: inherit; font-size: inherit; }
 .entregas-qtd { font-size: 15px; font-weight: 800; color: var(--success); flex-shrink: 0; }
 .entregas-qtd.negativa { color: var(--danger); }
 .entregas-aviso { font-size: 11.5px; color: var(--text-muted); margin-top: 10px; line-height: 1.45; }
+.btn-desenho {
+  display: inline-block; margin-left: 6px; padding: 2px 8px; border-radius: 10px;
+  border: 1.5px solid var(--border); background: var(--card); color: var(--primary);
+  font-size: 12px; font-weight: 700; text-decoration: none; white-space: nowrap;
+}
 .entregas-pesquisa {
   width: 100%; padding: 10px 12px; margin-bottom: 10px; border: 1.5px solid var(--border);
   border-radius: 10px; font-size: 15px; background: var(--card); color: var(--text);
@@ -1435,6 +1440,8 @@ body.com-aviso-offline { padding-bottom: 56px; }
               title="Abrir a app do parque" data-i18n-attr="title:tooltip_ir_parque">⇄ <span data-i18n="btn_parque">Parque</span></button>
       <button class="btn-header-icon" id="btn-consulta-sap" onclick="abrirConsultaSap()"
               title="Consultar stock SAP" data-i18n-attr="title:sap_find_titulo">🏭</button>
+      <button class="btn-header-icon" id="btn-desenho-ov" onclick="abrirPesquisaDesenho()" style="display:none"
+              title="Desenho de uma OV" data-i18n-attr="title:desenho_titulo">📐</button>
       <button class="btn-logout" onclick="doLogout()" data-i18n="btn_logout">Sair</button>
     </div>
   </div>
@@ -1761,6 +1768,20 @@ body.com-aviso-offline { padding-bottom: 56px; }
   </div>
 </div>
 
+<div class="modal-overlay" id="modal-desenho" onclick="handleOverlayClick(event,'modal-desenho')">
+  <div class="modal-sheet">
+    <div class="modal-top">
+      <div class="modal-title">📐 <span data-i18n="desenho_titulo">Desenho de uma OV</span></div>
+      <button class="btn-close" onclick="closeModal('modal-desenho')">✕</button>
+    </div>
+    <input type="search" id="desenho-ov" class="entregas-pesquisa" inputmode="numeric" autocomplete="off"
+      data-i18n-placeholder="desenho_placeholder" placeholder="OV (ex.: 2607106)"
+      onkeydown="if (event.key === 'Enter') abrirDesenhoDaPesquisa()">
+    <button class="btn-primary" style="width:100%" onclick="abrirDesenhoDaPesquisa()" data-i18n="desenho_abrir">Abrir desenho</button>
+    <div class="entregas-aviso" data-i18n="desenho_nota">Abre o processo da OV na pasta das obras (só nos tablets e PCs com o programa instalado).</div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="modal-sap-find" onclick="handleOverlayClick(event,'modal-sap-find')">
   <div class="modal-sheet">
     <div class="modal-top">
@@ -1964,6 +1985,12 @@ const I18N = {
     entregas_aviso_historico: '≈ Entregas registadas antes desta lista existir: só ficava guardada a última entrega de cada linha, por isso numa entrega feita em vários dias a data é a da última.',
     entregas_correcao: 'correção',
     entregas_pesquisar_ov: '🔍 Pesquisar OV…',
+    desenho_titulo: 'Desenho de uma OV',
+    desenho_placeholder: 'OV (ex.: 2607106)',
+    desenho_abrir: 'Abrir desenho',
+    desenho_botao: '📐 Desenho',
+    desenho_nota: 'Abre o processo da OV na pasta das obras (só nos tablets e PCs com o programa instalado).',
+    desenho_ov_invalida: 'Escreve uma OV com 7 dígitos',
     entregas_ov_nenhuma: 'Nenhuma linha de pintura com a OV {ov}.',
     entregas_ov_resumo: '{linhas} linhas · {entregue} de {pedido} un. entregues',
     entregas_ov_resumo_um: '1 linha · {entregue} de {pedido} un. entregues',
@@ -2246,6 +2273,12 @@ const I18N = {
     entregas_aviso_historico: '≈ Delivered before this list existed: only the last delivery of each line was kept, so for a line delivered over several days the date is the last one.',
     entregas_correcao: 'correction',
     entregas_pesquisar_ov: '🔍 Search sales order…',
+    desenho_titulo: 'Drawing for a sales order',
+    desenho_placeholder: 'Sales order (e.g. 2607106)',
+    desenho_abrir: 'Open drawing',
+    desenho_botao: '📐 Drawing',
+    desenho_nota: 'Opens the order process in the projects folder (only on tablets and PCs with the program installed).',
+    desenho_ov_invalida: 'Type a 7-digit sales order',
     entregas_ov_nenhuma: 'No painting line with sales order {ov}.',
     entregas_ov_resumo: '{linhas} lines · {entregue} of {pedido} pcs delivered',
     entregas_ov_resumo_um: '1 line · {entregue} of {pedido} pcs delivered',
@@ -3614,6 +3647,7 @@ async function showApp() {
   });
   // A app do parque só tem acessórios: as colunas não têm lá nada para fazer
   document.getElementById('btn-ir-parque').style.display = (isAdmin || u.group === 'acessorios') ? '' : 'none';
+  document.getElementById('btn-desenho-ov').style.display = DESENHOS_ATIVO ? '' : 'none';
 
   if (isAdmin) {
     setGroupView(state.groupView);
@@ -4639,7 +4673,7 @@ function renderItemRow(item, plan, opts) {
           ${item.ref ? `<div class="item-sap">${escHtml(item.ref)}</div>` : ''}
         </div>
         <div class="item-desc">${escHtml(item.desc)}</div>
-        <div class="item-info">📦 ${escHtml(item.cesta || '—')} · OV ${escHtml(item.ov || '—')}</div>
+        <div class="item-info">📦 ${escHtml(item.cesta || '—')} · OV ${escHtml(item.ov || '—')}${botaoDesenho(item.ov)}</div>
         ${stockBadge(item)}
         ${sapBadge(item)}
         ${badgePendente(item)}
@@ -4696,7 +4730,7 @@ function renderItemRow(item, plan, opts) {
           ${showDesc ? `<div style="font-size:11px;color:var(--text-muted);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml(item.desc)}</div>` : '<div style="flex:1"></div>'}
           ${qtyHtml}
         </div>
-        <div style="font-size:13px;color:var(--text-muted);margin-top:1px">OV ${escHtml(item.ov || '—')}</div>
+        <div style="font-size:13px;color:var(--text-muted);margin-top:1px">OV ${escHtml(item.ov || '—')}${botaoDesenho(item.ov)}</div>
         ${stockBadge(item)}
         ${sapBadge(item)}
         ${badgePendente(item)}
@@ -5152,6 +5186,32 @@ function segundaDaSemana(d) {
   return x;
 }
 
+// =====================================================
+// DESENHOS — o browser não abre pastas da rede: o botão chama o endereço
+// mtg1desenho:<OV>, que o Windows entrega ao programa instalado em cada aparelho
+// (Documents/desenhos-mtg1/instalar.cmd), e esse abre o PDF do processo.
+// Só faz sentido nos aparelhos Windows (tablets Chuwi e PCs).
+// =====================================================
+const DESENHOS_ATIVO = /Windows/.test(navigator.userAgent);
+
+function botaoDesenho(ov) {
+  const n = String(ov || '').replace(/\D/g, '');
+  if (!DESENHOS_ATIVO || n.length < 6) return '';
+  return `<a class="btn-desenho" href="mtg1desenho:${n}" onclick="event.stopPropagation()">${t('desenho_botao')}</a>`;
+}
+
+function abrirPesquisaDesenho() {
+  document.getElementById('desenho-ov').value = '';
+  openModal('modal-desenho');
+  setTimeout(() => document.getElementById('desenho-ov').focus(), 50);
+}
+
+function abrirDesenhoDaPesquisa() {
+  const n = document.getElementById('desenho-ov').value.replace(/\D/g, '');
+  if (n.length < 6) { showToast(t('desenho_ov_invalida')); return; }
+  location.href = 'mtg1desenho:' + n;
+}
+
 async function abrirEntregasPintura() {
   const hoje = new Date();
   state.entregas = { segunda: segundaDaSemana(hoje), dia: dataLocalISO(hoje), linhas: null, erro: null, ov: null };
@@ -5238,7 +5298,7 @@ function renderEntregasOv() {
         <div class="entregas-hora data">${entregas.length ? '' : '—'}</div>
         <div class="entregas-corpo">
           <div class="entregas-modelo">${escHtml(item.model || '—')}</div>
-          <div class="entregas-info">${['OV ' + escHtml(item.ov || '—'), item.desc ? escHtml(item.desc) : ''].filter(Boolean).join(' · ')}</div>
+          <div class="entregas-info">${['OV ' + escHtml(item.ov || '—'), item.desc ? escHtml(item.desc) : ''].filter(Boolean).join(' · ')}${botaoDesenho(item.ov)}</div>
           <div class="entregas-estado ${estado}">${t('entregas_ov_' + estado, { entregue: ent, pedido: ped })}</div>
         </div>
       </div>`;
