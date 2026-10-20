@@ -2092,6 +2092,8 @@ const I18N = {
     toast_un_entregues: '{qty} un. entregues ✓',
     toast_carga_pronta: '✅ Carga Pronta — todos os itens separados!',
     toast_separacao_anulada: 'Separação anulada',
+    toast_linha_mudou: 'Outro aparelho gravou esta linha (separadas {sep}, entregues {entr}) — revê a quantidade',
+    toast_linha_mudou_removida: 'Esta linha foi removida do plano noutro aparelho',
     toast_plano_marcado_pronto: 'Plano marcado como Pronto ✅',
     confirm_apagar_plano: 'Apagar este plano?',
     toast_plano_apagado: 'Plano apagado',
@@ -2365,6 +2367,8 @@ const I18N = {
     toast_un_entregues: '{qty} pcs delivered ✓',
     toast_carga_pronta: '✅ Load Ready — all items picked!',
     toast_separacao_anulada: 'Picking cancelled',
+    toast_linha_mudou: 'Another device saved this line (picked {sep}, delivered {entr}) — check the quantity',
+    toast_linha_mudou_removida: 'This line was removed from the plan on another device',
     toast_plano_marcado_pronto: 'Plan marked as Ready ✅',
     confirm_apagar_plano: 'Delete this plan?',
     toast_plano_apagado: 'Plan deleted',
@@ -3326,6 +3330,7 @@ async function atualizarPlanosDoServidor() {
 // que pode ter mudado, em vez de esperar pelo proximo ciclo.
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState !== 'visible' || !state.currentUser) return;
+  atualizarPlanosDoServidor();
   refrescarStock();
   const antes = sapAtualizado;
   loadStockSap().then(() => { if (sapAtualizado !== antes) redesenharStock(); });
@@ -3441,6 +3446,9 @@ function doLogout() {
   } catch (e) {}
   parqueSessaoPendente = null;
   if (pollInterval) { clearInterval(pollInterval); pollInterval = null; }
+  // O próximo a entrar lê tudo de novo (com 'plans' cheio, a primeira leitura
+  // tinha um limite maior que os 8 s do arranque e o ciclo não chegava a nascer)
+  plans = [];
   // closeDetail primeiro (usa currentUser); só depois anular
   if (state.openPlanId) {
     state.openPlanId = null;
@@ -3482,17 +3490,19 @@ async function showApp() {
       loadPlans(),
       new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 8000))
     ]);
-    subscribeRealtime();
-    // Localizações do parque: extra opcional, nunca bloqueia o arranque da app
-    loadStockLocations().then(() => { if (stockIndex) renderAll(); });
-    loadStockSap().then(() => { if (sapIndex) renderAll(); });
-    carregarEntregasHoje();
   } catch(e) {
     console.error('showApp:', e);
     showToast(e.message === 'timeout'
       ? t('toast_ligacao_lenta')
       : t('toast_erro_supabase', { msg: e.message }));
   }
+  // Sempre, mesmo que a primeira leitura tenha falhado ou demorado: é o ciclo
+  // de 5 s que a volta a tentar (sem ele o ecrã ficava parado o turno todo)
+  subscribeRealtime();
+  // Localizações do parque: extra opcional, nunca bloqueia o arranque da app
+  loadStockLocations().then(() => { if (stockIndex) renderAll(); });
+  loadStockSap().then(() => { if (sapIndex) renderAll(); });
+  carregarEntregasHoje();
 
   loadingEl.classList.remove('visible');
   document.getElementById('screen-login').classList.remove('active');
@@ -4617,7 +4627,10 @@ function openQtyModal(planId, itemId, action) {
   const plan = plans.find(p => p.id === planId);
   const item = plan.items.find(i => i.id === itemId);
 
-  state.qtyModal = { planId, itemId, action };
+  // A base da gravação condicional é o que o operador está a ver agora: o ciclo
+  // de 5 s pode trazer entretanto o trabalho de outro aparelho
+  state.qtyModal = { planId, itemId, action,
+                     base: { qty_separada: item.qtySeparada || 0, qty_entregue: item.qtyEntregue || 0 } };
 
   const isSep = action === 'sep';
   const maxQty = isSep ? item.qtyPedida : (item.qtySeparada || item.qtyPedida);
@@ -4687,12 +4700,21 @@ function updateQtyExcessoUI() {
 }
 
 async function confirmQty() {
-  const { planId, itemId, action } = state.qtyModal;
+  const { planId, itemId, action, base } = state.qtyModal;
   const plan = plans.find(p => p.id === planId);
-  const item = plan.items.find(i => i.id === itemId);
+  const item = plan && plan.items.find(i => i.id === itemId);
+  if (!item) { closeModal('modal-qty'); showToast(t('toast_linha_mudou_removida')); return; }
+  // Outro aparelho gravou esta linha enquanto o modal estava aberto: gravar
+  // agora apagava esse trabalho. Mostra-se o valor novo para o operador rever.
+  if ((item.qtySeparada || 0) !== base.qty_separada || (item.qtyEntregue || 0) !== base.qty_entregue) {
+    closeModal('modal-qty');
+    showToast(t('toast_linha_mudou', { sep: item.qtySeparada || 0, entr: item.qtyEntregue || 0 }), 6000);
+    openQtyModal(planId, itemId, action);
+    return;
+  }
   const qty = parseInt(document.getElementById('qty-input').value) || 0;
-  const sepAntes = item.qtySeparada || 0;
-  const entrAntes = item.qtyEntregue || 0;
+  const sepAntes = base.qty_separada;
+  const entrAntes = base.qty_entregue;
   const u = state.currentUser;
   const now = new Date().toISOString();
 
@@ -5190,7 +5212,7 @@ function openUndoConfirm() {
   const { planId, itemId } = state.qtyModal;
   const plan = plans.find(p => p.id === planId);
   const item = plan.items.find(i => i.id === itemId);
-  state.undoContext = { planId, itemId };
+  state.undoContext = { planId, itemId, base: state.qtyModal.base };
   document.getElementById('undo-msg').textContent =
     t('undo_confirm_msg', { model: item.model, qty: item.qtySeparada });
   closeModal('modal-qty');
@@ -5198,10 +5220,17 @@ function openUndoConfirm() {
 }
 
 async function confirmUndo() {
-  const { planId, itemId } = state.undoContext;
+  const { planId, itemId, base } = state.undoContext;
   const plan = plans.find(p => p.id === planId);
-  const item = plan.items.find(i => i.id === itemId);
-  const sepAntes = item.qtySeparada || 0;
+  const item = plan && plan.items.find(i => i.id === itemId);
+  if (!item) { closeModal('modal-undo'); showToast(t('toast_linha_mudou_removida')); return; }
+  if ((item.qtySeparada || 0) !== base.qty_separada || (item.qtyEntregue || 0) !== base.qty_entregue) {
+    closeModal('modal-undo');
+    showToast(t('toast_linha_mudou', { sep: item.qtySeparada || 0, entr: item.qtyEntregue || 0 }), 6000);
+    renderDetail(plan);
+    return;
+  }
+  const sepAntes = base.qty_separada;
   item.qtySeparada = 0;
   item.separado = false;
   item.separadoPor = null;
@@ -5211,7 +5240,7 @@ async function confirmUndo() {
   const op = {
     id: uid(), planId, itemId, criadoEm: new Date().toISOString(), entregas: [],
     campos: { qty_separada: 0, separado: false, separado_por: null, separado_em: null },
-    base: { qty_separada: sepAntes, qty_entregue: item.qtyEntregue || 0 }
+    base: { qty_separada: sepAntes, qty_entregue: base.qty_entregue }
   };
   await enfileirar(op);
   closeModal('modal-undo');
@@ -5914,11 +5943,15 @@ function handleOverlayClick(e, id) {
 // =====================================================
 // TOAST
 // =====================================================
-function showToast(msg) {
+// Uma mensagem nova reinicia o tempo (antes, o temporizador da anterior podia
+// escondê-la logo); as mais longas ficam mais tempo à vista
+let toastTimer = null;
+function showToast(msg, ms) {
   const t = document.getElementById('toast');
   t.textContent = msg;
   t.classList.add('show');
-  setTimeout(() => t.classList.remove('show'), 2200);
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), ms || Math.max(2200, String(msg).length * 60));
 }
 
 // =====================================================

@@ -1,6 +1,8 @@
 -- =====================================================
 -- BAIXA NO PARQUE QUE AGUENTA FALTA DE REDE (fase 3)
--- Correr uma vez no SQL Editor do Supabase (projeto mtg1-picking).
+-- Correr uma vez no SQL Editor do Supabase (projeto mtg1-picking), depois do
+-- supabase/parque_movimento.sql do parque (usa as funções parque_bloquear e
+-- parque_ajustar de lá).
 --
 -- Substitui, na app de picking, a função picking_saida (que fica na base de
 -- dados, sem uso, para as apps ainda abertas com a versão antiga).
@@ -14,6 +16,11 @@
 --     (a cesta fica com X e o admin é avisado da correção). Se mexeram depois,
 --     aplicá-la apagava esse movimento: desconta-se só o que foi tirado e o
 --     admin recebe uma mensagem para confirmar.
+--  4. (2026-10-20) Várias linhas do mesmo modelo na mesma cesta e fiada são
+--     paletes: a baixa conta com o total de todas (antes usava uma ao acaso e
+--     podia dizer "insuficiente" com material que chegava). E fica na fila
+--     das gravações do parque, para não se cruzar com um movimento feito ao
+--     mesmo tempo na app do parque.
 --  3. Sem stock suficiente, a baixa não falha em silêncio (o operador já não
 --     está a olhar quando o tablet volta à rede): não mexe na cesta e avisa o
 --     admin.
@@ -59,7 +66,6 @@ as $$
 declare
   v_res       json;
   v_cod_sap   text;
-  v_id        uuid;
   v_atual     integer;
   v_alterado  timestamptz;
   v_esperado  integer;
@@ -67,6 +73,7 @@ declare
   v_mov_id    uuid;
   v_estado    text;
   v_mexida    boolean;
+  v_descontou boolean := false;
   v_msg       text;
   v_quem      text := coalesce(nullif(btrim(p_utilizador), ''), 'app-picking');
   v_quando    timestamptz := least(coalesce(p_contado_em, now()), now());   -- relógio do tablet adiantado conta como agora
@@ -103,12 +110,10 @@ begin
 
   select cod_sap into v_cod_sap from model_sap_lookup where modelo = p_modelo;
 
-  select id, quantidade, updated_at into v_id, v_atual, v_alterado
+  v_atual := parque_bloquear(p_modelo, p_cesta, p_fiada);
+  select max(updated_at) into v_alterado
     from stock_items
-   where modelo = p_modelo and cesta = p_cesta and fiada = p_fiada
-   limit 1
-   for update;
-  v_atual    := coalesce(v_atual, 0);
+   where modelo = p_modelo and cesta = p_cesta and fiada = p_fiada;
   v_esperado := v_atual - p_quantidade;
 
   -- O operador contou o que ficou na cesta? A contagem é de uma hora concreta:
@@ -127,50 +132,36 @@ begin
 
   if p_sobra_confirmada is null or (not v_mexida and p_sobra_confirmada = v_esperado) then
     -- Baixa simples: o operador não contou, ou contou e bate certo
-    if v_id is null or v_atual < p_quantidade then
+    if v_atual < p_quantidade then
       v_estado := 'insuficiente';
       v_final  := v_atual;
     else
       v_estado := 'normal';
       v_final  := v_esperado;
-      if v_final = 0 then
-        delete from stock_items where id = v_id;
-      else
-        update stock_items set quantidade = v_final where id = v_id;
-      end if;
+      perform parque_ajustar(p_modelo, v_cod_sap, p_cesta, p_fiada, -p_quantidade);
+      v_descontou := true;
     end if;
   elsif not v_mexida then
     -- Ninguém mexeu desde a contagem: a contagem é a verdade, como com rede
     v_estado := 'corrigido';
     v_final  := p_sobra_confirmada;
-    if v_id is not null then
-      if v_final = 0 then
-        delete from stock_items where id = v_id;
-      else
-        update stock_items set quantidade = v_final where id = v_id;
-      end if;
-    elsif v_final > 0 then
-      insert into stock_items (modelo, cod_sap, cesta, fiada, quantidade)
-      values (p_modelo, v_cod_sap, p_cesta, p_fiada, v_final);
-    end if;
+    perform parque_ajustar(p_modelo, v_cod_sap, p_cesta, p_fiada, v_final - v_atual);
+    v_descontou := true;
   else
     -- Mexeram depois da contagem: pôr a cesta em X apagava esse movimento.
     -- Desconta-se só o que foi tirado e o admin confirma.
     v_estado := 'verificar';
-    if v_id is not null and v_atual >= p_quantidade then
+    if v_atual >= p_quantidade then
       v_final := v_esperado;
-      if v_final = 0 then
-        delete from stock_items where id = v_id;
-      else
-        update stock_items set quantidade = v_final where id = v_id;
-      end if;
+      perform parque_ajustar(p_modelo, v_cod_sap, p_cesta, p_fiada, -p_quantidade);
+      v_descontou := true;
     else
       v_final := v_atual;
     end if;
   end if;
 
   -- Movimento no histórico do parque (não há quando a cesta ficou como estava)
-  if v_estado <> 'insuficiente' then
+  if v_descontou then
     insert into movements (tipo, modelo, cod_sap, cesta_origem, fiada_origem,
                            cesta_destino, fiada_destino, quantidade, utilizador, notas)
     values ('saida', p_modelo, v_cod_sap, p_cesta, p_fiada,
@@ -183,6 +174,10 @@ begin
     v_msg := format('Stock corrigido por %s: %s em %s/%s. Sistema: %s un. → Corrigido: %s un. (saida) — via app de picking da expedição%s',
                     v_quem, p_modelo, p_cesta, p_fiada, v_esperado, v_final,
                     case when p_sem_rede then ' (contado sem rede às ' || v_hora || ')' else '' end);
+  elsif v_estado = 'verificar' and not v_descontou then
+    v_msg := format('Verificar %s em %s/%s: %s contou %s un. às %s%s, mas depois disso houve movimentos nesta cesta, por isso a contagem não foi aplicada. A baixa das %s un. retiradas também não foi feita: o sistema só tem %s un. — via app de picking da expedição',
+                    p_modelo, p_cesta, p_fiada, v_quem, p_sobra_confirmada, v_hora,
+                    case when p_sem_rede then ' (sem rede)' else '' end, p_quantidade, v_atual);
   elsif v_estado = 'verificar' then
     v_msg := format('Verificar %s em %s/%s: %s contou %s un. às %s%s, mas depois disso houve movimentos nesta cesta, por isso a contagem não foi aplicada. Foram descontadas as %s un. retiradas; o sistema tem agora %s un. — via app de picking da expedição',
                     p_modelo, p_cesta, p_fiada, v_quem, p_sobra_confirmada, v_hora,

@@ -27,7 +27,7 @@ self.addEventListener('install', e => {
 self.addEventListener('activate', e => {
   e.waitUntil(
     caches.keys()
-      .then(chaves => Promise.all(chaves.filter(k => k !== VERSAO).map(k => caches.delete(k))))
+      .then(chaves => Promise.all(chaves.filter(k => k.startsWith('picking-') && k !== VERSAO).map(k => caches.delete(k))))
       .then(() => self.clients.claim())
   );
 });
