@@ -2812,19 +2812,87 @@ function comLimiteDeTempo(promessa, ms) {
 
 let planosGuardados = null;   // texto da última cópia gravada, para não regravar o mesmo a cada 5 s
 
+// A leitura completa dos planos são ~170 KB; a cada 5 s, em cada aparelho, passava
+// a quota de tráfego do Supabase. Depois de uma leitura completa, o ciclo pede só
+// o que mudou (sql/picking_alteracoes.sql). Se aparecer ou desaparecer algum
+// plano ou linha (a assinatura dos ids muda), volta a ler tudo.
+let planosCrus = null;           // resposta crua da última leitura, com as alterações aplicadas
+let alteracoesDesde = null;      // hora do servidor da última leitura
+let assinaturaIds = null;
+let leituraCompletaEm = 0;
+let alteracoesFaltaEm = 0;       // quando se viu que a função não existe na base de dados (tenta-se de novo 10 min depois)
+const LEITURA_COMPLETA_MAX = 15 * 60 * 1000;   // de 15 em 15 min lê-se tudo na mesma
+
+async function pedirAlteracoes(desde) {
+  return sbFetch(`/rpc/picking_alteracoes?p_desde=${encodeURIComponent(desde)}`);
+}
+
+// A versão do servidor pede-se antes da leitura completa: o que mudar entre as
+// duas vem na leitura seguinte
+async function marcarVersao() {
+  if (Date.now() - alteracoesFaltaEm < 10 * 60 * 1000) return null;
+  try {
+    return await comLimiteDeTempo(pedirAlteracoes('infinity'), 4000);
+  } catch (e) {
+    if (/HTTP 404|PGRST202/.test(e.message)) alteracoesFaltaEm = Date.now();
+    return null;
+  }
+}
+
+function guardarPlanosCrus() {
+  const txt = JSON.stringify(planosCrus);
+  if (txt !== planosGuardados) { planosGuardados = txt; guardarCopia('plans', planosCrus); }
+}
+
+// Aplica as alterações desde a última leitura. Devolve false quando é preciso
+// uma leitura completa (primeira vez, planos ou linhas novos ou apagados, ou
+// já passou muito tempo).
+async function lerAlteracoes() {
+  if (!planosCrus || !alteracoesDesde) return false;
+  if (Date.now() - leituraCompletaEm > LEITURA_COMPLETA_MAX) return false;
+  // 10 s para trás: uma gravação que ainda estava a terminar não fica de fora
+  const desde = new Date(new Date(alteracoesDesde).getTime() - 10000).toISOString();
+  const r = await comLimiteDeTempo(pedirAlteracoes(desde), 20000);
+  if (!r || r.assinatura !== assinaturaIds) return false;
+  alteracoesDesde = r.agora;
+  state.dadosDe = Date.now();
+  definirLigacao(true);
+  if (!r.planos.length && !r.linhas.length) return true;
+  const porId = new Map(planosCrus.map(p => [p.id, p]));
+  for (const p of r.planos) {
+    const atual = porId.get(p.id);
+    if (atual) Object.assign(atual, p, { plan_items: atual.plan_items });
+  }
+  for (const i of r.linhas) {
+    const plano = porId.get(i.plan_id);
+    if (!plano) return false;
+    const k = plano.plan_items.findIndex(x => x.id === i.id);
+    if (k >= 0) plano.plan_items[k] = i; else plano.plan_items.push(i);
+  }
+  planosCrus.sort((a, b) => String(b.data || '').localeCompare(String(a.data || '')));
+  plans = planosCrus.map(dbPlanToLocal);
+  aplicarFilaAosPlanos();
+  guardarPlanosCrus();
+  return true;
+}
+
 async function loadPlans() {
   // Excluir pdf_base64 da query normal (pode ser grande) — carregado à parte quando necessário
   const cols = 'id,tipo,nome,data,hora_carregar,transportadora,observacao,status,grupo,criado_por,criado_em,pdf_name,plan_items(*)';
   const primeiraVez = !plans.length;
   await carregarFila();
   try {
+    const versao = await marcarVersao();
     // Na abertura não se espera mais de 6 s: com Wi-Fi fraco mais vale mostrar a cópia
     const data = await comLimiteDeTempo(sbFetch(`/plans?select=${cols}&order=data.desc`), primeiraVez ? 6000 : 20000);
-    plans = (data || []).map(dbPlanToLocal);
+    planosCrus = data || [];
+    alteracoesDesde = versao ? versao.agora : null;
+    assinaturaIds = versao ? versao.assinatura : null;
+    leituraCompletaEm = Date.now();
+    plans = planosCrus.map(dbPlanToLocal);
     aplicarFilaAosPlanos();
     state.dadosDe = Date.now();
-    const txt = JSON.stringify(data || []);
-    if (txt !== planosGuardados) { planosGuardados = txt; guardarCopia('plans', data || []); }
+    guardarPlanosCrus();
     definirLigacao(true);
   } catch(e) {
     definirLigacao(false);
@@ -3306,7 +3374,7 @@ async function atualizarPlanosDoServidor() {
         id: p.id, status: p.status,
         items: p.items.map(i => ({ id: i.id, qtySeparada: i.qtySeparada, qtyEntregue: i.qtyEntregue, separado: i.separado, entregue: i.entregue }))
       })));
-      await loadPlans();
+      if (!(await lerAlteracoes())) await loadPlans();
       const newPlans = JSON.stringify(plans.map(p => ({
         id: p.id, status: p.status,
         items: p.items.map(i => ({ id: i.id, qtySeparada: i.qtySeparada, qtyEntregue: i.qtyEntregue, separado: i.separado, entregue: i.entregue }))
@@ -3449,6 +3517,7 @@ function doLogout() {
   // O próximo a entrar lê tudo de novo (com 'plans' cheio, a primeira leitura
   // tinha um limite maior que os 8 s do arranque e o ciclo não chegava a nascer)
   plans = [];
+  planosCrus = null;
   // closeDetail primeiro (usa currentUser); só depois anular
   if (state.openPlanId) {
     state.openPlanId = null;
