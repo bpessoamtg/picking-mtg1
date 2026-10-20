@@ -931,6 +931,15 @@ input, textarea, select { font-family: inherit; font-size: inherit; }
 .entregas-qtd { font-size: 15px; font-weight: 800; color: var(--success); flex-shrink: 0; }
 .entregas-qtd.negativa { color: var(--danger); }
 .entregas-aviso { font-size: 11.5px; color: var(--text-muted); margin-top: 10px; line-height: 1.45; }
+.entregas-pesquisa {
+  width: 100%; padding: 10px 12px; margin-bottom: 10px; border: 1.5px solid var(--border);
+  border-radius: 10px; font-size: 15px; background: var(--card); color: var(--text);
+}
+.entregas-hora.data { width: 44px; line-height: 1.3; }
+.entregas-estado { font-size: 11.5px; font-weight: 700; margin-top: 2px; }
+.entregas-estado.total { color: var(--success); }
+.entregas-estado.parcial { color: var(--warning, #d97706); }
+.entregas-estado.nada { color: var(--text-muted); }
 .modal-sheet {
   background: var(--card);
   border-radius: 18px 18px 0 0;
@@ -1481,7 +1490,7 @@ body.com-aviso-offline { padding-bottom: 56px; }
         <select id="week-select-pintura" onchange="setWeekFilter('pintura',this.value)" style="font-size:14px;padding:6px 10px;border-radius:20px;border:1.5px solid var(--border);background:var(--bg-card);color:var(--text-main);cursor:pointer;min-width:160px"></select>
       </div>
       <div class="actions-bar-botoes">
-        <button class="btn-outline admin-only" id="btn-entregas-pintura" onclick="abrirEntregasPintura()" style="display:none" data-i18n="btn_entregas">📋 Entregas</button>
+        <button class="btn-outline" id="btn-entregas-pintura" onclick="abrirEntregasPintura()" data-i18n="btn_entregas">📋 Entregas</button>
         <button class="btn-primary admin-only" id="btn-novo-pintura" onclick="openNewPlanModal('pintura')" style="display:none" data-i18n="btn_novo">+ Novo</button>
       </div>
     </div>
@@ -1739,7 +1748,9 @@ body.com-aviso-offline { padding-bottom: 56px; }
       <div class="modal-title">📋 <span data-i18n="entregas_titulo">Entregas à pintura</span></div>
       <button class="btn-close" onclick="closeModal('modal-entregas')">✕</button>
     </div>
-    <div class="entregas-semana">
+    <input type="search" id="entregas-ov" class="entregas-pesquisa" inputmode="numeric" autocomplete="off"
+      data-i18n-placeholder="entregas_pesquisar_ov" placeholder="🔍 Pesquisar OV…" oninput="onPesquisaOvEntregas()">
+    <div class="entregas-semana" id="entregas-semana">
       <button class="entregas-nav" onclick="mudarSemanaEntregas(-1)" aria-label="Semana anterior">‹</button>
       <div class="entregas-semana-label" id="entregas-semana-label"></div>
       <button class="entregas-nav" onclick="mudarSemanaEntregas(1)" aria-label="Semana seguinte">›</button>
@@ -1952,6 +1963,13 @@ const I18N = {
     entregas_erro: 'Não foi possível carregar as entregas: {msg}',
     entregas_aviso_historico: '≈ Entregas registadas antes desta lista existir: só ficava guardada a última entrega de cada linha, por isso numa entrega feita em vários dias a data é a da última.',
     entregas_correcao: 'correção',
+    entregas_pesquisar_ov: '🔍 Pesquisar OV…',
+    entregas_ov_nenhuma: 'Nenhuma linha de pintura com a OV {ov}.',
+    entregas_ov_resumo: '{linhas} linhas · {entregue} de {pedido} un. entregues',
+    entregas_ov_resumo_um: '1 linha · {entregue} de {pedido} un. entregues',
+    entregas_ov_total: 'Entregue tudo · {entregue}/{pedido}',
+    entregas_ov_parcial: 'Entregue em parte · {entregue}/{pedido}',
+    entregas_ov_nada: 'Ainda não entregue · 0/{pedido}',
     btn_parque: 'Parque',
     tooltip_ir_parque: 'Abrir a app do parque (entradas e transferências)',
     sap_find_placeholder: 'Modelo ou código…',
@@ -2227,6 +2245,13 @@ const I18N = {
     entregas_erro: 'Could not load the deliveries: {msg}',
     entregas_aviso_historico: '≈ Delivered before this list existed: only the last delivery of each line was kept, so for a line delivered over several days the date is the last one.',
     entregas_correcao: 'correction',
+    entregas_pesquisar_ov: '🔍 Search sales order…',
+    entregas_ov_nenhuma: 'No painting line with sales order {ov}.',
+    entregas_ov_resumo: '{linhas} lines · {entregue} of {pedido} pcs delivered',
+    entregas_ov_resumo_um: '1 line · {entregue} of {pedido} pcs delivered',
+    entregas_ov_total: 'Fully delivered · {entregue}/{pedido}',
+    entregas_ov_parcial: 'Partly delivered · {entregue}/{pedido}',
+    entregas_ov_nada: 'Not delivered yet · 0/{pedido}',
     btn_parque: 'Park',
     tooltip_ir_parque: 'Open the park app (entries and transfers)',
     sap_find_placeholder: 'Model or code…',
@@ -5129,9 +5154,108 @@ function segundaDaSemana(d) {
 
 async function abrirEntregasPintura() {
   const hoje = new Date();
-  state.entregas = { segunda: segundaDaSemana(hoje), dia: dataLocalISO(hoje), linhas: null, erro: null };
+  state.entregas = { segunda: segundaDaSemana(hoje), dia: dataLocalISO(hoje), linhas: null, erro: null, ov: null };
+  document.getElementById('entregas-ov').value = '';
   openModal('modal-entregas');
   await carregarEntregas();
+}
+
+// Pesquisa por OV: todas as entregas à pintura das linhas dessa OV, de sempre.
+// As linhas vêm dos planos que a app já tem em memória; as entregas, da base de dados.
+let pesquisaOvTimer = null;
+function onPesquisaOvEntregas() {
+  clearTimeout(pesquisaOvTimer);
+  pesquisaOvTimer = setTimeout(pesquisarOvEntregas, 300);
+}
+
+async function pesquisarOvEntregas() {
+  const st = state.entregas;
+  const ov = document.getElementById('entregas-ov').value.trim();
+  if (ov.length < 3) { st.ov = null; renderEntregas(); return; }
+  const itens = [];
+  plans.forEach(p => {
+    if (p.tipo === 'pintura') p.items.forEach(i => { if (String(i.ov || '').includes(ov)) itens.push({ plan: p, item: i }); });
+  });
+  const pesquisa = { texto: ov, itens, linhas: itens.length ? null : [], erro: null };
+  st.ov = pesquisa;
+  renderEntregas();
+  if (!itens.length) return;
+  try {
+    const ids = itens.map(x => x.item.id);
+    const linhas = [];
+    for (let k = 0; k < ids.length; k += 100) {
+      linhas.push(...(await sbFetch('/entregas_pintura?select=*&plan_item_id=in.(' + ids.slice(k, k + 100).join(',')
+        + ')&order=entregue_em.asc') || []));
+    }
+    pesquisa.linhas = linhas;
+  } catch (e) {
+    pesquisa.erro = e.message;
+  }
+  if (st.ov === pesquisa) renderEntregas();
+}
+
+function renderEntregasOv() {
+  const pq = state.entregas.ov;
+  const resumoEl = document.getElementById('entregas-resumo');
+  const listaEl = document.getElementById('entregas-lista');
+  document.getElementById('entregas-dias').innerHTML = '';
+  if (!pq.itens.length) {
+    resumoEl.style.display = 'none';
+    listaEl.innerHTML = `<div class="entregas-aviso">${escHtml(t('entregas_ov_nenhuma', { ov: pq.texto }))}</div>`;
+    return;
+  }
+  if (pq.erro || !pq.linhas) {
+    resumoEl.style.display = 'none';
+    listaEl.innerHTML = `<div class="entregas-aviso">${pq.erro ? escHtml(t('entregas_erro', { msg: pq.erro })) : t('entregas_a_carregar')}</div>`;
+    return;
+  }
+  const porItem = new Map();
+  pq.linhas.forEach(e => { if (!porItem.has(e.plan_item_id)) porItem.set(e.plan_item_id, []); porItem.get(e.plan_item_id).push(e); });
+  const pedido = pq.itens.reduce((a, x) => a + (x.item.qtyPedida || 0), 0);
+  const entregue = pq.itens.reduce((a, x) => a + (x.item.qtyEntregue || 0), 0);
+  resumoEl.textContent = t(pq.itens.length === 1 ? 'entregas_ov_resumo_um' : 'entregas_ov_resumo', { linhas: pq.itens.length, entregue, pedido });
+  resumoEl.style.display = '';
+
+  const dataHora = iso => {
+    const d = new Date(iso);
+    return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}<br>`
+      + d.toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' });
+  };
+  // Mais recentes primeiro; dentro do plano, pela ordem das linhas
+  const grupos = new Map();
+  [...pq.itens].sort((a, b) => String(b.plan.data || '').localeCompare(String(a.plan.data || '')))
+    .forEach(x => { if (!grupos.has(x.plan.id)) grupos.set(x.plan.id, []); grupos.get(x.plan.id).push(x); });
+
+  let html = '';
+  grupos.forEach(lista => {
+    const plan = lista[0].plan;
+    html += `<div class="entregas-plano">${escHtml(plan.nome)} · ${formatDate(plan.data)}</div>`;
+    lista.forEach(({ item }) => {
+      const ped = item.qtyPedida || 0, ent = item.qtyEntregue || 0;
+      const estado = ent <= 0 ? 'nada' : ent >= ped ? 'total' : 'parcial';
+      const entregas = porItem.get(item.id) || [];
+      html += `<div class="entregas-linha">
+        <div class="entregas-hora data">${entregas.length ? '' : '—'}</div>
+        <div class="entregas-corpo">
+          <div class="entregas-modelo">${escHtml(item.model || '—')}</div>
+          <div class="entregas-info">${['OV ' + escHtml(item.ov || '—'), item.desc ? escHtml(item.desc) : ''].filter(Boolean).join(' · ')}</div>
+          <div class="entregas-estado ${estado}">${t('entregas_ov_' + estado, { entregue: ent, pedido: ped })}</div>
+        </div>
+      </div>`;
+      entregas.forEach(e => {
+        const info = [escHtml(e.entregue_por || '—'), e.quantidade < 0 ? t('entregas_correcao') : ''].filter(Boolean).join(' · ');
+        html += `<div class="entregas-linha">
+          <div class="entregas-hora data">${e.origem === 'historico' ? '\u2248 ' : ''}${dataHora(e.entregue_em)}</div>
+          <div class="entregas-corpo"><div class="entregas-info">${info}</div></div>
+          <div class="entregas-qtd${e.quantidade < 0 ? ' negativa' : ''}">${e.quantidade > 0 ? '+' : ''}${e.quantidade}</div>
+        </div>`;
+      });
+    });
+  });
+  if (pq.linhas.some(e => e.origem === 'historico')) {
+    html += `<div class="entregas-aviso">${t('entregas_aviso_historico')}</div>`;
+  }
+  listaEl.innerHTML = html;
 }
 
 async function mudarSemanaEntregas(passo) {
@@ -5171,6 +5295,9 @@ async function carregarEntregas() {
 function renderEntregas() {
   const st = state.entregas;
   if (!st) return;
+  // Com uma OV escrita, a lista é a da pesquisa (de sempre) e não a da semana
+  document.getElementById('entregas-semana').style.display = st.ov ? 'none' : '';
+  if (st.ov) { renderEntregasOv(); return; }
   document.getElementById('entregas-semana-label').textContent = weekLabel(getISOWeek(st.segunda));
   const diasEl = document.getElementById('entregas-dias');
   const resumoEl = document.getElementById('entregas-resumo');
