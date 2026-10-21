@@ -5234,7 +5234,11 @@ async function pesquisarOvEntregas() {
   if (ov.length < 3) { st.ov = null; renderEntregas(); return; }
   const itens = [];
   plans.forEach(p => {
-    if (p.tipo === 'pintura') p.items.forEach(i => { if (String(i.ov || '').includes(ov)) itens.push({ plan: p, item: i }); });
+    // Cada operador vê só as linhas do seu departamento; o admin, as do filtro
+    // Acessórios / Colunas / Todos que tiver escolhido
+    if (p.tipo === 'pintura') p.items.forEach(i => {
+      if (String(i.ov || '').includes(ov) && userCanSeeItem(i, p)) itens.push({ plan: p, item: i });
+    });
   });
   const pesquisa = { texto: ov, itens, linhas: itens.length ? null : [], erro: null };
   st.ov = pesquisa;
@@ -5376,7 +5380,7 @@ function renderEntregas() {
   plans.forEach(p => { if (p.tipo === 'pintura') p.items.forEach(i => porItem.set(i.id, { plan: p, item: i })); });
   const entregas = st.linhas
     .map(e => ({ ...e, ...(porItem.get(e.plan_item_id) || {}), dia: dataLocalISO(new Date(e.entregue_em)) }))
-    .filter(e => e.plan && planVisibleToUser(e.plan));
+    .filter(e => e.plan && userCanSeeItem(e.item, e.plan));
 
   const nomesDias = t('entregas_dias_semana').split(',');
   const dias = [...Array(7)].map((_, k) => { const d = new Date(st.segunda); d.setDate(d.getDate() + k); return d; });
