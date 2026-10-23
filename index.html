@@ -1404,6 +1404,9 @@ body.com-aviso-offline { padding-bottom: 56px; }
           <option value="Bruno">Bruno</option>
           <option value="Custódio">Custódio</option>
         </optgroup>
+        <optgroup label="Consulta" data-i18n-attr="label:label_consulta">
+          <option value="GP">GP</option>
+        </optgroup>
         <optgroup label="Admin">
           <option value="adminbp">Admin BP</option>
           <option value="adminpc">Admin PC</option>
@@ -1870,6 +1873,8 @@ const USERS = {
   Carmona: { pin: '1111', role: 'picker', group: 'acessorios', name: 'Carmona' },
   Deepak:  { pin: '2222', role: 'picker', group: 'acessorios', name: 'Deepak/Amit', lang: 'en' },
   Bruno:   { pin: '1111', role: 'picker', group: 'colunas', name: 'Bruno' },
+  // Gestores de produto: só consulta (vê tudo como o admin, não grava nada)
+  GP:      { pin: '0000', role: 'viewer', name: 'GP' },
   Custódio:{ pin: '2222', role: 'picker', group: 'colunas', name: 'Custódio' },
 };
 
@@ -1888,6 +1893,9 @@ const I18N = {
     // Header / groups
     btn_logout: 'Sair',
     label_admin_suffix: ' (Admin)',
+    label_consulta_suffix: ' (consulta)',
+    label_consulta: 'Consulta',
+    toast_so_consulta: 'Perfil só de consulta: não grava nada',
     label_acessorios: 'Acessórios',
     label_colunas: 'Colunas',
     group_acessorios_btn: '🔩 Acessórios',
@@ -2176,6 +2184,9 @@ const I18N = {
     // Header / groups
     btn_logout: 'Log Out',
     label_admin_suffix: ' (Admin)',
+    label_consulta_suffix: ' (view only)',
+    label_consulta: 'View only',
+    toast_so_consulta: 'View-only profile: nothing is saved',
     label_acessorios: 'Accessories',
     label_colunas: 'Columns',
     group_acessorios_btn: '🔩 Accessories',
@@ -2510,6 +2521,7 @@ const SB_HDR = {
 };
 
 async function sbFetch(path, opts = {}) {
+  if (opts.method && opts.method !== 'GET' && soConsulta()) throw new Error(t('toast_so_consulta'));
   if (opts.method && opts.method !== 'GET' && semRede()) throw new Error(t('erro_sem_rede'));
   const headers = { ...SB_HDR };
   if (opts.prefer) headers['Prefer'] = opts.prefer;
@@ -3480,7 +3492,7 @@ const PARQUE_URL = 'https://bpessoamtg.github.io/acessorios-mtg1/';
 // Quem existe nas duas apps (nome aqui -> nome no parque): entra numa, está
 // dentro da outra. Os admins ficam de fora -- há dois aqui e um só "Admin" no
 // parque, por isso não se sabe quem é quem.
-const PARQUE_UTILIZADORES = { Carmona: 'Carmona', Deepak: 'Deepak' };
+const PARQUE_UTILIZADORES = { Carmona: 'Carmona', Deepak: 'Deepak', GP: 'GP' };
 // Onde a app do parque guarda a sua sessão (supabase-js, mesmo domínio e projeto)
 const PARQUE_SESSAO_KEY = 'sb-cpoghfbbawubcmdtmpfj-auth-token';
 // Sessão do parque aberta a partir daqui, à espera que o parque a use
@@ -3489,10 +3501,12 @@ let parqueSessaoPendente = null;
 
 function doLogin() {
   const user = document.getElementById('login-user').value.trim();
-  const pin  = document.getElementById('login-pin').value.trim();
+  let pin    = document.getElementById('login-pin').value.trim();
   const err  = document.getElementById('login-error');
 
   const found = USERS[user];
+  // O GP só consulta: entra também sem PIN (o 0000 serve para o parque)
+  if (found && found.role === 'viewer' && pin === '') pin = found.pin;
   if (!found || found.pin !== pin) {
     err.style.display = 'block';
     return;
@@ -3544,7 +3558,7 @@ function entrarComo(user) {
   state.lang = found.lang || 'pt';
   applyI18n();
   // Admins default to 'todos', pickers already have group
-  state.groupView = found.role === 'admin' ? 'todos' : found.group;
+  state.groupView = veTudo(found) ? 'todos' : found.group;
 
   showApp();
 }
@@ -3638,18 +3652,20 @@ async function showApp() {
   const u = state.currentUser;
   document.getElementById('header-user-info').innerHTML =
     `<span id="realtime-dot" class="offline"></span>` +
-    u.name + (u.role === 'admin' ? t('label_admin_suffix') : ` — ${u.group === 'acessorios' ? t('label_acessorios') : t('label_colunas')}`);
+    u.name + (u.role === 'admin' ? t('label_admin_suffix')
+      : u.role === 'viewer' ? t('label_consulta_suffix')
+      : ` — ${u.group === 'acessorios' ? t('label_acessorios') : t('label_colunas')}`);
 
   const isAdmin = u.role === 'admin';
-  document.getElementById('group-toggle').style.display = isAdmin ? 'flex' : 'none';
+  document.getElementById('group-toggle').style.display = veTudo(u) ? 'flex' : 'none';
   document.querySelectorAll('.admin-only').forEach(el => {
     el.style.display = isAdmin ? '' : 'none';
   });
   // A app do parque só tem acessórios: as colunas não têm lá nada para fazer
-  document.getElementById('btn-ir-parque').style.display = (isAdmin || u.group === 'acessorios') ? '' : 'none';
+  document.getElementById('btn-ir-parque').style.display = (veTudo(u) || u.group === 'acessorios') ? '' : 'none';
   document.getElementById('btn-desenho-ov').style.display = DESENHOS_ATIVO ? '' : 'none';
 
-  if (isAdmin) {
+  if (veTudo(u)) {
     setGroupView(state.groupView);
   }
 
@@ -3766,17 +3782,21 @@ function setPinturaSort(mode) {
 // =====================================================
 // FILTERING
 // =====================================================
+// O perfil de consulta (GP) vê como o admin, com o filtro Acessórios / Colunas / Todos
+function veTudo(u) { return !!u && (u.role === 'admin' || u.role === 'viewer'); }
+function soConsulta() { return !!state.currentUser && state.currentUser.role === 'viewer'; }
+
 function userCanSeeItem(item, plan) {
   const u = state.currentUser;
   // Items de pintura (tipoGalva null) — visíveis conforme grupo do plano
   if (!item.tipoGalva) {
     if (!plan) return true;
-    const efectiveGroup = u.role === 'admin' ? state.groupView : u.group;
+    const efectiveGroup = veTudo(u) ? state.groupView : u.group;
     if (efectiveGroup === 'todos') return true;
     if (plan.grupo === 'ambos' || plan.grupo === efectiveGroup) return true;
     return false;
   }
-  const efectiveGroup = u.role === 'admin' ? state.groupView : u.group;
+  const efectiveGroup = veTudo(u) ? state.groupView : u.group;
   if (efectiveGroup === 'todos') return true;
   if (efectiveGroup === 'acessorios') return ACESSORIOS_TIPOS.includes(item.tipoGalva);
   if (efectiveGroup === 'colunas')    return COLUNAS_TIPOS.includes(item.tipoGalva);
@@ -3785,7 +3805,7 @@ function userCanSeeItem(item, plan) {
 
 function planVisibleToUser(plan) {
   const u = state.currentUser;
-  const efectiveGroup = u.role === 'admin' ? state.groupView : u.group;
+  const efectiveGroup = veTudo(u) ? state.groupView : u.group;
 
   if (efectiveGroup === 'todos') return true;
 
@@ -3885,7 +3905,7 @@ function renderDashboard() {
   // O dashboard respeita sempre o grupo em vigor: um perfil de acessórios não vê
   // números de colunas e vice-versa (admins com "Todos" veem tudo).
   const u = state.currentUser;
-  const effGroup = u.role === 'admin' ? state.groupView : u.group;
+  const effGroup = veTudo(u) ? state.groupView : u.group;
   const showBothGroups = effGroup === 'todos';
 
   const cargaPlans   = plans.filter(p => p.tipo === 'carga'   && planVisibleToUser(p));
@@ -4258,7 +4278,7 @@ function renderDetail(plan) {
   let actHtml = plan.tipo === 'carga'
     ? `<button class="btn-action btn-view-pdf" onclick="openPdfViewer('${plan.id}')">${t('btn_ver_pdf')}</button>`
     : `<button class="btn-action btn-view-pdf" onclick="openPinturaTabela('${plan.id}')">${t('btn_tabela')}</button>`;
-  actHtml += `<button class="btn-action btn-observacao" onclick="openObservacaoModal('${plan.id}')">${t('btn_observacao')}</button>`;
+  if (!soConsulta()) actHtml += `<button class="btn-action btn-observacao" onclick="openObservacaoModal('${plan.id}')">${t('btn_observacao')}</button>`;
   if (isAdmin) {
     if (plan.tipo === 'pintura') {
       actHtml += `<button class="btn-action" style="background:var(--primary)" onclick="openAddLinhasPintura('${plan.id}')">${t('btn_mais_linhas')}</button>`;
@@ -4752,6 +4772,7 @@ function renderItemRow(item, plan, opts) {
 // QTY MODAL
 // =====================================================
 function openQtyModal(planId, itemId, action) {
+  if (soConsulta()) { showToast(t('toast_so_consulta')); return; }
   const plan = plans.find(p => p.id === planId);
   const item = plan.items.find(i => i.id === itemId);
 
@@ -4944,6 +4965,7 @@ function guardarFila() {
 }
 
 async function enfileirar(op) {
+  if (soConsulta()) throw new Error(t('toast_so_consulta'));
   await carregarFila();
   fila.push(op);
   guardarFila();
