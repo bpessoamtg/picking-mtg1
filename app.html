@@ -2023,6 +2023,10 @@ const I18N = {
     search_by_name_placeholder: '🔎 Pesquisar por nome…',
     tooltip_limpar_pesquisa: 'Limpar pesquisa',
     empty_planos: 'Nenhum plano encontrado',
+    aviso_falta_titulo: '⚠ {n} linha(s) por separar',
+    aviso_falta_linha: '{ref} · pedido {ped} · sep. {sep}',
+    hoje_titulo: 'CARGA DE HOJE',
+    hoje_sem_ninguem: '— sem ninguém —',
     label_itens_progress: '{done}/{total} itens',
     label_unidades_progress: '{done}/{total} un.',
     label_qty_pcs: '{qty} un.',
@@ -2314,6 +2318,10 @@ const I18N = {
     search_by_name_placeholder: '🔎 Search by name…',
     tooltip_limpar_pesquisa: 'Clear search',
     empty_planos: 'No plans found',
+    aviso_falta_titulo: '⚠ {n} line(s) still to pick',
+    aviso_falta_linha: '{ref} · ordered {ped} · picked {sep}',
+    hoje_titulo: 'LOADING TODAY',
+    hoje_sem_ninguem: '— nobody yet —',
     label_itens_progress: '{done}/{total} items',
     label_unidades_progress: '{done}/{total} pcs',
     label_qty_pcs: '{qty} pcs',
@@ -4152,6 +4160,55 @@ function renderDashboard() {
   el.innerHTML = html;
 }
 
+
+// Linhas de uma carga que ainda não estão completas (preview: aviso antes da carga)
+function linhasPorSepararCarga(plan) {
+  if (plan.tipo !== 'carga') return [];
+  return plan.items.filter(i => userCanSeeItem(i, plan) && !(i.separado && i.qtySeparada >= i.qtyPedida));
+}
+
+// Só avisa quando a carga é hoje e faltam menos de 4 h (ou já passou), ou a data já passou
+function cargaPerto(plan) {
+  if (!plan.data) return false;
+  const hoje = todayStr();
+  if (plan.data < hoje) return true;
+  if (plan.data > hoje) return false;
+  if (!plan.horaCarregar) return true;
+  const [h, m] = plan.horaCarregar.split(':').map(Number);
+  const limite = new Date(); limite.setHours(h, m || 0, 0, 0);
+  return limite.getTime() - Date.now() <= 4 * 3600000;
+}
+
+function renderAvisoFalta(plan) {
+  if (!cargaPerto(plan)) return '';
+  const falta = linhasPorSepararCarga(plan);
+  if (!falta.length) return '';
+  const linhas = falta.slice(0, 3).map(i => `<div>• ${escHtml(t('aviso_falta_linha', { ref: i.ref || i.model, ped: i.qtyPedida, sep: i.qtySeparada }))}</div>`).join('');
+  const mais = falta.length > 3 ? `<div>… +${falta.length - 3}</div>` : '';
+  return `<div style="margin-top:8px;padding:8px 10px;border-radius:8px;background:#fff4e5;border:1px solid #f0b35a;color:#8a5200;font-size:12px"><b>${t('aviso_falta_titulo', { n: falta.length })}</b>${linhas}${mais}</div>`;
+}
+
+// Resumo "Carga de hoje": hora, progresso e quem já separou
+function renderCargaHoje(planos) {
+  if (!planos.length) return '';
+  const linhas = planos.slice().sort((a, b) => (a.horaCarregar || '99').localeCompare(b.horaCarregar || '99')).map(plan => {
+    const p = planProgress(plan);
+    const pct = Math.round(p.pct * 100);
+    const quem = {};
+    plan.items.forEach(i => { if (i.separadoPor && i.qtySeparada > 0) quem[i.separadoPor] = (quem[i.separadoPor] || 0) + 1; });
+    const nomes = Object.keys(quem).map(n => escHtml(n)).join(', ') || `<i>${t('hoje_sem_ninguem')}</i>`;
+    const feito = p.done === p.total && p.total > 0;
+    return `<div onclick="openDetail('${plan.id}')" style="display:flex;gap:8px;align-items:center;padding:6px 0;border-top:1px solid var(--border);font-size:13px;cursor:pointer">
+      <b style="min-width:42px">${plan.horaCarregar || '--:--'}</b>
+      <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml(plan.nome)}</span>
+      <span style="width:60px;height:8px;background:var(--border);border-radius:4px;overflow:hidden"><span style="display:block;height:100%;width:${pct}%;background:${feito ? '#2e9b57' : 'var(--primary)'}"></span></span>
+      <span style="min-width:38px;text-align:right">${p.done}/${p.total}</span>
+      <span style="min-width:90px;font-size:11px;color:var(--text-muted)">${feito ? '✓ ' : ''}${nomes}</span>
+    </div>`;
+  }).join('');
+  return `<div class="plan-card" style="cursor:default"><div style="font-weight:700;margin-bottom:4px">🚚 ${t('hoje_titulo')} · ${formatDate(todayStr())}</div>${linhas}</div>`;
+}
+
 function renderList(tipo) {
   const filter = state.dateFilters[tipo];
   let filtered = filterPlansByDate(tipo, filter);
@@ -4174,6 +4231,7 @@ function renderList(tipo) {
       ? sortKey(b).localeCompare(sortKey(a))
       : sortKey(a).localeCompare(sortKey(b)))
     .map(p => renderPlanCard(p)).join('');
+  if (tipo === 'carga' && filter === 'hoje') container.innerHTML = renderCargaHoje(filtered) + container.innerHTML;
 }
 
 function planProgress(plan) {
@@ -4214,6 +4272,7 @@ function renderPlanCard(plan) {
       <span class="plan-progress-text">${t('label_itens_progress', { done: p.done, total: p.total })}</span>
       <span class="plan-units-text">${t('label_unidades_progress', { done: p.doneUnits, total: p.totalUnits })}</span>
     </div>
+    ${renderAvisoFalta(plan)}
   </div>`;
 }
 
