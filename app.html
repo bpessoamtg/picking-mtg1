@@ -1482,6 +1482,7 @@ body.com-aviso-offline { padding-bottom: 56px; }
         <button onclick="setCargaFilter('semana',this)" data-i18n="filter_semana">Esta semana</button>
         <button onclick="setCargaFilter('prox_semana',this)" data-i18n="filter_prox_semana">Próxima semana</button>
         <button onclick="setCargaFilter('todos',this)" data-i18n="filter_todos">Todos</button>
+        <button onclick="setCargaFilter('arquivo',this)" data-i18n="filter_arquivo">Arquivo</button>
       </div>
       <button class="btn-primary admin-only" id="btn-novo-carga" onclick="openNewPlanModal('carga')" style="display:none" data-i18n="btn_novo">+ Novo</button>
     </div>
@@ -2019,6 +2020,10 @@ const I18N = {
     filter_semana: 'Esta semana',
     filter_prox_semana: 'Próxima semana',
     filter_todos: 'Todos',
+    filter_arquivo: 'Arquivo',
+    status_fechado: '📦 Fechado',
+    status_fechado_incompleto: '📦 Fechado incompleto',
+    arquivo_quem_separou: 'Separado por: {nomes}',
     btn_novo: '+ Novo',
     search_by_name_placeholder: '🔎 Pesquisar por nome…',
     tooltip_limpar_pesquisa: 'Limpar pesquisa',
@@ -2314,6 +2319,10 @@ const I18N = {
     filter_semana: 'This week',
     filter_prox_semana: 'Next week',
     filter_todos: 'All',
+    filter_arquivo: 'Archive',
+    status_fechado: '📦 Closed',
+    status_fechado_incompleto: '📦 Closed incomplete',
+    arquivo_quem_separou: 'Picked by: {nomes}',
     btn_novo: '+ New',
     search_by_name_placeholder: '🔎 Search by name…',
     tooltip_limpar_pesquisa: 'Clear search',
@@ -3761,7 +3770,7 @@ function setCargaFilter(val, btn) {
   state.dateFilters.carga = val;
   document.getElementById('date-filter-carga').querySelectorAll('button')
     .forEach(b => b.classList.toggle('active', b === btn));
-  document.getElementById('carga-search-bar').style.display = val === 'todos' ? 'flex' : 'none';
+  document.getElementById('carga-search-bar').style.display = (val === 'todos' || val === 'arquivo') ? 'flex' : 'none';
   renderList('carga');
 }
 
@@ -3829,6 +3838,15 @@ function localDateStr(dateStr) {
   return new Date(y, m - 1, d);
 }
 
+// Cargas de semanas anteriores: saem das listas do dia a dia mas não se apaga
+// nada — continuam no separador Arquivo com quem separou e o que ficou separado.
+function cargaArquivada(p) {
+  if (p.tipo !== 'carga' || !p.data) return false;
+  const mon = new Date(); mon.setHours(0, 0, 0, 0);
+  mon.setDate(mon.getDate() - (mon.getDay() + 6) % 7);
+  return localDateStr(p.data) < mon;
+}
+
 function filterPlansByDate(tipo, filter) {
   const today = todayStr();
   return plans.filter(p => {
@@ -3838,6 +3856,7 @@ function filterPlansByDate(tipo, filter) {
     const d = p.data;
     if (!d) return false;
     if (tipo === 'carga') {
+      if (filter === 'arquivo') return cargaArquivada(p);
       if (filter === 'hoje')   return d === today;
       if (filter === 'amanha') return d === proximoDiaUtil().iso;
       if (filter === 'semana') {
@@ -4188,6 +4207,15 @@ function renderAvisoFalta(plan) {
   return `<div style="margin-top:8px;padding:8px 10px;border-radius:8px;background:#fff4e5;border:1px solid #f0b35a;color:#8a5200;font-size:12px"><b>${t('aviso_falta_titulo', { n: falta.length })}</b>${linhas}${mais}</div>`;
 }
 
+// No arquivo: quem separou e quantas linhas cada um
+function renderQuemSeparou(plan) {
+  const quem = {};
+  plan.items.forEach(i => { if (i.separadoPor && i.qtySeparada > 0) quem[i.separadoPor] = (quem[i.separadoPor] || 0) + 1; });
+  const nomes = Object.keys(quem).map(n => `${escHtml(n)} ${quem[n]}`).join(', ');
+  if (!nomes) return '';
+  return `<div style="margin-top:6px;font-size:12px;color:var(--text-muted)">${t('arquivo_quem_separou', { nomes })}</div>`;
+}
+
 // Resumo "Carga de hoje": hora, progresso e quem já separou
 function renderCargaHoje(planos) {
   if (!planos.length) return '';
@@ -4212,7 +4240,7 @@ function renderCargaHoje(planos) {
 function renderList(tipo) {
   const filter = state.dateFilters[tipo];
   let filtered = filterPlansByDate(tipo, filter);
-  if (tipo === 'carga' && filter === 'todos') {
+  if (tipo === 'carga' && (filter === 'todos' || filter === 'arquivo')) {
     const { nome, data } = state.cargaSearch;
     if (nome) filtered = filtered.filter(p => (p.nome || '').toLowerCase().includes(nome));
     if (data) filtered = filtered.filter(p => p.data === data);
@@ -4225,12 +4253,12 @@ function renderList(tipo) {
   }
 
   const sortKey = p => (p.data || '') + (p.horaCarregar || '');
-  const descending = tipo === 'carga' && (filter === 'todos' || filter === 'semana');
+  const descending = tipo === 'carga' && (filter === 'todos' || filter === 'semana' || filter === 'arquivo');
   container.innerHTML = filtered
     .sort((a, b) => descending
       ? sortKey(b).localeCompare(sortKey(a))
       : sortKey(a).localeCompare(sortKey(b)))
-    .map(p => renderPlanCard(p)).join('');
+    .map(p => renderPlanCard(p, filter === 'arquivo')).join('');
   if (tipo === 'carga' && filter === 'hoje') container.innerHTML = renderCargaHoje(filtered) + container.innerHTML;
 }
 
@@ -4248,7 +4276,7 @@ function planProgress(plan) {
   return { total, done, partial, totalUnits, doneUnits, pct: total ? done / total : 0 };
 }
 
-function renderPlanCard(plan) {
+function renderPlanCard(plan, arquivo) {
   const p = planProgress(plan);
   const pct = Math.round(p.pct * 100);
   const isComplete = p.done === p.total && p.total > 0;
@@ -4263,7 +4291,7 @@ function renderPlanCard(plan) {
         <div class="plan-name">${plan.nome}</div>
         <div class="plan-meta">${dateStr}${horaStr}${transStr}</div>
       </div>
-      <span class="status-pill status-${plan.status}">${plan.status === 'pronto' ? t('status_pronto') : t('status_em_separacao')}</span>
+      <span class="status-pill status-${arquivo ? (isComplete ? 'pronto' : 'em_separacao') : plan.status}">${arquivo ? t(isComplete ? 'status_fechado' : 'status_fechado_incompleto') : (plan.status === 'pronto' ? t('status_pronto') : t('status_em_separacao'))}</span>
     </div>
     <div class="progress-bar-wrap">
       <div class="progress-bar-fill ${isComplete ? 'complete' : ''}" style="width:${pct}%"></div>
@@ -4272,7 +4300,7 @@ function renderPlanCard(plan) {
       <span class="plan-progress-text">${t('label_itens_progress', { done: p.done, total: p.total })}</span>
       <span class="plan-units-text">${t('label_unidades_progress', { done: p.doneUnits, total: p.totalUnits })}</span>
     </div>
-    ${renderAvisoFalta(plan)}
+    ${arquivo ? renderQuemSeparou(plan) : renderAvisoFalta(plan)}
   </div>`;
 }
 
@@ -4282,6 +4310,7 @@ function updateBadges() {
     const active = plans.filter(p => {
       if (p.tipo !== tipo) return false;
       if (!planVisibleToUser(p)) return false;
+      if (cargaArquivada(p)) return false;
       return p.status !== 'pronto';
     }).length;
     const badge = document.getElementById('badge-' + tipo);
