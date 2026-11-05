@@ -5610,13 +5610,14 @@ function renderEntregas() {
   listaEl.innerHTML = html;
 }
 
-// Carga: pronta quando tudo está separado. Pintura: pronta quando tudo está
-// entregue (o mesmo critério do aviso "Pintura Pronta!" e da contagem de itens).
+// Carga: pronta quando tudo está separado. Pintura: pronta quando cada linha
+// tem entregue a quantidade pedida (uma linha com 12 separadas e 12 entregues
+// de 26 pedidas está marcada "entregue", mas ainda faltam 14).
 function planoCompleto(plan) {
   const items = plan.items || [];
   if (!items.length) return false;
   return plan.tipo === 'pintura'
-    ? items.every(i => i.entregue)
+    ? items.every(i => (i.qtyEntregue || 0) >= i.qtyPedida)
     : items.every(i => i.qtySeparada >= i.qtyPedida);
 }
 
