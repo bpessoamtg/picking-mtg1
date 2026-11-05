@@ -49,7 +49,7 @@
   --tg-color: #2563eb;
   --ag-color: #d97706;
   --cg-color: #0d9488;
-  --cp-color: #7c3aed;
+  --cp-color: #334155;
 }
 html, body { height: 100%; }
 body {
@@ -859,7 +859,7 @@ input, textarea, select { font-family: inherit; font-size: inherit; }
 .tipo-badge.TG { background: #dbeafe; color: var(--tg-color); }
 .tipo-badge.AG { background: #fef3c7; color: var(--ag-color); }
 .tipo-badge.CG { background: #ccfbf1; color: var(--cg-color); }
-.tipo-badge.CP { background: #ede9fe; color: var(--cp-color); }
+.tipo-badge.CP { background: #e2e8f0; color: var(--cp-color); }
 
 /* Pintura item actions */
 .pintura-actions { display: flex; gap: 6px; flex-shrink: 0; }
@@ -2574,7 +2574,9 @@ function applyI18n() {
 }
 
 const ACESSORIOS_TIPOS = ['BG', 'TG', 'AG'];
-const COLUNAS_TIPOS    = ['CG'];   // só galvanizado — pintadas (CP) ignoradas
+// CP = coluna em preto (CPRETO / C PRETO na expedição): é separada pelas colunas
+// como as CG. As pintadas nunca chegam aos planos de carga.
+const COLUNAS_TIPOS    = ['CG', 'CP'];
 
 // =====================================================
 // STATE
@@ -2746,6 +2748,8 @@ function classifyItem(model, desc, descarga, expedicao) {
 
   // ===== FONTE PRIMÁRIA: coluna Expedição =====
   if (exp) {
+    // Colunas em preto (CPRETO, C PRETO, COLUNA PRETO, OCTOGONAIS PRETO) → CP
+    if (/(^|[^A-Z])C\.? ?PRETO|COLUNA PRETO|COL\.? PRETO|OCTOGONAIS PRETO|FUSTE EM PRETO/.test(exp)) return 'CP';
     // Pintados → ignorar
     if (/^CP\b|^BP\b|RAL|SABL|PINTAR|PAINTING|ACESSORIO P\b|ACESS\.? P\b/.test(exp)) return null;
     // Galvanizados
@@ -4052,7 +4056,7 @@ function renderDashboard() {
     let colTotal = 0, colDone = 0, acTotal = 0, acDone = 0;
     list.forEach(p => {
       p.items.filter(i => userCanSeeItem(i, p)).forEach(i => {
-        if (i.tipoGalva === 'CG') { colTotal += i.qtyPedida; colDone += i.qtySeparada; }
+        if (COLUNAS_TIPOS.includes(i.tipoGalva)) { colTotal += i.qtyPedida; colDone += i.qtySeparada; }
         else if (['BG', 'TG', 'AG'].includes(i.tipoGalva)) { acTotal += i.qtyPedida; acDone += i.qtySeparada; }
       });
     });
