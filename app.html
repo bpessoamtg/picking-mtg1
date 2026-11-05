@@ -2002,6 +2002,9 @@ const I18N = {
     desenho_nota: 'Abre o processo da OV na pasta das obras (só nos tablets e PCs com o programa instalado).',
     desenho_ov_invalida: 'Escreve uma OV com 7 dígitos',
     entregas_ov_nenhuma: 'Nenhuma linha de pintura com a OV {ov}.',
+    entregas_ov_resumo_excel: 'Sem plano na app · {n} entregas no registo · {un} un.',
+    entregas_excel_titulo: 'Registo de entregas (Excel)',
+    entregas_excel_nota: 'Entregas registadas no Excel da expedição, fora dos planos da app.',
     entregas_ov_resumo: '{linhas} linhas · {entregue} de {pedido} un. entregues',
     entregas_ov_resumo_um: '1 linha · {entregue} de {pedido} un. entregues',
     entregas_ov_total: 'Entregue tudo · {entregue}/{pedido}',
@@ -2297,6 +2300,9 @@ const I18N = {
     desenho_nota: 'Opens the order process in the projects folder (only on tablets and PCs with the program installed).',
     desenho_ov_invalida: 'Type a 7-digit sales order',
     entregas_ov_nenhuma: 'No painting line with sales order {ov}.',
+    entregas_ov_resumo_excel: 'No plan in the app · {n} deliveries in the log · {un} pcs',
+    entregas_excel_titulo: 'Delivery log (Excel)',
+    entregas_excel_nota: 'Deliveries recorded in the shipping Excel, outside the app plans.',
     entregas_ov_resumo: '{linhas} lines · {entregue} of {pedido} pcs delivered',
     entregas_ov_resumo_um: '1 line · {entregue} of {pedido} pcs delivered',
     entregas_ov_total: 'Fully delivered · {entregue}/{pedido}',
@@ -5324,22 +5330,69 @@ async function pesquisarOvEntregas() {
       if (String(i.ov || '').includes(ov) && userCanSeeItem(i, p)) itens.push({ plan: p, item: i });
     });
   });
-  const pesquisa = { texto: ov, itens, linhas: itens.length ? null : [], erro: null };
+  const pesquisa = { texto: ov, itens, linhas: itens.length ? null : [], excel: null, erro: null };
   st.ov = pesquisa;
   renderEntregas();
-  if (!itens.length) return;
-  try {
-    const ids = itens.map(x => x.item.id);
-    const linhas = [];
-    for (let k = 0; k < ids.length; k += 100) {
-      linhas.push(...(await sbFetch('/entregas_pintura?select=*&plan_item_id=in.(' + ids.slice(k, k + 100).join(',')
-        + ')&order=entregue_em.asc') || []));
+  const pedidos = [lerEntregasExcel(ov).then(r => { pesquisa.excel = r; })];
+  if (itens.length) pedidos.push((async () => {
+    try {
+      const ids = itens.map(x => x.item.id);
+      const linhas = [];
+      for (let k = 0; k < ids.length; k += 100) {
+        linhas.push(...(await sbFetch('/entregas_pintura?select=*&plan_item_id=in.(' + ids.slice(k, k + 100).join(',')
+          + ')&order=entregue_em.asc') || []));
+      }
+      pesquisa.linhas = linhas;
+    } catch (e) {
+      pesquisa.erro = e.message;
     }
-    pesquisa.linhas = linhas;
-  } catch (e) {
-    pesquisa.erro = e.message;
-  }
+  })());
+  await Promise.all(pedidos);
   if (st.ov === pesquisa) renderEntregas();
+}
+
+// Entregas à pintura registadas nos Excel da expedição (Kanban das colunas e
+// Pintura Kanban dos braços), que a rotina copia para a base de dados: assim
+// também se encontram as OVs que entraram sem plano na app. Sem rede ou sem a
+// tabela, a pesquisa mostra só o que está na app.
+async function lerEntregasExcel(ov) {
+  try {
+    return await sbFetch('/entregas_excel?select=ov,modelo,quantidade,data,operador,grupo'
+      + '&ov=like.*' + encodeURIComponent(ov) + '*&order=data.desc,modelo.asc&limit=300') || [];
+  } catch (e) {
+    return [];
+  }
+}
+
+// Só as do departamento em vista, e sem as que a app já mostra: uma entrega do
+// Excel com o mesmo modelo, dia e quantidade que uma entrega registada na app é
+// a mesma. As outras ficam à vista, também nas linhas que a app dá como não
+// entregues (entregas registadas só no Excel).
+function entregasExcelVisiveis(pq) {
+  if (!pq.excel) return [];
+  const u = state.currentUser;
+  const grupo = veTudo(u) ? state.groupView : u.group;
+  const modeloDe = new Map(pq.itens.map(x => [x.item.id, String(x.item.model || '').trim().toUpperCase()]));
+  const naApp = new Set((pq.linhas || []).map(e =>
+    [modeloDe.get(e.plan_item_id), dataLocalISO(new Date(e.entregue_em)), e.quantidade].join('|')));
+  return pq.excel.filter(e => (grupo === 'todos' || e.grupo === grupo)
+    && !naApp.has([String(e.modelo || '').trim().toUpperCase(), String(e.data).slice(0, 10), e.quantidade].join('|')));
+}
+
+function htmlEntregasExcel(lista) {
+  if (!lista.length) return '';
+  const dia = iso => { const [y, m, d] = String(iso).slice(0, 10).split('-'); return `${d}/${m}<br>${y}`; };
+  return `<div class="entregas-dia-titulo">\u{1F4D2} ${t('entregas_excel_titulo')}</div>
+    <div class="entregas-aviso" style="margin-top:0">${t('entregas_excel_nota')}</div>`
+    + lista.map(e => `<div class="entregas-linha">
+      <div class="entregas-hora data">${dia(e.data)}</div>
+      <div class="entregas-corpo">
+        <div class="entregas-modelo">${escHtml(e.modelo || '—')}</div>
+        <div class="entregas-info">${['OV ' + escHtml(e.ov), escHtml(e.operador || '—'),
+          e.grupo === 'colunas' ? t('label_colunas') : t('label_acessorios')].join(' · ')}${botaoDesenho(e.ov)}</div>
+      </div>
+      <div class="entregas-qtd">+${escHtml(String(e.quantidade))}</div>
+    </div>`).join('');
 }
 
 // Tocar no nome do plano fecha a lista e abre esse plano
@@ -5353,9 +5406,17 @@ function renderEntregasOv() {
   const resumoEl = document.getElementById('entregas-resumo');
   const listaEl = document.getElementById('entregas-lista');
   document.getElementById('entregas-dias').innerHTML = '';
+  const excel = entregasExcelVisiveis(pq);
   if (!pq.itens.length) {
-    resumoEl.style.display = 'none';
-    listaEl.innerHTML = `<div class="entregas-aviso">${escHtml(t('entregas_ov_nenhuma', { ov: pq.texto }))}</div>`;
+    // OV sem linhas nos planos da app: só o registo dos Excel
+    if (pq.excel === null || !excel.length) {
+      resumoEl.style.display = 'none';
+      listaEl.innerHTML = `<div class="entregas-aviso">${pq.excel === null ? t('entregas_a_carregar') : escHtml(t('entregas_ov_nenhuma', { ov: pq.texto }))}</div>`;
+      return;
+    }
+    resumoEl.textContent = t('entregas_ov_resumo_excel', { n: excel.length, un: excel.reduce((a, e) => a + (e.quantidade || 0), 0) });
+    resumoEl.style.display = '';
+    listaEl.innerHTML = htmlEntregasExcel(excel);
     return;
   }
   if (pq.erro || !pq.linhas) {
@@ -5406,6 +5467,7 @@ function renderEntregasOv() {
       });
     });
   });
+  html += htmlEntregasExcel(excel);
   if (pq.linhas.some(e => e.origem === 'historico')) {
     html += `<div class="entregas-aviso">${t('entregas_aviso_historico')}</div>`;
   }
