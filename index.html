@@ -4195,7 +4195,8 @@ function renderCargaHoje(planos) {
     const p = planProgress(plan);
     const pct = Math.round(p.pct * 100);
     const quem = {};
-    plan.items.forEach(i => { if (i.separadoPor && i.qtySeparada > 0) quem[i.separadoPor] = (quem[i.separadoPor] || 0) + 1; });
+    // Só quem separou linhas do departamento em vista (em "Todos", toda a gente)
+    plan.items.filter(i => userCanSeeItem(i, plan)).forEach(i => { if (i.separadoPor && i.qtySeparada > 0) quem[i.separadoPor] = (quem[i.separadoPor] || 0) + 1; });
     const nomes = Object.keys(quem).map(n => escHtml(n)).join(', ') || `<i>${t('hoje_sem_ninguem')}</i>`;
     const feito = p.done === p.total && p.total > 0;
     return `<div onclick="openDetail('${plan.id}')" style="display:flex;gap:8px;align-items:center;padding:6px 0;border-top:1px solid var(--border);font-size:13px;cursor:pointer">
