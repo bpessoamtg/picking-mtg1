@@ -2153,6 +2153,7 @@ const I18N = {
     toast_un_separadas: '{qty} un. separadas ✓',
     toast_un_entregues: '{qty} un. entregues ✓',
     toast_carga_pronta: '✅ Carga Pronta — todos os itens separados!',
+    toast_pintura_pronta: '✅ Pintura Pronta — todos os itens entregues!',
     toast_separacao_anulada: 'Separação anulada',
     toast_linha_mudou: 'Outro aparelho gravou esta linha (separadas {sep}, entregues {entr}) — revê a quantidade',
     toast_linha_mudou_removida: 'Esta linha foi removida do plano noutro aparelho',
@@ -2451,6 +2452,7 @@ const I18N = {
     toast_un_separadas: '{qty} pcs picked ✓',
     toast_un_entregues: '{qty} pcs delivered ✓',
     toast_carga_pronta: '✅ Load Ready — all items picked!',
+    toast_pintura_pronta: '✅ Painting Ready — all items delivered!',
     toast_separacao_anulada: 'Picking cancelled',
     toast_linha_mudou: 'Another device saved this line (picked {sep}, delivered {entr}) — check the quantity',
     toast_linha_mudou_removida: 'This line was removed from the plan on another device',
@@ -5144,7 +5146,7 @@ function aposGravar(op) {
       entregasHoje.linhas.push({ plan_item_id: e.plan_item_id, quantidade: e.quantidade, entregue_por: e.entregue_por, entregue_em: e.entregue_em });
     }
   });
-  if (op.campos && 'qty_separada' in op.campos) {
+  if (op.campos && ('qty_separada' in op.campos || 'qty_entregue' in op.campos)) {
     const plan = plans.find(p => p.id === op.planId);
     if (plan) checkAutoMarkPronto(plan);
   }
@@ -5608,16 +5610,32 @@ function renderEntregas() {
   listaEl.innerHTML = html;
 }
 
-async function checkAutoMarkPronto(plan) {
-  if (plan.tipo !== 'carga' || plan.status === 'pronto') return;
+// Carga: pronta quando tudo está separado. Pintura: pronta quando tudo está
+// entregue (o mesmo critério do aviso "Pintura Pronta!" e da contagem de itens).
+function planoCompleto(plan) {
   const items = plan.items || [];
-  const allSeparado = items.length > 0 && items.every(i => i.qtySeparada >= i.qtyPedida);
-  if (!allSeparado) return;
-  plan.status = 'pronto';
-  renderDetail(plan);
-  renderAll();
-  showToast(t('toast_carga_pronta'));
-  await dbUpdatePlan(plan.id, { status: 'pronto' });
+  if (!items.length) return false;
+  return plan.tipo === 'pintura'
+    ? items.every(i => i.entregue)
+    : items.every(i => i.qtySeparada >= i.qtyPedida);
+}
+
+async function checkAutoMarkPronto(plan) {
+  const completo = planoCompleto(plan);
+  if (plan.status !== 'pronto') {
+    if (!completo) return;
+    plan.status = 'pronto';
+    renderDetail(plan);
+    renderAll();
+    showToast(t(plan.tipo === 'pintura' ? 'toast_pintura_pronta' : 'toast_carga_pronta'));
+    await dbUpdatePlan(plan.id, { status: 'pronto' });
+  } else if (plan.tipo === 'pintura' && !completo) {
+    // Uma entrega corrigida para menos volta a abrir o plano de pintura
+    plan.status = 'em_separacao';
+    renderDetail(plan);
+    renderAll();
+    await dbUpdatePlan(plan.id, { status: 'em_separacao' });
+  }
 }
 
 function openUndoConfirm() {
