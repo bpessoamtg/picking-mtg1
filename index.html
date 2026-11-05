@@ -920,6 +920,8 @@ input, textarea, select { font-family: inherit; font-size: inherit; }
   letter-spacing: .3px; margin: 12px 0 4px;
 }
 .entregas-plano { font-size: 12px; font-weight: 700; color: var(--text); margin: 10px 0 2px; }
+.entregas-plano.ir { color: var(--primary); cursor: pointer; }
+.entregas-plano.ir::after { content: ' ›'; }
 .entregas-linha {
   display: flex; gap: 10px; align-items: flex-start;
   padding: 7px 0; border-bottom: 1px solid var(--border);
@@ -5340,6 +5342,12 @@ async function pesquisarOvEntregas() {
   if (st.ov === pesquisa) renderEntregas();
 }
 
+// Tocar no nome do plano fecha a lista e abre esse plano
+function irParaPlanoDasEntregas(planId) {
+  closeModal('modal-entregas');
+  openDetail(planId);
+}
+
 function renderEntregasOv() {
   const pq = state.entregas.ov;
   const resumoEl = document.getElementById('entregas-resumo');
@@ -5375,7 +5383,7 @@ function renderEntregasOv() {
   let html = '';
   grupos.forEach(lista => {
     const plan = lista[0].plan;
-    html += `<div class="entregas-plano">${escHtml(plan.nome)} · ${formatDate(plan.data)}</div>`;
+    html += `<div class="entregas-plano ir" onclick="irParaPlanoDasEntregas('${plan.id}')">${escHtml(plan.nome)} · ${formatDate(plan.data)}</div>`;
     lista.forEach(({ item }) => {
       const ped = item.qtyPedida || 0, ent = item.qtyEntregue || 0;
       const estado = ent <= 0 ? 'nada' : ent >= ped ? 'total' : 'parcial';
@@ -5518,7 +5526,7 @@ function renderEntregas() {
     const grupos = new Map();
     lista.forEach(e => { if (!grupos.has(e.plan.id)) grupos.set(e.plan.id, []); grupos.get(e.plan.id).push(e); });
     return [...grupos.values()].map(g =>
-      `<div class="entregas-plano">${escHtml(g[0].plan.nome)} · ${somar(g)} ${t('dash_unidades')}</div>${g.map(linhaHtml).join('')}`
+      `<div class="entregas-plano ir" onclick="irParaPlanoDasEntregas('${g[0].plan.id}')">${escHtml(g[0].plan.nome)} · ${somar(g)} ${t('dash_unidades')}</div>${g.map(linhaHtml).join('')}`
     ).join('');
   };
 
