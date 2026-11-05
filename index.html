@@ -821,6 +821,33 @@ input, textarea, select { font-family: inherit; font-size: inherit; }
 #qty-input.excesso { color: #9333ea; border-color: #9333ea; background: #f5f3ff; }
 .qty-excesso-note { text-align: center; font-size: 12px; font-weight: 600; color: #9333ea; margin-top: -6px; margin-bottom: 6px; min-height: 16px; }
 .item-who { font-size: 11px; color: var(--text-muted); text-align: right; }
+/* Aspeto validado a 2026-11-05: quantidade em destaque, por fazer em cima,
+   feitas numa lista curta em baixo */
+.qty-big { font-size: 26px; font-weight: 800; line-height: 1; text-align: right; font-variant-numeric: tabular-nums; color: var(--text); }
+.qty-big small { display: block; font-size: 11px; font-weight: 600; color: var(--text-muted); margin-top: 3px; }
+.qty-big.partial { color: var(--warning); }
+.qty-big.excesso { color: #9333ea; }
+.item-row.row-partial .item-checkbox.partial { border-color: var(--warning); }
+.secao-titulo { font-size: 12px; font-weight: 700; letter-spacing: .05em; color: var(--text-muted); text-transform: uppercase; margin: 14px 2px 6px; }
+.secao-titulo:first-child { margin-top: 4px; }
+.feita-row { display: flex; align-items: center; gap: 8px; background: #eef1f5; border-radius: 8px; padding: 7px 10px; margin-bottom: 4px; font-size: 13px; color: var(--text-muted); cursor: pointer; }
+.feita-row .feita-ok { color: var(--success); font-weight: 700; }
+.feita-row .feita-model { font-family: 'Courier New', monospace; font-weight: 700; color: var(--text); white-space: nowrap; }
+.feita-row .feita-txt { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.feita-row .feita-qty { font-weight: 700; color: var(--success); font-size: 14px; }
+.grupo-modelo { display: flex; justify-content: space-between; align-items: center; gap: 8px; background: var(--card, #fff); border: 1px solid var(--border); border-radius: 10px; padding: 7px 12px; margin: 10px 0 6px; }
+.grupo-modelo b { font-family: 'Courier New', monospace; font-size: 15px; }
+.grupo-modelo span { font-size: 12px; color: var(--text-muted); display: flex; gap: 6px; align-items: center; flex-wrap: wrap; justify-content: flex-end; }
+.grupo-modelo .sap-badge { margin: 0; }
+.pint-falta { font-size: 12px; font-weight: 700; color: var(--warning); margin-top: 4px; }
+.pintura-actions-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 8px; }
+.pintura-actions-grid .btn-sep, .pintura-actions-grid .btn-entr { width: 100%; padding: 9px 6px; font-size: 13px; }
+.status-por_comecar { background: #eef1f5; color: var(--text-muted); }
+.plan-card.compacto { padding-top: 8px; padding-bottom: 8px; }
+.plan-card.compacto .plan-card-header { margin-bottom: 0; align-items: center; }
+.plan-card.compacto .plan-name { font-size: 14px; }
+.hdr-lbl { margin-left: 4px; }
+@media (max-width: 600px) { .hdr-lbl { display: none; } }
 .tipo-badge {
   font-size: 10px;
   font-weight: 700;
@@ -1443,10 +1470,10 @@ body.com-aviso-offline { padding-bottom: 56px; }
     <div class="app-header-right">
       <button class="btn-header-pill" id="btn-ir-parque" onclick="irParaParque()" style="display:none"
               title="Abrir a app do parque" data-i18n-attr="title:tooltip_ir_parque">⇄ <span data-i18n="btn_parque">Parque</span></button>
-      <button class="btn-header-icon" id="btn-consulta-sap" onclick="abrirConsultaSap()"
-              title="Consultar stock SAP" data-i18n-attr="title:sap_find_titulo">🏭</button>
-      <button class="btn-header-icon" id="btn-desenho-ov" onclick="abrirPesquisaDesenho()" style="display:none"
-              title="Desenho de uma OV" data-i18n-attr="title:desenho_titulo">📐</button>
+      <button class="btn-header-pill" id="btn-consulta-sap" onclick="abrirConsultaSap()"
+              title="Consultar stock SAP" data-i18n-attr="title:sap_find_titulo">🏭<span class="hdr-lbl" data-i18n="btn_hdr_sap">Stock SAP</span></button>
+      <button class="btn-header-pill" id="btn-desenho-ov" onclick="abrirPesquisaDesenho()" style="display:none"
+              title="Desenho de uma OV" data-i18n-attr="title:desenho_titulo">📐<span class="hdr-lbl" data-i18n="btn_hdr_desenho">Desenho</span></button>
       <button class="btn-logout" onclick="doLogout()" data-i18n="btn_logout">Sair</button>
     </div>
   </div>
@@ -2029,13 +2056,35 @@ const I18N = {
     tooltip_limpar_pesquisa: 'Limpar pesquisa',
     empty_planos: 'Nenhum plano encontrado',
     aviso_falta_titulo: '⚠ {n} linha(s) por separar',
-    aviso_falta_linha: '{ref} · pedido {ped} · sep. {sep}',
+    aviso_falta_linha: '{ref} · {sep} de {ped}',
     hoje_titulo: 'CARGA DE HOJE',
     hoje_sem_ninguem: '— sem ninguém —',
     label_itens_progress: '{done}/{total} itens',
     label_unidades_progress: '{done}/{total} un.',
     label_qty_pcs: '{qty} un.',
     status_pronto: '✅ Pronto',
+    status_por_comecar: 'Por começar',
+    status_faltam: 'Faltam {n} linhas',
+    status_falta_1: 'Falta 1 linha',
+    pill_pronto_hora: '✓ Pronto · {hora}',
+    label_linhas_de: '{done} de {total} linhas',
+    label_un_de: '{done} de {total} un.',
+    detail_faltam_text: 'faltam {falta} de {total} linhas · {doneUnits} de {totalUnits} un.',
+    detail_tudo_feito: '{total} de {total} linhas · {doneUnits} de {totalUnits} un.',
+    hoje_faltam: 'faltam {n}',
+    btn_hdr_sap: 'Stock SAP',
+    btn_hdr_desenho: 'Desenho',
+    secao_por_separar: 'Por separar ({n})',
+    secao_separadas: 'Separadas ({n})',
+    secao_por_fazer: 'Por fazer ({n})',
+    secao_entregues: 'Entregues ({n})',
+    qty_pedido: 'pedido',
+    qty_de: 'de {n}',
+    qty_de_entregues: 'de {n} entregues',
+    pint_faltam_ambos: 'Faltam {n} por separar e entregar',
+    pint_faltam_sep: 'Faltam {n} por separar',
+    pint_faltam_entr: 'Faltam {n} por entregar',
+    grupo_ovs: "{count} OV's · {total} un.",
     status_em_separacao: '⏳ Em Separação',
     week_label_prefix: 'Sem.',
     current_week_suffix: ' (atual)',
@@ -2328,13 +2377,35 @@ const I18N = {
     tooltip_limpar_pesquisa: 'Clear search',
     empty_planos: 'No plans found',
     aviso_falta_titulo: '⚠ {n} line(s) still to pick',
-    aviso_falta_linha: '{ref} · ordered {ped} · picked {sep}',
+    aviso_falta_linha: '{ref} · {sep} of {ped}',
     hoje_titulo: 'LOADING TODAY',
     hoje_sem_ninguem: '— nobody yet —',
     label_itens_progress: '{done}/{total} items',
     label_unidades_progress: '{done}/{total} pcs',
     label_qty_pcs: '{qty} pcs',
     status_pronto: '✅ Ready',
+    status_por_comecar: 'Not started',
+    status_faltam: '{n} lines to go',
+    status_falta_1: '1 line to go',
+    pill_pronto_hora: '✓ Ready · {hora}',
+    label_linhas_de: '{done} of {total} lines',
+    label_un_de: '{done} of {total} pcs',
+    detail_faltam_text: '{falta} of {total} lines to go · {doneUnits} of {totalUnits} pcs',
+    detail_tudo_feito: '{total} of {total} lines · {doneUnits} of {totalUnits} pcs',
+    hoje_faltam: '{n} to go',
+    btn_hdr_sap: 'SAP stock',
+    btn_hdr_desenho: 'Drawing',
+    secao_por_separar: 'To pick ({n})',
+    secao_separadas: 'Picked ({n})',
+    secao_por_fazer: 'To do ({n})',
+    secao_entregues: 'Delivered ({n})',
+    qty_pedido: 'ordered',
+    qty_de: 'of {n}',
+    qty_de_entregues: 'of {n} delivered',
+    pint_faltam_ambos: '{n} still to pick and deliver',
+    pint_faltam_sep: '{n} still to pick',
+    pint_faltam_entr: '{n} still to deliver',
+    grupo_ovs: "{count} SOs · {total} pcs",
     status_em_separacao: '⏳ Picking',
     week_label_prefix: 'Wk',
     current_week_suffix: ' (current)',
@@ -4193,9 +4264,10 @@ function renderAvisoFalta(plan) {
   if (!cargaPerto(plan)) return '';
   const falta = linhasPorSepararCarga(plan);
   if (!falta.length) return '';
-  const linhas = falta.slice(0, 3).map(i => `<div>• ${escHtml(t('aviso_falta_linha', { ref: i.ref || i.model, ped: i.qtyPedida, sep: i.qtySeparada }))}</div>`).join('');
+  // O número de linhas em falta já está na etiqueta do cartão: aqui só quais
+  const linhas = falta.slice(0, 3).map(i => `<div>${escHtml(t('aviso_falta_linha', { ref: i.ref || i.model, ped: i.qtyPedida, sep: i.qtySeparada }))}</div>`).join('');
   const mais = falta.length > 3 ? `<div>… +${falta.length - 3}</div>` : '';
-  return `<div style="margin-top:8px;padding:8px 10px;border-radius:8px;background:#fff4e5;border:1px solid #f0b35a;color:#8a5200;font-size:12px"><b>${t('aviso_falta_titulo', { n: falta.length })}</b>${linhas}${mais}</div>`;
+  return `<div style="margin-top:8px;padding:8px 10px;border-radius:8px;background:#fff4e5;border:1px solid #f0b35a;color:#8a5200;font-size:13px">${linhas}${mais}</div>`;
 }
 
 // Resumo "Carga de hoje": hora, progresso e quem já separou
@@ -4213,8 +4285,8 @@ function renderCargaHoje(planos) {
       <b style="min-width:42px">${plan.horaCarregar || '--:--'}</b>
       <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml(plan.nome)}</span>
       <span style="width:60px;height:8px;background:var(--border);border-radius:4px;overflow:hidden"><span style="display:block;height:100%;width:${pct}%;background:${feito ? '#2e9b57' : 'var(--primary)'}"></span></span>
-      <span style="min-width:38px;text-align:right">${p.done}/${p.total}</span>
-      <span style="min-width:90px;font-size:11px;color:var(--text-muted)">${feito ? '✓ ' : ''}${nomes}</span>
+      <span style="min-width:62px;text-align:right;${feito ? 'color:var(--success);font-weight:700' : 'color:var(--warning);font-weight:700'}">${feito ? '✓' : t('hoje_faltam', { n: p.total - p.done })}</span>
+      <span style="width:130px;flex-shrink:0;font-size:11px;color:var(--text-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${nomes}</span>
     </div>`;
   }).join('');
   return `<div class="plan-card" style="cursor:default"><div style="font-weight:700;margin-bottom:4px">🚚 ${t('hoje_titulo')} · ${formatDate(todayStr())}</div>${linhas}</div>`;
@@ -4237,10 +4309,13 @@ function renderList(tipo) {
 
   const sortKey = p => (p.data || '') + (p.horaCarregar || '');
   const descending = tipo === 'carga' && (filter === 'todos' || filter === 'semana');
+  // Hoje e amanhã: as cargas prontas vão para o fim, as que dão trabalho ficam em cima
+  const prontasNoFim = tipo === 'carga' && (filter === 'hoje' || filter === 'amanha');
+  const pronta = p => estadoPlano(p).cls === 'pronto' ? 1 : 0;
   container.innerHTML = filtered
-    .sort((a, b) => descending
+    .sort((a, b) => (prontasNoFim ? pronta(a) - pronta(b) : 0) || (descending
       ? sortKey(b).localeCompare(sortKey(a))
-      : sortKey(a).localeCompare(sortKey(b)))
+      : sortKey(a).localeCompare(sortKey(b))))
     .map(p => renderPlanCard(p)).join('');
   if (tipo === 'carga' && filter === 'hoje') container.innerHTML = renderCargaHoje(filtered) + container.innerHTML;
 }
@@ -4248,40 +4323,67 @@ function renderList(tipo) {
 function planProgress(plan) {
   const visibleItems = plan.items.filter(i => userCanSeeItem(i, plan));
   const total = visibleItems.length;
+  // Pintura: uma linha só conta como feita com a quantidade pedida entregue
+  // (12 separadas e 12 entregues de 26 ainda é uma linha por fazer)
   const done = plan.tipo === 'pintura'
-    ? visibleItems.filter(i => i.entregue).length
+    ? visibleItems.filter(pinturaFeita).length
     : visibleItems.filter(i => i.separado && i.qtySeparada >= i.qtyPedida).length;
   const partial = plan.tipo === 'pintura'
-    ? visibleItems.filter(i => !i.entregue && i.qtySeparada > 0).length
+    ? visibleItems.filter(i => !pinturaFeita(i) && (i.qtySeparada > 0 || i.qtyEntregue > 0)).length
     : visibleItems.filter(i => !i.separado && i.qtySeparada > 0).length;
   const totalUnits = visibleItems.reduce((s, i) => s + i.qtyPedida, 0);
   const doneUnits = visibleItems.reduce((s, i) => s + (plan.tipo === 'pintura' ? i.qtyEntregue : i.qtySeparada), 0);
   return { total, done, partial, totalUnits, doneUnits, pct: total ? done / total : 0 };
 }
 
+function pinturaFeita(i) { return (i.qtyEntregue || 0) >= i.qtyPedida; }
+
+// Etiqueta do plano: o que falta, em vez de "Em Separação" para tudo
+function estadoPlano(plan, p) {
+  p = p || planProgress(plan);
+  if (plan.status === 'pronto' || (p.done === p.total && p.total > 0)) return { cls: 'pronto', txt: t('status_pronto') };
+  if (p.done === 0 && p.partial === 0) return { cls: 'por_comecar', txt: t('status_por_comecar') };
+  const falta = p.total - p.done;
+  return { cls: 'em_separacao', txt: falta === 1 ? t('status_falta_1') : t('status_faltam', { n: falta }) };
+}
+
+function dataCurta(iso) { return iso ? formatDate(iso).slice(0, 5) : '—'; }
+
 function renderPlanCard(plan) {
   const p = planProgress(plan);
   const pct = Math.round(p.pct * 100);
   const isComplete = p.done === p.total && p.total > 0;
-  const dateStr = formatDate(plan.data);
+  const est = estadoPlano(plan, p);
+  const dateStr = dataCurta(plan.data);
   const horaStr = plan.horaCarregar ? ` · ⏰ ${plan.horaCarregar}` : '';
   const transStr = plan.transportadora ? ` · 🚚 ${plan.transportadora}` : '';
+
+  // Carga pronta: uma linha só, para os planos que ainda dão trabalho saltarem à vista
+  if (plan.tipo === 'carga' && est.cls === 'pronto') {
+    return `
+  <div class="plan-card status-pronto compacto" onclick="openDetail('${plan.id}')">
+    <div class="plan-card-header">
+      <div class="plan-name">${escHtml(plan.nome)}</div>
+      <span class="status-pill status-pronto">${plan.horaCarregar ? t('pill_pronto_hora', { hora: plan.horaCarregar }) : t('status_pronto')} · ${dateStr}</span>
+    </div>
+  </div>`;
+  }
 
   return `
   <div class="plan-card ${isComplete ? 'status-pronto' : ''}" onclick="openDetail('${plan.id}')">
     <div class="plan-card-header">
       <div>
-        <div class="plan-name">${plan.nome}</div>
+        <div class="plan-name">${escHtml(plan.nome)}</div>
         <div class="plan-meta">${dateStr}${horaStr}${transStr}</div>
       </div>
-      <span class="status-pill status-${plan.status}">${plan.status === 'pronto' ? t('status_pronto') : t('status_em_separacao')}</span>
+      <span class="status-pill status-${est.cls}">${est.txt}</span>
     </div>
     <div class="progress-bar-wrap">
       <div class="progress-bar-fill ${isComplete ? 'complete' : ''}" style="width:${pct}%"></div>
     </div>
     <div class="plan-card-footer">
-      <span class="plan-progress-text">${t('label_itens_progress', { done: p.done, total: p.total })}</span>
-      <span class="plan-units-text">${t('label_unidades_progress', { done: p.doneUnits, total: p.totalUnits })}</span>
+      <span class="plan-progress-text">${t('label_linhas_de', { done: p.done, total: p.total })}</span>
+      <span class="plan-units-text">${t('label_un_de', { done: p.doneUnits, total: p.totalUnits })}</span>
     </div>
     ${renderAvisoFalta(plan)}
   </div>`;
@@ -4332,16 +4434,17 @@ function renderDetail(plan) {
   document.getElementById('detail-name').textContent = plan.nome;
   document.getElementById('detail-name-edit-btn').style.display = (isAdmin && plan.tipo === 'pintura') ? '' : 'none';
   const pill = document.getElementById('detail-status-pill');
-  pill.className = `status-pill status-${plan.status}`;
-  pill.textContent = plan.status === 'pronto' ? t('status_pronto') : t('status_em_separacao');
+  const est = estadoPlano(plan, p);
+  pill.className = `status-pill status-${est.cls}`;
+  pill.textContent = est.txt;
 
-  let metaHtml = `<span>📅 ${formatDate(plan.data)}</span>`;
+  let metaHtml = `<span>📅 ${dataCurta(plan.data)}</span>`;
   if (plan.horaCarregar) metaHtml += `<span>⏰ ${plan.horaCarregar}</span>`;
   if (plan.transportadora) metaHtml += `<span>🚚 ${plan.transportadora}</span>`;
   document.getElementById('detail-meta').innerHTML = metaHtml;
 
   document.getElementById('detail-progress-text').textContent =
-    t('detail_progress_text', { done: p.done, total: p.total, doneUnits: p.doneUnits, totalUnits: p.totalUnits });
+    t(p.done >= p.total ? 'detail_tudo_feito' : 'detail_faltam_text', { falta: p.total - p.done, total: p.total, doneUnits: p.doneUnits, totalUnits: p.totalUnits });
   document.getElementById('detail-progress-fill').style.width = pct + '%';
 
   // Actions
@@ -4399,10 +4502,19 @@ function renderDetail(plan) {
 
   // Sort + group
   let html = '';
+  // Por fazer em cima (como hoje, agrupado), feitas numa lista curta em baixo
+  const linhaFeita = plan.tipo === 'carga'
+    ? (i => i.qtyPedida > 0 && i.qtySeparada >= i.qtyPedida)
+    : pinturaFeita;
+  const feitas = visibleItems.filter(linhaFeita);
+  const porFazer = visibleItems.filter(i => !linhaFeita(i));
+  if (feitas.length && porFazer.length) {
+    html += `<div class="secao-titulo">${t(plan.tipo === 'carga' ? 'secao_por_separar' : 'secao_por_fazer', { n: porFazer.length })}</div>`;
+  }
   if (plan.tipo === 'carga') {
     // Carga: group by descarga → fiada (original)
     const byDescarga = {};
-    visibleItems.forEach(item => {
+    porFazer.forEach(item => {
       const key = item.descarga || t('label_sem_descarga');
       if (!byDescarga[key]) byDescarga[key] = {};
       const fiada = item.fiada || '—';
@@ -4428,7 +4540,7 @@ function renderDetail(plan) {
     });
   } else {
     // Pintura: sort by chosen mode
-    const sorted = [...visibleItems];
+    const sorted = [...porFazer];
     if (sortMode === 'camiao') {
       sorted.sort((a,b) => (a.descarga||'').localeCompare(b.descarga||'') || (a.fiada||'').localeCompare(b.fiada||'') || (a.model||'').localeCompare(b.model||''));
     } else if (sortMode === 'prioridade') {
@@ -4456,10 +4568,11 @@ function renderDetail(plan) {
       // sozinho não precisa de cabeçalho, o nome já vai dentro do cartão.
       Object.entries(grouped).forEach(([grp, items]) => {
         if (items.length > 1) {
+          // Cartão do modelo, com o stock SAP uma só vez (é o mesmo material)
           const totalQty = items.reduce((sum, it) => sum + (it.qtyPedida || 0), 0);
           html += `<div class="descarga-group">
-            <div class="descarga-header">${groupIcon} ${escHtml(grp)} · ${t('header_ovs_total', { count: items.length, total: totalQty })}</div>`;
-          items.forEach(item => { html += renderItemRow(item, plan, { hideModel: true }); });
+            <div class="grupo-modelo"><b>${escHtml(grp)}</b><span>${t('grupo_ovs', { count: items.length, total: totalQty })}${sapBadge(items[0])}</span></div>`;
+          items.forEach(item => { html += renderItemRow(item, plan, { hideModel: true, hideSap: true }); });
           html += '</div>';
         } else {
           items.forEach(item => { html += renderItemRow(item, plan); });
@@ -4475,6 +4588,11 @@ function renderDetail(plan) {
     }
 
   } // end else pintura
+
+  if (feitas.length) {
+    html += `<div class="secao-titulo">${t(plan.tipo === 'carga' ? 'secao_separadas' : 'secao_entregues', { n: feitas.length })}</div>`;
+    feitas.forEach(item => { html += renderFeitaRow(item, plan); });
+  }
 
   if (!html) html = `<div class="empty-state"><div class="emoji">🔍</div><p>${t('empty_itens_grupo')}</p></div>`;
   document.getElementById('detail-content').innerHTML = html;
@@ -4746,9 +4864,14 @@ function renderItemRow(item, plan, opts) {
     checkIcon = full ? 'checked' : (partial ? 'partial' : '');
     const icon = full ? '✓' : (partial ? '!' : '');
     const qtyClass = excesso ? 'excesso' : (full ? 'ok' : (partial ? 'partial' : ''));
-    const qtyText = full ? item.qtySeparada : (partial ? item.qtySeparada + ' / ' + item.qtyPedida : item.qtyPedida);
-    qtyDisplay = `<span class="item-qty ${qtyClass}">${qtyText}${excesso ? ` (+${item.qtySeparada - item.qtyPedida})` : ''}${partial ? ' ⚠' : ''}</span>`;
-    if (item.separadoPor) whoHtml = `<div class="item-who">${item.separadoPor}<br>${formatTime(item.separadoEm)}</div>`;
+    // A quantidade é o número maior da linha: o pedido, ou o separado "de N"
+    const qtyBig = partial || full ? item.qtySeparada : item.qtyPedida;
+    const qtySub = partial || full ? t('qty_de', { n: item.qtyPedida }) : t('qty_pedido');
+    qtyDisplay = `<div class="qty-big ${qtyClass}">${qtyBig}${excesso ? ` <span style="font-size:13px">(+${item.qtySeparada - item.qtyPedida})</span>` : ''}<small>${qtySub}</small></div>`;
+    const quem = item.separadoPor ? ` · ${escHtml(item.separadoPor)} ${quandoCurto(item.separadoEm)}` : '';
+    // Código SAP só quando é diferente do modelo; cesta só quando existe
+    const refHtml = item.ref && item.ref !== item.model ? `<div class="item-sap">${escHtml(item.ref)}</div>` : '';
+    const cestaHtml = item.cesta ? `📦 ${escHtml(item.cesta)} · ` : '';
 
     const isAdmCarga = state.currentUser && state.currentUser.role === 'admin';
     const delBtnCarga = isAdmCarga
@@ -4760,10 +4883,10 @@ function renderItemRow(item, plan, opts) {
       <div class="item-body">
         <div class="item-model-row">
           <div class="item-model">${escHtml(item.model)}</div>
-          ${item.ref ? `<div class="item-sap">${escHtml(item.ref)}</div>` : ''}
+          ${refHtml}
         </div>
         <div class="item-desc">${escHtml(item.desc)}</div>
-        <div class="item-info">📦 ${escHtml(item.cesta || '—')} · OV ${escHtml(item.ov || '—')}${botaoDesenho(item.ov)}</div>
+        <div class="item-info">${cestaHtml}OV ${escHtml(item.ov || '—')}${botaoDesenho(item.ov)}${quem}</div>
         ${stockBadge(item)}
         ${sapBadge(item)}
         ${badgePendente(item)}
@@ -4794,10 +4917,17 @@ function renderItemRow(item, plan, opts) {
       ? `✅ ${t('label_entr_progress', { entr: item.qtyEntregue, total: item.qtySeparada || item.qtyPedida })}${entrExcesso ? ` ⚠+${item.qtyEntregue - (item.qtySeparada || item.qtyPedida)}` : ''}`
       : t('btn_entregar_label');
 
-    const faltamEntregar = item.qtyPedida - item.qtyEntregue;
-    const faltamHtml = (item.qtyEntregue > 0 && faltamEntregar > 0)
-      ? `<span style="color:#d97706;font-size:11px;font-weight:700">${t('label_faltam_entregar', { n: faltamEntregar })}</span>`
-      : '';
+    // O que falta, por palavras, quando a linha já começou
+    const faltaSep = Math.max(0, item.qtyPedida - (item.qtySeparada || 0));
+    const faltaEntr = Math.max(0, item.qtyPedida - (item.qtyEntregue || 0));
+    let faltamHtml = '';
+    if ((item.qtySeparada > 0 || item.qtyEntregue > 0) && (faltaSep || faltaEntr)) {
+      const txt = faltaSep === faltaEntr ? t('pint_faltam_ambos', { n: faltaSep })
+        : [faltaSep ? t('pint_faltam_sep', { n: faltaSep }) : '', faltaEntr ? t('pint_faltam_entr', { n: faltaEntr }) : ''].filter(Boolean).join(' · ');
+      faltamHtml = `<div class="pint-falta">${txt}</div>`;
+    }
+    const comecada = item.qtyEntregue > 0;
+    const qtyBigHtml = `<div class="qty-big ${comecada ? 'partial' : ''}">${comecada ? item.qtyEntregue : item.qtyPedida}<small>${comecada ? t('qty_de_entregues', { n: item.qtyPedida }) : t('dash_unidades')}</small></div>`;
 
     const utilizacaoHtml  = item.entregueNota ? `<span style="color:var(--text-muted);font-size:11px">📋 ${escHtml(item.entregueNota)}</span>` : '';
     const tipoPinturaHtml = item.cesta        ? `<span style="color:#7c3aed;font-size:11px;font-weight:600">🎨 ${escHtml(item.cesta)}</span>` : '';
@@ -4812,30 +4942,57 @@ function renderItemRow(item, plan, opts) {
       : '';
     // Descrição inline para acessórios
     const showDesc = plan.grupo !== 'colunas' && item.desc;
-    return `<div class="item-row ${rowClass}" onclick="openPinturaDescModal('${plan.id}','${item.id}')" style="cursor:pointer">
-      <div class="item-body" style="flex:1">
+    // Linha por fazer: quantidade grande à direita, botões à largura do cartão
+    const rowClassNovo = (item.qtySeparada > 0 || item.qtyEntregue > 0) ? 'row-partial' : '';
+    return `<div class="item-row ${rowClassNovo}" onclick="openPinturaDescModal('${plan.id}','${item.id}')" style="cursor:pointer;flex-wrap:wrap">
+      <div class="item-body" style="flex:1;min-width:0">
         <div class="item-model-row" style="align-items:baseline;flex-wrap:wrap;gap:6px">
           ${prioHtml}
           ${opts.hideModel ? '' : `<div class="item-model" style="flex-shrink:0">${escHtml(item.model)}</div>`}
-          ${showDesc ? `<div style="font-size:11px;color:var(--text-muted);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml(item.desc)}</div>` : '<div style="flex:1"></div>'}
-          ${qtyHtml}
+          ${showDesc ? `<div style="font-size:11px;color:var(--text-muted);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml(item.desc)}</div>` : ''}
         </div>
         <div style="font-size:13px;color:var(--text-muted);margin-top:1px">OV ${escHtml(item.ov || '—')}${botaoDesenho(item.ov)}</div>
         ${stockBadge(item)}
-        ${sapBadge(item)}
+        ${opts.hideSap ? '' : sapBadge(item)}
         ${badgePendente(item)}
         ${(utilizacaoHtml || tipoPinturaHtml) ? `<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:3px">${utilizacaoHtml}${tipoPinturaHtml}</div>` : ''}
-      </div>
-      <div class="pintura-actions" style="display:flex;flex-direction:column;gap:4px;align-items:flex-end">
-        <div style="display:flex;gap:4px;align-items:center">
-          <button class="btn-sep ${sepExcesso ? 'excesso' : (sepFull ? 'done' : '')}" onclick="event.stopPropagation();openQtyModal('${plan.id}','${item.id}','sep')">${sepLabel}</button>
-          <button class="btn-entr ${entrExcesso ? 'excesso' : (entrFull ? 'done' : '')}" onclick="event.stopPropagation();openQtyModal('${plan.id}','${item.id}','entr')">${entrLabel}</button>
-          ${delBtn}
-        </div>
         ${faltamHtml}
+      </div>
+      <div class="item-status-wrap">${qtyBigHtml}${delBtn}</div>
+      <div class="pintura-actions-grid" style="flex-basis:100%">
+        <button class="btn-sep ${sepExcesso ? 'excesso' : (sepFull ? 'done' : '')}" onclick="event.stopPropagation();openQtyModal('${plan.id}','${item.id}','sep')">${sepLabel}</button>
+        <button class="btn-entr ${entrExcesso ? 'excesso' : (entrFull ? 'done' : '')}" onclick="event.stopPropagation();openQtyModal('${plan.id}','${item.id}','entr')">${entrLabel}</button>
       </div>
     </div>`;
   }
+}
+
+// Hora de uma separação/entrega: com o dia quando não é de hoje
+function quandoCurto(iso) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  const hora = formatTime(iso);
+  return dataLocalISO(d) === todayStr() ? hora : `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')} ${hora}`;
+}
+
+// Linha já feita: uma só linha cinzenta com ✓; tocar abre-a como antes
+function renderFeitaRow(item, plan) {
+  const carga = plan.tipo === 'carga';
+  const qty = carga ? item.qtySeparada : item.qtyEntregue;
+  const extra = qty > item.qtyPedida ? ` (+${qty - item.qtyPedida})` : '';
+  const abrir = carga ? `openQtyModal('${plan.id}','${item.id}','sep')` : `openPinturaDescModal('${plan.id}','${item.id}')`;
+  const isAdm = state.currentUser && state.currentUser.role === 'admin';
+  const del = isAdm
+    ? `<button onclick="event.stopPropagation();${carga ? 'deleteCargaItem' : 'deletePinturaItem'}(event,'${plan.id}','${item.id}')" style="background:none;border:none;color:#ef4444;font-size:14px;cursor:pointer;padding:0 4px" title="${t('tooltip_remover_linha')}">🗑</button>`
+    : '';
+  const quem = carga ? item.separadoPor : item.entreguePor;
+  const quando = carga ? item.separadoEm : item.entregueEm;
+  return `<div class="feita-row" onclick="${abrir}">
+    <span class="feita-ok">✓</span>
+    <span class="feita-model">${escHtml(item.model)}</span>
+    <span class="feita-txt">· OV ${escHtml(item.ov || '—')}${quem ? ' · ' + escHtml(quem) + ' ' + quandoCurto(quando) : ''}${item.desc ? ' · ' + escHtml(item.desc) : ''}</span>
+    <span class="feita-qty">${qty}${extra}</span>${del}
+  </div>`;
 }
 
 // =====================================================
