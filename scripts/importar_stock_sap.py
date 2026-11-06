@@ -11,8 +11,16 @@ material, grava tudo de uma vez e apaga os materiais que já não vêm na lista.
 Nunca grava uma leitura que não bata certo: o rodapé do relatório traz o total
 por unidade ("* 260 UN" e "35,150.000 UN."), e a soma lida tem de ser igual.
 
+Desde 2026-11-06 a fonte principal é o próprio SAP: a rotina corre a consulta
+guardada "stock_mtg1_armazem" (centro MT01, armazém 01) exportada para JSON e
+passa esse ficheiro com --sap-json. Ficam os produtos acabados (ZFER) em
+unidades cujo código começa por C ou por um algarismo -- os mesmos da extração
+do email (605 dos 611 materiais iguais na comparação de 2026-11-06). O email
+fica como plano B.
+
 Uso:
   python importar_stock_sap.py FICHEIRO [--tag TEXTO] [--se-novo] [--simular]
+  python importar_stock_sap.py EXPORT.json --sap-json [--tag TEXTO] [--simular]
 
   --tag      fica em atualizado_por (ex.: "Email SAP 2026-10-07T08:47:58Z")
   --se-novo  não faz nada se a última importação já tiver esta tag
@@ -157,6 +165,33 @@ def agregar(linhas):
     return list(agg.values())
 
 
+def ler_sap_json(caminho):
+    """Lê o ficheiro exportado da consulta guardada stock_mtg1_armazem."""
+    with open(caminho, encoding='utf-8') as f:
+        d = json.load(f)
+    cols = [c['nome'] for c in d['colunas']]
+    if d.get('total_linhas') is not None and d['total_linhas'] != len(d['linhas']):
+        raise LeituraInvalida(f'exportação incompleta: {len(d["linhas"])} de {d["total_linhas"]} linhas')
+    materiais = []
+    for r in d['linhas']:
+        x = dict(zip(cols, r))
+        ref = (x.get('REF') or '').strip()
+        if x.get('TIPO') != 'ZFER' or x.get('UNIDADE') not in ('UN', 'UN1'):
+            continue
+        if not ref or not (ref[0] == 'C' or ref[0].isdigit()):
+            continue
+        # Degraus (CD*), chumbadouros e parafusaria não vêm na extração do email
+        if ref.startswith(('CD', 'CS')) or 'CHUMB' in (x.get('DESCRICAO') or '').upper():
+            continue
+        q = x.get('QUANTIDADE') or 0
+        if q <= 0:
+            continue
+        materiais.append({'ref': ref, 'descricao': (x.get('DESCRICAO') or '').strip(), 'quantidade': round(q)})
+    if not materiais:
+        raise LeituraInvalida('a exportação não tem nenhum material com stock')
+    return materiais, (d.get('gerado_em') or '')[:16]
+
+
 def pedido(metodo, caminho, corpo=None, prefer=None):
     h = {'apikey': ANON_KEY, 'Authorization': 'Bearer ' + ANON_KEY, 'Content-Type': 'application/json'}
     if prefer:
@@ -174,6 +209,7 @@ def main():
     ap.add_argument('--tag', default='Email SAP')
     ap.add_argument('--se-novo', action='store_true')
     ap.add_argument('--simular', action='store_true')
+    ap.add_argument('--sap-json', action='store_true', help='o ficheiro é a exportação da consulta guardada do SAP')
     a = ap.parse_args()
 
     if a.se_novo and not a.simular:
@@ -183,21 +219,26 @@ def main():
             return 0
 
     try:
-        if a.ficheiro.lower().endswith('.pdf'):
+        if a.sap_json:
+            materiais, data = ler_sap_json(a.ficheiro)
+            linhas, somas = materiais, {'UN': sum(m['quantidade'] for m in materiais)}
+        elif a.ficheiro.lower().endswith('.pdf'):
             linhas, totais, data = ler_pdf(a.ficheiro)
         else:
             with open(a.ficheiro, encoding='utf-8') as f:
                 linhas, totais, data = ler_texto(f.read())
-        somas = validar(linhas, totais)
+        if not a.sap_json:
+            somas = validar(linhas, totais)
     except LeituraInvalida as e:
         print(f'Stock SAP: NÃO importado -- leitura não bate certo: {e}')
         return 2
 
-    materiais = agregar(linhas)
+    if not a.sap_json:
+        materiais = agregar(linhas)
     total = sum(m['quantidade'] for m in materiais)
     resumo = (f'{len(linhas)} linhas, {len(materiais)} materiais, {total:,} un. '
-              f'(rodapé: {", ".join(f"{v:,.0f} {k}" for k, v in sorted(somas.items()))}) '
-              f'-- extração de {data or "?"}').replace(',', ' ')
+              + ('(SAP direto) ' if a.sap_json else f'(rodapé: {", ".join(f"{v:,.0f} {k}" for k, v in sorted(somas.items()))}) ')
+              + f'-- extração de {data or "?"}').replace(',', ' ')
 
     if a.simular:
         print('Stock SAP (simulação, nada gravado): ' + resumo)
