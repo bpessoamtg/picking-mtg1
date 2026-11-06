@@ -4856,7 +4856,7 @@ function renderStockLocations(el, item) {
 function renderItemRow(item, plan, opts) {
   opts = opts || {};
   const tipo = plan.tipo;
-  const tipoBadge = `<span class="tipo-badge ${item.tipoGalva}">${item.tipoGalva}</span>`;
+  const tipoBadge = `<span class="tipo-badge ${item.tipoGalva}">${item.tipoGalva === 'CP' ? 'CPreto' : item.tipoGalva}</span>`;
 
   let checkIcon = '', rowClass = '', qtyDisplay = '', whoHtml = '', actionsHtml = '';
 
