@@ -2203,6 +2203,7 @@ const I18N = {
     toast_un_entregues: '{qty} un. entregues ✓',
     toast_carga_pronta: '✅ Carga Pronta — todos os itens separados!',
     toast_pintura_pronta: '✅ Pintura Pronta — todos os itens entregues!',
+    toast_plano_reaberto: '↩ Plano voltou a Em separação — há linhas por completar',
     toast_separacao_anulada: 'Separação anulada',
     toast_linha_mudou: 'Outro aparelho gravou esta linha (separadas {sep}, entregues {entr}) — revê a quantidade',
     toast_linha_mudou_removida: 'Esta linha foi removida do plano noutro aparelho',
@@ -2524,6 +2525,7 @@ const I18N = {
     toast_un_entregues: '{qty} pcs delivered ✓',
     toast_carga_pronta: '✅ Load Ready — all items picked!',
     toast_pintura_pronta: '✅ Painting Ready — all items delivered!',
+    toast_plano_reaberto: '↩ Plan is back to In progress — some lines are incomplete',
     toast_separacao_anulada: 'Picking cancelled',
     toast_linha_mudou: 'Another device saved this line (picked {sep}, delivered {entr}) — check the quantity',
     toast_linha_mudou_removida: 'This line was removed from the plan on another device',
@@ -5791,11 +5793,13 @@ async function checkAutoMarkPronto(plan) {
     renderAll();
     showToast(t(plan.tipo === 'pintura' ? 'toast_pintura_pronta' : 'toast_carga_pronta'));
     await dbUpdatePlan(plan.id, { status: 'pronto' });
-  } else if (plan.tipo === 'pintura' && !completo) {
-    // Uma entrega corrigida para menos volta a abrir o plano de pintura
+  } else if (!completo) {
+    // Uma quantidade corrigida para menos volta a abrir o plano (carga ou
+    // pintura): um plano "Pronto" com linhas por completar enganava a lista
     plan.status = 'em_separacao';
     renderDetail(plan);
     renderAll();
+    showToast(t('toast_plano_reaberto'));
     await dbUpdatePlan(plan.id, { status: 'em_separacao' });
   }
 }
