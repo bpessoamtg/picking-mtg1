@@ -1666,6 +1666,7 @@ body.com-aviso-offline { padding-bottom: 56px; }
       <div style="background:var(--bg);border-radius:8px;padding:12px 14px;font-size:14px;line-height:1.6;color:var(--text)" id="pdesc-desc"></div>
     </div>
     <div style="padding:4px 4px 8px;display:flex;gap:8px;flex-wrap:wrap" id="pdesc-meta"></div>
+    <div id="pdesc-obs" style="display:none;padding:0 4px"></div>
     <div id="pdesc-stock" class="stock-loc-box" style="display:none"></div>
     <div style="display:flex;gap:8px;padding:4px 4px 0" id="pdesc-actions"></div>
   </div>
@@ -3549,35 +3550,35 @@ async function guardarStockSap() {
 }
 
 
-// Observação do admin numa linha de carga. O admin escreve e apaga; os
-// operadores veem-na em destaque no modal e como aviso na lista.
+// Observação do admin numa linha (carga ou pintura). O admin escreve e apaga;
+// os operadores veem-na em destaque no modal e como aviso na lista.
 function renderObsLinha(el, plan, item) {
   if (!el) return;
-  const carga = plan && plan.tipo === 'carga';
   const admin = state.currentUser && state.currentUser.role === 'admin';
-  if (!carga || (!admin && !item.obsAdmin)) { el.innerHTML = ''; el.style.display = 'none'; return; }
+  if (!plan || (!admin && !item.obsAdmin)) { el.innerHTML = ''; el.style.display = 'none'; return; }
+  const inputId = el.id + '-input';
   const quem = item.obsAdminPor
     ? `${escHtml(item.obsAdminPor)}${item.obsAdminEm ? ' \u00b7 ' + escHtml(quandoCurto(item.obsAdminEm)) : ''}` : '';
   if (!admin) {
     el.innerHTML = `<div class="obs-box"><div class="obs-titulo">\u{1F4AC} ${t('obs_titulo')}</div>
       <div class="obs-texto">${escHtml(item.obsAdmin)}</div>${quem ? `<div class="obs-quem">${quem}</div>` : ''}</div>`;
   } else {
-    el.innerHTML = `<div class="obs-edit"><label for="obs-input">${t('obs_label_admin')}</label>
-      <textarea id="obs-input" maxlength="300" placeholder="${escHtml(t('obs_placeholder'))}">${escHtml(item.obsAdmin || '')}</textarea>
+    el.innerHTML = `<div class="obs-edit"><label for="${inputId}">${t('obs_label_admin')}</label>
+      <textarea id="${inputId}" maxlength="300" placeholder="${escHtml(t('obs_placeholder'))}">${escHtml(item.obsAdmin || '')}</textarea>
       ${quem ? `<div style="font-size:12px;color:var(--text-muted);margin-top:3px">${quem}</div>` : ''}
       <div class="obs-botoes">
-        <button class="obs-gravar" onclick="gravarObsLinha('${plan.id}','${item.id}', false)">${t('obs_gravar')}</button>
-        ${item.obsAdmin ? `<button class="obs-apagar" onclick="gravarObsLinha('${plan.id}','${item.id}', true)">${t('obs_apagar')}</button>` : ''}
+        <button class="obs-gravar" onclick="gravarObsLinha('${plan.id}','${item.id}', false, '${el.id}')">${t('obs_gravar')}</button>
+        ${item.obsAdmin ? `<button class="obs-apagar" onclick="gravarObsLinha('${plan.id}','${item.id}', true, '${el.id}')">${t('obs_apagar')}</button>` : ''}
       </div></div>`;
   }
   el.style.display = '';
 }
 
-async function gravarObsLinha(planId, itemId, apagar) {
+async function gravarObsLinha(planId, itemId, apagar, contentorId) {
   const plan = plans.find(p => p.id === planId);
   const item = plan && plan.items.find(i => i.id === itemId);
   if (!item) return;
-  const input = document.getElementById('obs-input');
+  const input = document.getElementById(contentorId + '-input');
   const texto = apagar ? '' : String(input ? input.value : '').trim();
   const u = state.currentUser;
   const campos = texto
@@ -3590,7 +3591,7 @@ async function gravarObsLinha(planId, itemId, apagar) {
   item.obsAdminPor = campos.obs_admin_por;
   item.obsAdminEm = campos.obs_admin_em;
   showToast(t(texto ? 'obs_gravada' : 'obs_apagada'));
-  renderObsLinha(document.getElementById('qty-modal-obs'), plan, item);
+  renderObsLinha(document.getElementById(contentorId), plan, item);
   renderDetail(plan);
 }
 
@@ -5094,6 +5095,7 @@ function renderItemRow(item, plan, opts) {
           ${showDesc ? `<div style="font-size:11px;color:var(--text-muted);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml(item.desc)}</div>` : ''}
         </div>
         <div style="font-size:13px;color:var(--text-muted);margin-top:1px">OV ${escHtml(item.ov || '—')}${botaoDesenho(item.ov)}</div>
+        ${item.obsAdmin ? `<div class="obs-badge">\u{1F4AC} ${t('obs_badge')}: ${escHtml(item.obsAdmin)}</div>` : ''}
         ${stockBadge(item)}
         ${opts.hideSap ? '' : sapBadge(item)}
         ${badgePendente(item)}
@@ -6451,6 +6453,7 @@ function openPinturaDescModal(planId, itemId) {
   if (item.fiada && item.fiada !== '—') parts.push(`<span style="background:var(--warning-light);color:var(--warning);border-radius:6px;padding:3px 10px;font-size:12px;font-weight:600">${t('label_prioridade_val', { fiada: item.fiada })}</span>`);
   if (item.entregueNota) parts.push(`<span style="background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:3px 10px;font-size:12px">📋 ${escHtml(item.entregueNota)}</span>`);
   metaEl.innerHTML = parts.join('');
+  renderObsLinha(document.getElementById('pdesc-obs'), plan, item);
 
   // Localizações no parque de acessórios
   state.pdescAberto = { planId, itemId };
