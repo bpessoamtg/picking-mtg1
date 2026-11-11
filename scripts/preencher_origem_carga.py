@@ -38,6 +38,9 @@ EXCEL = os.path.join(os.path.expanduser('~'), 'OneDrive - METALOGALVA - IRMÃOS 
                      'Ficheiros de David Ribeiro - DL', 'Expedição', 'Colunas', 'Expedição_Colunas_2026.xlsm')
 COLUNAS = ('CG', 'CP')
 COLUNAS_NA_BASE = True
+# Passam na linha mas não se registam no Excel das colunas: o Resumo diria
+# sempre "falta produzir". Ficam só com a utilização (Bruno, 2026-11-11).
+SEM_REGISTO_NO_EXCEL = {'CIPOR000G'}
 
 
 def pedido(metodo, caminho, corpo=None):
@@ -170,7 +173,8 @@ def main():
         novo = {'origem': uso, 'prod_feitas': None, 'prod_total': None}
         if uso is None:
             conta['sem utilização no SAP'] += 1
-        elif uso.startswith('Produzir') and l.get('tipo_galva') in COLUNAS:
+        elif (uso.startswith('Produzir') and l.get('tipo_galva') in COLUNAS
+              and (l.get('ref') or '').strip().upper() not in SEM_REGISTO_NO_EXCEL):
             if resumo is None:
                 novo['prod_feitas'], novo['prod_total'] = l.get('prod_feitas'), l.get('prod_total')
                 conta['Produzir (sem Excel)'] += 1
