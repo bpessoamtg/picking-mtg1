@@ -733,6 +733,22 @@ input, textarea, select { font-family: inherit; font-size: inherit; }
   padding: 2px 7px;
 }
 .sap-badge.zero { color: #b91c1c; background: #fef2f2; border-color: #fecaca; }
+/* Stock ou produção (Utilização da linha da OV no SAP) e, nas colunas a
+   produzir, o que já passou na linha (Resumo do Excel das colunas) */
+.origem-badge {
+  display: inline-block;
+  margin: 3px 4px 0 0;
+  font-size: 12px;
+  font-weight: 700;
+  color: #1e40af;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 5px;
+  padding: 2px 8px;
+}
+.origem-badge.feito   { color: #166534; background: #f0fdf4; border-color: #bbf7d0; }
+.origem-badge.parcial { color: #92400e; background: #fffbeb; border-color: #fde68a; }
+.origem-badge.falta   { color: #b91c1c; background: #fef2f2; border-color: #fecaca; }
 .sap-loc-refs { font-size: 11px; color: var(--text-muted); text-align: right; margin-top: 2px; }
 /* Consulta livre de stock SAP a partir da barra do topo */
 .app-header-right { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
@@ -1972,6 +1988,10 @@ const I18N = {
     stock_n_locais: '{n} cestas',
     // Stock do SAP
     sap_badge: 'SAP',
+    origem_produzido: 'já produzido {f} de {t}',
+    origem_parcial: 'produzido {f} de {t}',
+    origem_falta: 'falta produzir {t}',
+    origem_sem_registo: 'sem registo de produção',
     sap_stock_titulo: 'Stock SAP',
     sap_atualizado: '(de {d})',
     sap_dash_titulo: 'Stock SAP (extração ZMB52)',
@@ -2294,6 +2314,10 @@ const I18N = {
     stock_n_locais: '{n} baskets',
     // Stock do SAP
     sap_badge: 'SAP',
+    origem_produzido: 'already produced {f} of {t}',
+    origem_parcial: 'produced {f} of {t}',
+    origem_falta: '{t} still to produce',
+    origem_sem_registo: 'no production record',
     sap_stock_titulo: 'SAP stock',
     sap_atualizado: '(as of {d})',
     sap_dash_titulo: 'SAP stock (ZMB52 extract)',
@@ -2677,6 +2701,9 @@ function dbItemToLocal(i) {
     entregueEm: i.entregue_em,
     entreguePor: i.entregue_por,
     entregueNota: i.entregue_nota,
+    origem: i.origem || null,
+    prodFeitas: i.prod_feitas == null ? null : i.prod_feitas,
+    prodTotal: i.prod_total == null ? null : i.prod_total,
   };
 }
 
@@ -4821,6 +4848,21 @@ function stockBadge(item) {
   return `<div class="stock-badge">📍 ${resumo} · <b>${s.total}</b> ${t('dash_unidades')}</div>`;
 }
 
+// Stock ou producao: a "Utilizacao" da linha da OV no SAP, gravada pela rotina.
+// Nas colunas a produzir junta o que ja passou na linha (Excel das colunas):
+// o empilhadorista fica a saber se o material ja existe ou se ainda falta.
+function origemBadge(item) {
+  if (!item.origem) return '';
+  const produzir = /^Produzir/i.test(item.origem);
+  const nome = `${produzir ? '\u{1F6E0}' : '\u{1F4E5}'} ${escHtml(item.origem)}`;
+  if (!produzir || item.prodFeitas == null) return `<div class="origem-badge">${nome}</div>`;
+  const f = item.prodFeitas, tot = item.prodTotal;
+  if (tot == null) return `<div class="origem-badge parcial">${nome} \u00b7 ${t('origem_sem_registo')}</div>`;
+  if (f >= tot) return `<div class="origem-badge feito">${nome} \u00b7 ${t('origem_produzido', { f: f, t: tot })}</div>`;
+  if (f > 0) return `<div class="origem-badge parcial">${nome} \u00b7 ${t('origem_parcial', { f: f, t: tot })}</div>`;
+  return `<div class="origem-badge falta">${nome} \u00b7 ${t('origem_falta', { t: tot })}</div>`;
+}
+
 // Stock do SAP para a linha do item. Nas colunas e a unica pista que o
 // operador tem sobre quanto material existe.
 function sapBadge(item) {
@@ -4893,6 +4935,7 @@ function renderItemRow(item, plan, opts) {
         </div>
         <div class="item-desc">${escHtml(item.desc)}</div>
         <div class="item-info">${cestaHtml}OV ${escHtml(item.ov || '—')}${botaoDesenho(item.ov)}${quem}</div>
+        ${origemBadge(item)}
         ${stockBadge(item)}
         ${sapBadge(item)}
         ${badgePendente(item)}
