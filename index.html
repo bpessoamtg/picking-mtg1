@@ -749,6 +749,33 @@ input, textarea, select { font-family: inherit; font-size: inherit; }
 .origem-badge.feito   { color: #166534; background: #f0fdf4; border-color: #bbf7d0; }
 .origem-badge.parcial { color: #92400e; background: #fffbeb; border-color: #fde68a; }
 .origem-badge.falta   { color: #b91c1c; background: #fef2f2; border-color: #fecaca; }
+/* Observação do admin numa linha de carga: aviso na lista e caixa no modal */
+.obs-badge {
+  display: block;
+  margin-top: 4px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #92400e;
+  background: #fef3c7;
+  border: 1px solid #f59e0b;
+  border-radius: 6px;
+  padding: 4px 9px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}
+.obs-box { background: #fef3c7; border: 1px solid #f59e0b; border-radius: 8px; padding: 10px 12px; margin: 8px 0; color: #78350f; }
+.obs-box .obs-titulo { font-size: 13px; font-weight: 700; }
+.obs-box .obs-texto { font-size: 15px; margin-top: 3px; white-space: pre-wrap; word-break: break-word; }
+.obs-box .obs-quem { font-size: 12px; margin-top: 5px; color: #92400e; }
+.obs-edit { margin: 8px 0; }
+.obs-edit label { display: block; font-size: 13px; color: var(--text-muted); margin-bottom: 4px; }
+.obs-edit textarea { width: 100%; min-height: 64px; font-size: 15px; padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px; font-family: inherit; box-sizing: border-box; resize: vertical; }
+.obs-edit .obs-botoes { display: flex; gap: 8px; margin-top: 6px; }
+.obs-edit .obs-botoes button { min-height: 44px; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; }
+.obs-edit .obs-gravar { flex: 1; background: #f59e0b; color: #fff; border: none; }
+.obs-edit .obs-apagar { background: var(--bg); border: 1px solid var(--border); color: var(--text); padding: 0 16px; }
 .sap-loc-refs { font-size: 11px; color: var(--text-muted); text-align: right; margin-top: 2px; }
 /* Consulta livre de stock SAP a partir da barra do topo */
 .app-header-right { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
@@ -1611,6 +1638,7 @@ body.com-aviso-offline { padding-bottom: 56px; }
     <div class="qty-modal-desc" id="qty-modal-desc"></div>
     <div id="qty-modal-montagem-extra" style="display:none"></div>
     <div class="qty-modal-location" id="qty-modal-location"></div>
+    <div id="qty-modal-obs" style="display:none"></div>
     <div id="qty-modal-stock" class="stock-loc-box" style="display:none"></div>
     <div class="qty-input-wrap">
       <button onclick="adjustQty(-1)" style="font-size:24px;width:44px;height:44px;border-radius:50%;background:var(--bg);border:2px solid var(--border);">−</button>
@@ -1992,6 +2020,14 @@ const I18N = {
     origem_parcial: 'produzido {f} de {t}',
     origem_falta: 'falta produzir {t}',
     origem_sem_registo: 'sem registo de produção',
+    obs_badge: 'Obs',
+    obs_titulo: 'Observação',
+    obs_label_admin: 'Observação para os operadores',
+    obs_placeholder: 'Ex.: tirar 2 da cesta P439',
+    obs_gravar: 'Gravar observação',
+    obs_apagar: 'Apagar',
+    obs_gravada: 'Observação gravada',
+    obs_apagada: 'Observação apagada',
     sap_stock_titulo: 'Stock SAP',
     sap_atualizado: '(de {d})',
     sap_dash_titulo: 'Stock SAP (extração ZMB52)',
@@ -2318,6 +2354,14 @@ const I18N = {
     origem_parcial: 'produced {f} of {t}',
     origem_falta: '{t} still to produce',
     origem_sem_registo: 'no production record',
+    obs_badge: 'Note',
+    obs_titulo: 'Note',
+    obs_label_admin: 'Note for the operators',
+    obs_placeholder: 'E.g.: take 2 from basket P439',
+    obs_gravar: 'Save note',
+    obs_apagar: 'Delete',
+    obs_gravada: 'Note saved',
+    obs_apagada: 'Note deleted',
     sap_stock_titulo: 'SAP stock',
     sap_atualizado: '(as of {d})',
     sap_dash_titulo: 'SAP stock (ZMB52 extract)',
@@ -2702,6 +2746,9 @@ function dbItemToLocal(i) {
     entreguePor: i.entregue_por,
     entregueNota: i.entregue_nota,
     origem: i.origem || null,
+    obsAdmin: i.obs_admin || null,
+    obsAdminPor: i.obs_admin_por || null,
+    obsAdminEm: i.obs_admin_em || null,
     prodFeitas: i.prod_feitas == null ? null : i.prod_feitas,
     prodTotal: i.prod_total == null ? null : i.prod_total,
   };
@@ -3502,6 +3549,51 @@ async function guardarStockSap() {
 }
 
 
+// Observação do admin numa linha de carga. O admin escreve e apaga; os
+// operadores veem-na em destaque no modal e como aviso na lista.
+function renderObsLinha(el, plan, item) {
+  if (!el) return;
+  const carga = plan && plan.tipo === 'carga';
+  const admin = state.currentUser && state.currentUser.role === 'admin';
+  if (!carga || (!admin && !item.obsAdmin)) { el.innerHTML = ''; el.style.display = 'none'; return; }
+  const quem = item.obsAdminPor
+    ? `${escHtml(item.obsAdminPor)}${item.obsAdminEm ? ' \u00b7 ' + escHtml(quandoCurto(item.obsAdminEm)) : ''}` : '';
+  if (!admin) {
+    el.innerHTML = `<div class="obs-box"><div class="obs-titulo">\u{1F4AC} ${t('obs_titulo')}</div>
+      <div class="obs-texto">${escHtml(item.obsAdmin)}</div>${quem ? `<div class="obs-quem">${quem}</div>` : ''}</div>`;
+  } else {
+    el.innerHTML = `<div class="obs-edit"><label for="obs-input">${t('obs_label_admin')}</label>
+      <textarea id="obs-input" maxlength="300" placeholder="${escHtml(t('obs_placeholder'))}">${escHtml(item.obsAdmin || '')}</textarea>
+      ${quem ? `<div style="font-size:12px;color:var(--text-muted);margin-top:3px">${quem}</div>` : ''}
+      <div class="obs-botoes">
+        <button class="obs-gravar" onclick="gravarObsLinha('${plan.id}','${item.id}', false)">${t('obs_gravar')}</button>
+        ${item.obsAdmin ? `<button class="obs-apagar" onclick="gravarObsLinha('${plan.id}','${item.id}', true)">${t('obs_apagar')}</button>` : ''}
+      </div></div>`;
+  }
+  el.style.display = '';
+}
+
+async function gravarObsLinha(planId, itemId, apagar) {
+  const plan = plans.find(p => p.id === planId);
+  const item = plan && plan.items.find(i => i.id === itemId);
+  if (!item) return;
+  const input = document.getElementById('obs-input');
+  const texto = apagar ? '' : String(input ? input.value : '').trim();
+  const u = state.currentUser;
+  const campos = texto
+    ? { obs_admin: texto, obs_admin_por: u.name, obs_admin_em: new Date().toISOString() }
+    : { obs_admin: null, obs_admin_por: null, obs_admin_em: null };
+  try {
+    await dbUpdateItem(itemId, campos);
+  } catch (e) { return; }   // dbUpdateItem já mostrou o erro
+  item.obsAdmin = campos.obs_admin;
+  item.obsAdminPor = campos.obs_admin_por;
+  item.obsAdminEm = campos.obs_admin_em;
+  showToast(t(texto ? 'obs_gravada' : 'obs_apagada'));
+  renderObsLinha(document.getElementById('qty-modal-obs'), plan, item);
+  renderDetail(plan);
+}
+
 async function dbUpdateItem(itemId, fields) {
   try {
     await sbFetch(`/plan_items?id=eq.${itemId}`, { method: 'PATCH', body: fields });
@@ -3564,12 +3656,12 @@ async function atualizarPlanosDoServidor() {
     try {
       const oldPlans = JSON.stringify(plans.map(p => ({
         id: p.id, status: p.status,
-        items: p.items.map(i => ({ id: i.id, qtySeparada: i.qtySeparada, qtyEntregue: i.qtyEntregue, separado: i.separado, entregue: i.entregue }))
+        items: p.items.map(i => ({ id: i.id, qtySeparada: i.qtySeparada, qtyEntregue: i.qtyEntregue, separado: i.separado, entregue: i.entregue, obs: i.obsAdmin, origem: i.origem, prod: i.prodFeitas }))
       })));
       if (!(await lerAlteracoes())) await loadPlans();
       const newPlans = JSON.stringify(plans.map(p => ({
         id: p.id, status: p.status,
-        items: p.items.map(i => ({ id: i.id, qtySeparada: i.qtySeparada, qtyEntregue: i.qtyEntregue, separado: i.separado, entregue: i.entregue }))
+        items: p.items.map(i => ({ id: i.id, qtySeparada: i.qtySeparada, qtyEntregue: i.qtyEntregue, separado: i.separado, entregue: i.entregue, obs: i.obsAdmin, origem: i.origem, prod: i.prodFeitas }))
       })));
       if (oldPlans !== newPlans) {
         renderAll();
@@ -4935,6 +5027,7 @@ function renderItemRow(item, plan, opts) {
         </div>
         <div class="item-desc">${escHtml(item.desc)}</div>
         <div class="item-info">${cestaHtml}OV ${escHtml(item.ov || '—')}${botaoDesenho(item.ov)}${quem}</div>
+        ${item.obsAdmin ? `<div class="obs-badge">\u{1F4AC} ${t('obs_badge')}: ${escHtml(item.obsAdmin)}</div>` : ''}
         ${origemBadge(item)}
         ${stockBadge(item)}
         ${sapBadge(item)}
@@ -5072,8 +5165,16 @@ function openQtyModal(planId, itemId, action) {
   } else {
     montagemEl.style.display = 'none';
   }
-  document.getElementById('qty-modal-location').innerHTML =
-    `<span>📦 ${escHtml(item.cesta || '—')}</span><span>🗂 ${escHtml(item.fiada || '—')}</span>`;
+  // Cesta/fiada da linha: quase nunca vem preenchida, por isso só aparece se houver
+  const locEl = document.getElementById('qty-modal-location');
+  if (item.cesta || item.fiada) {
+    locEl.innerHTML = `<span>📦 ${escHtml(item.cesta || '—')}</span><span>🗂 ${escHtml(item.fiada || '—')}</span>`;
+    locEl.style.display = '';
+  } else {
+    locEl.innerHTML = '';
+    locEl.style.display = 'none';
+  }
+  renderObsLinha(document.getElementById('qty-modal-obs'), plan, item);
 
   // Localizações no parque de acessórios (app externa) — onde ir buscar o material
   renderStockLocations(document.getElementById('qty-modal-stock'), item);
