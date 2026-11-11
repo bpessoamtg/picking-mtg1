@@ -3,7 +3,7 @@ produção, e, nas colunas a produzir, quanto já passou na linha.
 
 - Stock ou produção: é a "Utilização" da linha da OV no SAP (Stock, Produzir,
   Stock para Pintura, ...), a mesma que se vê no VA03.
-- Já produzido: folha "Resumo" do Expedição_Colunas_2026.xlsm (Produzidas e
+- Já produzido: folha "Resumo" do Expedição_Colunas_2026.xlsm (QT Produzida e
   Quantidade por OV e material), que vem dos registos dos turnos. Não se usam
   as entradas do SAP porque a balança pode forçar entradas ao adiantar guias.
   Só se aplica às colunas (CG e CP) com utilização "Produzir".
@@ -100,7 +100,7 @@ def ler_resumo():
     wb = openpyxl.load_workbook(tmp, read_only=True, data_only=True)
     it = wb['Resumo'].iter_rows(values_only=True)
     cab = [txt(c) for c in next(it)]
-    iov, imat, iq, ip = cab.index('OV'), cab.index('CI'), cab.index('Quantidade'), cab.index('Produzidas')
+    iov, imat, iq, ip = cab.index('OV'), cab.index('CI'), cab.index('Quantidade'), cab.index('QT Produzida')
     res = collections.defaultdict(lambda: [0, 0])
     for r in it:
         if len(r) <= max(iov, imat, iq, ip) or r[iov] is None:
