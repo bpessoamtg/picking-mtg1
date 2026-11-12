@@ -284,6 +284,22 @@ input, textarea, select { font-family: inherit; font-size: inherit; }
   display: none;
 }
 .tab-badge.has-count { display: inline-block; }
+/* Novidades: plano novo ou linhas novas desde a última vez que este tablet viu */
+.tab-novo { display: none; background: #2563eb; color: #fff; font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 8px; }
+.tab-novo.on { display: inline-block; }
+.filtro-novo { display: inline-block; margin-left: 5px; background: #2563eb; color: #fff; font-size: 11px; font-weight: 700; min-width: 18px; padding: 1px 5px; border-radius: 9px; line-height: 16px; text-align: center; }
+.date-filters button.active .filtro-novo { background: #fff; color: var(--primary); }
+.novo-tag { display: inline-block; margin-left: 6px; background: #2563eb; color: #fff; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 6px; vertical-align: middle; font-family: inherit; }
+.plan-card.tem-novo { border-left: 4px solid #2563eb; }
+#novo-banner { display: none; margin: 8px 12px 0; background: #eff6ff; border: 1.5px solid #3b82f6; border-radius: 12px; padding: 10px 12px; align-items: center; gap: 10px; }
+#novo-banner.on { display: flex; }
+#novo-banner .nb-icone { font-size: 24px; }
+#novo-banner .nb-texto { flex: 1; min-width: 0; }
+#novo-banner .nb-titulo { font-size: 15px; font-weight: 700; color: #1e3a8a; }
+#novo-banner .nb-sub { font-size: 13px; color: #1d4ed8; margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#novo-banner button { min-height: 44px; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; }
+#novo-banner .nb-abrir { background: #2563eb; color: #fff; border: none; padding: 0 16px; }
+#novo-banner .nb-fechar { background: transparent; border: 1px solid #93c5fd; color: #1e3a8a; min-width: 44px; }
 /* Com três separadores, em ecrãs estreitos é preciso apertar para o badge não cortar */
 @media (max-width: 430px) {
   .tab-btn { font-size: 12px; padding: 11px 3px; gap: 4px; }
@@ -1530,15 +1546,19 @@ body.com-aviso-offline { padding-bottom: 56px; }
     <button onclick="setGroupView('todos')" id="gtb-todos" class="active" data-i18n="group_todos_btn">⚡ Todos</button>
   </div>
 
+  <div id="novo-banner" role="status" aria-live="polite"></div>
+
   <!-- Tabs -->
   <div class="tabs">
     <button class="tab-btn active" id="tab-carga-btn" onclick="switchTab('carga')">
       <span data-i18n="tab_carga">🚚 Planos de Carga</span>
       <span class="tab-badge" id="badge-carga">0</span>
+      <span class="tab-novo" id="novo-carga"></span>
     </button>
     <button class="tab-btn" id="tab-pintura-btn" onclick="switchTab('pintura')">
       <span data-i18n="tab_pintura">🎨 Planos de Pintura</span>
       <span class="tab-badge" id="badge-pintura">0</span>
+      <span class="tab-novo" id="novo-pintura"></span>
     </button>
     <button class="tab-btn" id="tab-dashboard-btn" onclick="switchTab('dashboard')">
       <span data-i18n="tab_dashboard">📊 Dashboard</span>
@@ -2029,6 +2049,16 @@ const I18N = {
     obs_apagar: 'Apagar',
     obs_gravada: 'Observação gravada',
     obs_apagada: 'Observação apagada',
+    novo_tag: 'Nova',
+    novo_linhas_tag: '+{n} linhas',
+    novo_tab: 'NOVO {n}',
+    novo_aviso_carga: 'Nova carga: {nome}',
+    novo_aviso_pintura: 'Novo plano de pintura: {nome}',
+    novo_aviso_linhas: '{n} linhas novas em {nome}',
+    novo_aviso_linhas_total: '{n} linhas',
+    novo_aviso_varios: '{n} planos com novidades',
+    novo_abrir: 'Abrir',
+    novo_fechar: 'Fechar aviso',
     sap_stock_titulo: 'Stock SAP',
     sap_atualizado: '(de {d})',
     sap_dash_titulo: 'Stock SAP (extração ZMB52)',
@@ -2363,6 +2393,16 @@ const I18N = {
     obs_apagar: 'Delete',
     obs_gravada: 'Note saved',
     obs_apagada: 'Note deleted',
+    novo_tag: 'New',
+    novo_linhas_tag: '+{n} lines',
+    novo_tab: 'NEW {n}',
+    novo_aviso_carga: 'New load: {nome}',
+    novo_aviso_pintura: 'New painting plan: {nome}',
+    novo_aviso_linhas: '{n} new lines in {nome}',
+    novo_aviso_linhas_total: '{n} lines',
+    novo_aviso_varios: '{n} plans with news',
+    novo_abrir: 'Open',
+    novo_fechar: 'Close notice',
     sap_stock_titulo: 'SAP stock',
     sap_atualizado: '(as of {d})',
     sap_dash_titulo: 'SAP stock (ZMB52 extract)',
@@ -3660,6 +3700,7 @@ async function atualizarPlanosDoServidor() {
         items: p.items.map(i => ({ id: i.id, qtySeparada: i.qtySeparada, qtyEntregue: i.qtyEntregue, separado: i.separado, entregue: i.entregue, obs: i.obsAdmin, origem: i.origem, prod: i.prodFeitas }))
       })));
       if (!(await lerAlteracoes())) await loadPlans();
+      verificarNovidades();
       const newPlans = JSON.stringify(plans.map(p => ({
         id: p.id, status: p.status,
         items: p.items.map(i => ({ id: i.id, qtySeparada: i.qtySeparada, qtyEntregue: i.qtyEntregue, separado: i.separado, entregue: i.entregue, obs: i.obsAdmin, origem: i.origem, prod: i.prodFeitas }))
@@ -3855,6 +3896,7 @@ async function showApp() {
   // Sempre, mesmo que a primeira leitura tenha falhado ou demorado: é o ciclo
   // de 5 s que a volta a tentar (sem ele o ecrã ficava parado o turno todo)
   subscribeRealtime();
+  verificarNovidades();
   // Localizações do parque: extra opcional, nunca bloqueia o arranque da app
   loadStockLocations().then(() => { if (stockIndex) renderAll(); });
   loadStockSap().then(() => { if (sapIndex) renderAll(); });
@@ -4077,7 +4119,14 @@ function filterPlansByDate(tipo, filter) {
 function renderAll() {
   // O separador "Amanhã" mostra o próximo dia útil, por isso à sexta diz "Segunda"
   const btnAmanha = document.querySelector('#date-filter-carga button[onclick*="amanha"]');
-  if (btnAmanha) btnAmanha.textContent = rotuloProximoDiaUtil();
+  if (btnAmanha) btnAmanha.innerHTML = escHtml(rotuloProximoDiaUtil()) + filtroNovoHtml(proximoDiaUtil().iso);
+  const btnHoje = document.querySelector('#date-filter-carga button[onclick*="hoje"]');
+  if (btnHoje) btnHoje.innerHTML = escHtml(t('filter_hoje')) + filtroNovoHtml(todayStr());
+  ['carga', 'pintura'].forEach(tipo => {
+    const el = document.getElementById('novo-' + tipo);
+    const n = contarNovos(p => p.tipo === tipo);
+    if (el) { el.textContent = n ? t('novo_tab', { n }) : ''; el.classList.toggle('on', n > 0); }
+  });
   populateWeekSelect('pintura');
   renderList('carga');
   renderList('pintura');
@@ -4487,16 +4536,16 @@ function renderPlanCard(plan) {
   // Carga pronta: uma linha só, para os planos que ainda dão trabalho saltarem à vista
   if (plan.tipo === 'carga' && est.cls === 'pronto') {
     return `
-  <div class="plan-card status-pronto compacto" onclick="openDetail('${plan.id}')">
+  <div class="plan-card status-pronto compacto${novoDe(plan) ? ' tem-novo' : ''}" onclick="openDetail('${plan.id}')">
     <div class="plan-card-header">
-      <div class="plan-name">${escHtml(plan.nome)}</div>
+      <div class="plan-name">${escHtml(plan.nome)}${novoTagHtml(plan)}</div>
       <span class="status-pill status-pronto">${plan.horaCarregar ? t('pill_pronto_hora', { hora: plan.horaCarregar }) : t('status_pronto')} · ${dateStr}</span>
     </div>
   </div>`;
   }
 
   return `
-  <div class="plan-card ${isComplete ? 'status-pronto' : ''}" onclick="openDetail('${plan.id}')">
+  <div class="plan-card ${isComplete ? 'status-pronto' : ''}${novoDe(plan) ? ' tem-novo' : ''}" onclick="openDetail('${plan.id}')">
     <div class="plan-card-header">
       <div>
         <div class="plan-name">${escHtml(plan.nome)}</div>
@@ -4532,10 +4581,191 @@ function updateBadges() {
 // =====================================================
 // PLAN DETAIL
 // =====================================================
+// =====================================================
+// NOVIDADES: plano novo ou linhas novas, por tablet
+// Cada tablet lembra-se das linhas que já mostrou (por plano). Uma linha que
+// aparece depois é novidade: aviso no topo, som, etiqueta no cartão e número
+// nos filtros Hoje/Amanhã, até alguém abrir o plano neste tablet. Na primeira
+// vez fica tudo como visto, para não haver uma avalanche de avisos.
+// =====================================================
+const VISTOS_KEY = 'picking_vistos_v1';
+const NOVOS_KEY = 'picking_novos_v1';
+const novidades = { vistos: undefined, novos: {}, banner: [] };
+
+function lerNovidades() {
+  try {
+    novidades.vistos = JSON.parse(localStorage.getItem(VISTOS_KEY) || 'null');
+    novidades.novos = JSON.parse(localStorage.getItem(NOVOS_KEY) || '{}') || {};
+  } catch (e) { novidades.vistos = null; novidades.novos = {}; }
+}
+function gravarNovidades() {
+  try {
+    localStorage.setItem(VISTOS_KEY, JSON.stringify(novidades.vistos || {}));
+    localStorage.setItem(NOVOS_KEY, JSON.stringify(novidades.novos));
+  } catch (e) {}
+}
+
+// Linhas que interessam a quem está neste tablet: o admin vê tudo, mesmo que
+// esteja a filtrar por grupo (mudar o filtro não pode inventar novidades)
+function idsDoGrupo(plan) {
+  const u = state.currentUser;
+  const g = veTudo(u) ? 'todos' : u.group;
+  return (plan.items || []).filter(i => {
+    if (g === 'todos') return true;
+    if (!i.tipoGalva) return plan.grupo === 'ambos' || plan.grupo === g;
+    return g === 'colunas' ? COLUNAS_TIPOS.includes(i.tipoGalva) : ACESSORIOS_TIPOS.includes(i.tipoGalva);
+  }).map(i => i.id);
+}
+
+function verificarNovidades() {
+  if (!state.currentUser || !plans.length) return;
+  if (novidades.vistos === undefined) lerNovidades();
+  const hoje = todayStr();
+  const limite = new Date(); limite.setDate(limite.getDate() - 7);
+  const desde = dataLocalISO(limite);
+  const universo = plans.filter(p => p.data && p.data >= desde);
+  const primeira = !novidades.vistos;
+  if (primeira) novidades.vistos = {};
+  const eventos = [];
+  for (const p of universo) {
+    const ids = idsDoGrupo(p);
+    if (!ids.length) continue;
+    const vistos = novidades.vistos[p.id];
+    const conta = !primeira && p.data >= hoje;
+    if (!vistos) {
+      novidades.vistos[p.id] = ids;
+      if (conta) { novidades.novos[p.id] = { tipo: 'plano' }; eventos.push({ plan: p, tipo: 'plano', n: ids.length }); }
+      continue;
+    }
+    const ja = new Set(vistos);
+    const novas = ids.filter(id => !ja.has(id));
+    if (!novas.length) continue;
+    novidades.vistos[p.id] = vistos.concat(novas);
+    if (conta) {
+      const ant = novidades.novos[p.id];
+      if (!ant) novidades.novos[p.id] = { tipo: 'linhas', n: novas.length };
+      else if (ant.tipo === 'linhas') ant.n += novas.length;
+      eventos.push({ plan: p, tipo: 'linhas', n: novas.length });
+    }
+  }
+  const ativos = new Set(universo.map(p => p.id));
+  Object.keys(novidades.vistos).forEach(id => { if (!ativos.has(id)) delete novidades.vistos[id]; });
+  Object.keys(novidades.novos).forEach(id => { if (!ativos.has(id)) delete novidades.novos[id]; });
+  gravarNovidades();
+  if (eventos.length) {
+    mostrarAvisoNovidades(eventos);
+    tocarAvisoNovidades();
+    renderAll();
+  }
+}
+
+function marcarVisto(plan) {
+  if (!plan || !state.currentUser) return;
+  if (novidades.vistos === undefined) lerNovidades();
+  if (!novidades.vistos) novidades.vistos = {};
+  novidades.vistos[plan.id] = idsDoGrupo(plan);
+  const tinha = !!novidades.novos[plan.id];
+  delete novidades.novos[plan.id];
+  novidades.banner = novidades.banner.filter(e => e.plan.id !== plan.id);
+  gravarNovidades();
+  desenharAvisoNovidades();
+  if (tinha) renderAll();
+}
+
+function novoDe(plan) { return novidades.novos && novidades.novos[plan.id]; }
+function novoTagHtml(plan) {
+  const n = novoDe(plan);
+  if (!n) return '';
+  return `<span class="novo-tag">${n.tipo === 'plano' ? t('novo_tag') : t('novo_linhas_tag', { n: n.n })}</span>`;
+}
+function contarNovos(filtro) {
+  return plans.filter(p => novoDe(p) && planVisibleToUser(p) && filtro(p)).length;
+}
+function filtroNovoHtml(iso) {
+  const n = contarNovos(p => p.tipo === 'carga' && p.data === iso);
+  return n ? `<span class="filtro-novo">${n}</span>` : '';
+}
+
+function mostrarAvisoNovidades(eventos) {
+  for (const e of eventos) {
+    const k = novidades.banner.findIndex(x => x.plan.id === e.plan.id);
+    if (k >= 0) {
+      if (novidades.banner[k].tipo === 'linhas' && e.tipo === 'linhas') novidades.banner[k].n += e.n;
+    } else novidades.banner.push(e);
+  }
+  desenharAvisoNovidades();
+}
+
+function desenharAvisoNovidades() {
+  const el = document.getElementById('novo-banner');
+  if (!el) return;
+  const lista = novidades.banner.filter(e => plans.some(p => p.id === e.plan.id));
+  novidades.banner = lista;
+  if (!lista.length) { el.classList.remove('on'); el.innerHTML = ''; return; }
+  let icone, titulo, sub;
+  if (lista.length === 1) {
+    const e = lista[0], p = e.plan;
+    icone = p.tipo === 'pintura' ? '\u{1F3A8}' : '\u{1F69A}';
+    titulo = e.tipo === 'plano'
+      ? t(p.tipo === 'pintura' ? 'novo_aviso_pintura' : 'novo_aviso_carga', { nome: p.nome })
+      : t('novo_aviso_linhas', { n: e.n, nome: p.nome });
+    sub = [dataCurta(p.data), p.horaCarregar || '', e.tipo === 'plano' ? t('novo_aviso_linhas_total', { n: e.n }) : '']
+      .filter(Boolean).join(' \u00b7 ');
+  } else {
+    icone = '\u{1F514}';
+    titulo = t('novo_aviso_varios', { n: lista.length });
+    sub = lista.map(e => e.plan.nome).join(', ');
+  }
+  el.innerHTML = `<span class="nb-icone" aria-hidden="true">${icone}</span>
+    <div class="nb-texto"><div class="nb-titulo">${escHtml(titulo)}</div><div class="nb-sub">${escHtml(sub)}</div></div>
+    ${lista.length === 1 ? `<button class="nb-abrir" onclick="abrirNovidade('${lista[0].plan.id}')">${t('novo_abrir')}</button>` : ''}
+    <button class="nb-fechar" aria-label="${escHtml(t('novo_fechar'))}" onclick="fecharAvisoNovidades()">\u2715</button>`;
+  el.classList.add('on');
+}
+
+function fecharAvisoNovidades() {
+  novidades.banner = [];
+  desenharAvisoNovidades();
+}
+
+function abrirNovidade(planId) {
+  const plan = plans.find(p => p.id === planId);
+  if (!plan) { fecharAvisoNovidades(); return; }
+  switchTab(plan.tipo === 'pintura' ? 'pintura' : 'carga');
+  openDetail(planId);
+}
+
+// Som curto (dois tons). O Windows só deixa tocar depois de alguém tocar no
+// ecrã: o primeiro toque na app "acorda" o som.
+let audioAviso = null;
+function prepararSomAviso() {
+  try {
+    if (!audioAviso) audioAviso = new (window.AudioContext || window.webkitAudioContext)();
+    if (audioAviso.state === 'suspended') audioAviso.resume();
+  } catch (e) {}
+}
+document.addEventListener('pointerdown', prepararSomAviso, { passive: true });
+function tocarAvisoNovidades() {
+  try {
+    if (!audioAviso || audioAviso.state !== 'running') return;
+    const t0 = audioAviso.currentTime;
+    [[880, 0], [1320, 0.18]].forEach(([freq, atraso]) => {
+      const o = audioAviso.createOscillator(), g = audioAviso.createGain();
+      o.type = 'sine'; o.frequency.value = freq;
+      g.gain.setValueAtTime(0.0001, t0 + atraso);
+      g.gain.exponentialRampToValueAtTime(0.35, t0 + atraso + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, t0 + atraso + 0.16);
+      o.connect(g).connect(audioAviso.destination);
+      o.start(t0 + atraso); o.stop(t0 + atraso + 0.18);
+    });
+  } catch (e) {}
+}
+
 function openDetail(planId) {
   const plan = plans.find(p => p.id === planId);
   if (!plan) return;
   state.openPlanId = planId;
+  marcarVisto(plan);
 
   document.getElementById('screen-app').style.display = 'none';
   document.getElementById('view-detail').classList.add('active');
@@ -6285,6 +6515,7 @@ async function createPlan() {
   state.newPlanItems = [];
 
   plans.push(newPlan);
+  marcarVisto(newPlan);
   closeModal('modal-new-plan');
   renderAll();
   showToast(t('toast_plano_criado', { nome, count: pastedItems.length }));
@@ -6342,7 +6573,7 @@ async function addLinhasPintura(planId, grupo) {
   }));
 
   const plan = plans.find(p => p.id === planId);
-  if (plan) { plan.items = [...(plan.items || []), ...newItems]; }
+  if (plan) { plan.items = [...(plan.items || []), ...newItems]; marcarVisto(plan); }
 
   closeModal('modal-new-plan');
   // Restaurar modal ao estado normal
