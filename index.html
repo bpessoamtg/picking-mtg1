@@ -2051,6 +2051,9 @@ const I18N = {
     obs_apagada: 'Observação apagada',
     novo_tag: 'Nova',
     novo_linhas_tag: '+{n} linhas',
+    novo_linha_tag: '+1 linha',
+    novo_aviso_linha: '1 linha nova em {nome}',
+    novo_aviso_linha_total: '1 linha',
     novo_tab: 'NOVO {n}',
     novo_aviso_carga: 'Nova carga: {nome}',
     novo_aviso_pintura: 'Novo plano de pintura: {nome}',
@@ -2395,6 +2398,9 @@ const I18N = {
     obs_apagada: 'Note deleted',
     novo_tag: 'New',
     novo_linhas_tag: '+{n} lines',
+    novo_linha_tag: '+1 line',
+    novo_aviso_linha: '1 new line in {nome}',
+    novo_aviso_linha_total: '1 line',
     novo_tab: 'NEW {n}',
     novo_aviso_carga: 'New load: {nome}',
     novo_aviso_pintura: 'New painting plan: {nome}',
@@ -4676,7 +4682,7 @@ function novoDe(plan) { return novidades.novos && novidades.novos[plan.id]; }
 function novoTagHtml(plan) {
   const n = novoDe(plan);
   if (!n) return '';
-  return `<span class="novo-tag">${n.tipo === 'plano' ? t('novo_tag') : t('novo_linhas_tag', { n: n.n })}</span>`;
+  return `<span class="novo-tag">${n.tipo === 'plano' ? t('novo_tag') : t(n.n === 1 ? 'novo_linha_tag' : 'novo_linhas_tag', { n: n.n })}</span>`;
 }
 function contarNovos(filtro) {
   return plans.filter(p => novoDe(p) && planVisibleToUser(p) && filtro(p)).length;
@@ -4708,8 +4714,8 @@ function desenharAvisoNovidades() {
     icone = p.tipo === 'pintura' ? '\u{1F3A8}' : '\u{1F69A}';
     titulo = e.tipo === 'plano'
       ? t(p.tipo === 'pintura' ? 'novo_aviso_pintura' : 'novo_aviso_carga', { nome: p.nome })
-      : t('novo_aviso_linhas', { n: e.n, nome: p.nome });
-    sub = [dataCurta(p.data), p.horaCarregar || '', e.tipo === 'plano' ? t('novo_aviso_linhas_total', { n: e.n }) : '']
+      : t(e.n === 1 ? 'novo_aviso_linha' : 'novo_aviso_linhas', { n: e.n, nome: p.nome });
+    sub = [dataCurta(p.data), p.horaCarregar || '', e.tipo === 'plano' ? t(e.n === 1 ? 'novo_aviso_linha_total' : 'novo_aviso_linhas_total', { n: e.n }) : '']
       .filter(Boolean).join(' \u00b7 ');
   } else {
     icone = '\u{1F514}';
