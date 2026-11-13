@@ -3180,6 +3180,7 @@ async function loadPlans() {
     state.dadosDe = Date.now();
     guardarPlanosCrus();
     definirLigacao(true);
+    promoverPlanosCompletos();
   } catch(e) {
     definirLigacao(false);
     // Já há planos no ecrã (ciclo de 5 s): ficam os que estão, sem repetir avisos
@@ -3196,6 +3197,19 @@ async function loadPlans() {
     showToast(t('toast_erro_carregar_dados', { msg: e.message }));
     throw e;
   }
+}
+
+// Planos com tudo separado que ficaram "em_separacao" na base de dados (a
+// gravação do estado perdeu-se ou o plano foi completado por outro caminho).
+// Só sobe em_separacao -> pronto, nunca reabre; e só o admin grava, para não
+// haver vários tablets a escrever o mesmo plano.
+function promoverPlanosCompletos() {
+  if (!(state.currentUser && state.currentUser.role === 'admin') || semRede()) return;
+  plans.forEach(plan => {
+    if (plan.status !== 'em_separacao' || !planoCompleto(plan)) return;
+    plan.status = 'pronto';
+    dbUpdatePlan(plan.id, { status: 'pronto' }).catch(e => console.warn('promoverPlanosCompletos:', e));
+  });
 }
 
 function savePlans() { /* substituído por writes individuais */ }
