@@ -6734,7 +6734,7 @@ function openPinturaDescModal(planId, itemId) {
   if (!item) { console.warn('openPinturaDescModal: item not found', itemId, 'in plan', planId, 'items:', plan.items.map(i=>i.id)); showToast(t('toast_item_nao_encontrado')); return; }
 
   document.getElementById('pdesc-title').textContent = item.model || '—';
-  document.getElementById('pdesc-ov').textContent = `OV ${item.ov || '—'}  ·  ${t('label_camiao_colon')} ${item.cesta || plan.nome}`;
+  document.getElementById('pdesc-ov').textContent = `OV ${item.ov || '—'}` + (item.descarga && item.descarga !== '—' ? `  ·  ${t('label_camiao_colon')} ${item.descarga}` : '');
   document.getElementById('pdesc-desc').textContent = item.desc || t('label_sem_descricao');
 
   // meta badges
