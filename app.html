@@ -626,6 +626,20 @@ input, textarea, select { font-family: inherit; font-size: inherit; }
 .item-row.row-complete { background: var(--success-light); }
 .item-row.row-partial { background: var(--warning-light); }
 .item-row.row-entregue { background: #e0f2fe; }
+/* Pintura: colunas que ainda passam por outro processo antes da pintura
+   (Stock Modificado, Serralheiro, Enviar MTG2, Vem da MTG2/MTG4) */
+.item-row.row-processo { border-left: 6px solid #f59e0b; }
+.proc-badge {
+  display: inline-block;
+  font-size: 13px;
+  font-weight: 700;
+  border-radius: 6px;
+  padding: 2px 9px;
+  color: #92400e;
+  background: #fef3c7;
+  border: 1.5px solid #f59e0b;
+}
+.proc-badge.pronto { color: #166534; background: #dcfce7; border-color: #4ade80; }
 
 .item-checkbox {
   width: 28px;
@@ -5191,6 +5205,16 @@ function stockBadge(item) {
   return `<div class="stock-badge">📍 ${resumo} · <b>${s.total}</b> ${t('dash_unidades')}</div>`;
 }
 
+// Pintura: a "Utilizacao" colada no plano diz se a coluna ainda passa por outro
+// processo antes de chegar a pintura. 'processo' = laranja, 'pronto' = verde.
+function processoPintura(nota) {
+  const n = String(nota || '').toLowerCase();
+  if (!n) return '';
+  if (/serralheiro\s+pront/.test(n)) return 'pronto';
+  if (/stock\s+modificado|serralheiro|enviar\s+mtg|vem\s+da\s+mtg/.test(n)) return 'processo';
+  return '';
+}
+
 // Stock ou producao: a "Utilizacao" da linha da OV no SAP, gravada pela rotina.
 // Nas colunas a produzir junta o que ja passou na linha (Excel das colunas):
 // o empilhadorista fica a saber se o material ja existe ou se ainda falta.
@@ -5322,7 +5346,10 @@ function renderItemRow(item, plan, opts) {
     const comecada = item.qtyEntregue > 0;
     const qtyBigHtml = `<div class="qty-big ${comecada ? 'partial' : ''}">${comecada ? item.qtyEntregue : item.qtyPedida}<small>${comecada ? t('qty_de_entregues', { n: item.qtyPedida }) : t('dash_unidades')}</small></div>`;
 
-    const utilizacaoHtml  = item.entregueNota ? `<span style="color:var(--text-muted);font-size:11px">📋 ${escHtml(item.entregueNota)}</span>` : '';
+    const proc = processoPintura(item.entregueNota);
+    const utilizacaoHtml  = !item.entregueNota ? ''
+      : proc ? `<span class="proc-badge ${proc === 'pronto' ? 'pronto' : ''}">${proc === 'pronto' ? '\u2705' : '\u{1F527}'} ${escHtml(item.entregueNota)}</span>`
+      : `<span style="color:var(--text-muted);font-size:11px">📋 ${escHtml(item.entregueNota)}</span>`;
     const tipoPinturaHtml = item.cesta        ? `<span style="color:#7c3aed;font-size:11px;font-weight:600">🎨 ${escHtml(item.cesta)}</span>` : '';
     const prioHtml        = item.fiada && item.fiada !== '—' ? `<span style="background:var(--primary);color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:10px;margin-right:6px">P${escHtml(item.fiada)}</span>` : '';
     const qtyHtml         = item.qtyPedida > 0
@@ -5336,7 +5363,7 @@ function renderItemRow(item, plan, opts) {
     // Descrição inline para acessórios
     const showDesc = plan.grupo !== 'colunas' && item.desc;
     // Linha por fazer: quantidade grande à direita, botões à largura do cartão
-    const rowClassNovo = (item.qtySeparada > 0 || item.qtyEntregue > 0) ? 'row-partial' : '';
+    const rowClassNovo = ((item.qtySeparada > 0 || item.qtyEntregue > 0) ? 'row-partial' : '') + (proc === 'processo' ? ' row-processo' : '');
     return `<div class="item-row ${rowClassNovo}" onclick="openPinturaDescModal('${plan.id}','${item.id}')" style="cursor:pointer;flex-wrap:wrap">
       <div class="item-body" style="flex:1;min-width:0">
         <div class="item-model-row" style="align-items:baseline;flex-wrap:wrap;gap:6px">
@@ -6677,7 +6704,7 @@ function openPinturaTabela(planId) {
       <td style="${tdStyle};font-family:monospace;font-weight:700">${escHtml(item.model)}</td>
       ${!isColunas ? `<td style="${tdStyle};max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px">${escHtml(item.desc || '—')}</td>` : ''}
       <td style="${tdStyle};text-align:right;font-weight:700">${item.qtyPedida}</td>
-      <td style="${tdStyle};font-size:11px;color:var(--text-muted)">${escHtml(item.entregueNota || '—')}</td>
+      <td style="${tdStyle};font-size:11px;color:var(--text-muted)">${processoPintura(item.entregueNota) ? `<span class="proc-badge ${processoPintura(item.entregueNota) === 'pronto' ? 'pronto' : ''}" style="font-size:11px;padding:1px 6px">${escHtml(item.entregueNota)}</span>` : escHtml(item.entregueNota || '—')}</td>
       <td style="${tdStyle};font-size:11px;color:#7c3aed">${escHtml(item.cesta || '—')}</td>
       <td style="${tdStyle};text-align:center">${sepIcon}</td>
       <td style="${tdStyle};text-align:center">${entrIcon}</td>
@@ -6702,7 +6729,12 @@ function openPinturaDescModal(planId, itemId) {
   const parts = [];
   if (item.qtyPedida > 0) parts.push(`<span style="background:var(--primary);color:#fff;border-radius:6px;padding:3px 10px;font-size:12px;font-weight:600">${t('label_qty_pcs', { qty: item.qtyPedida })}</span>`);
   if (item.fiada && item.fiada !== '—') parts.push(`<span style="background:var(--warning-light);color:var(--warning);border-radius:6px;padding:3px 10px;font-size:12px;font-weight:600">${t('label_prioridade_val', { fiada: item.fiada })}</span>`);
-  if (item.entregueNota) parts.push(`<span style="background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:3px 10px;font-size:12px">📋 ${escHtml(item.entregueNota)}</span>`);
+  if (item.entregueNota) {
+    const proc = processoPintura(item.entregueNota);
+    parts.push(proc
+      ? `<span class="proc-badge ${proc === 'pronto' ? 'pronto' : ''}">${proc === 'pronto' ? '\u2705' : '\u{1F527}'} ${escHtml(item.entregueNota)}</span>`
+      : `<span style="background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:3px 10px;font-size:12px">📋 ${escHtml(item.entregueNota)}</span>`);
+  }
   metaEl.innerHTML = parts.join('');
   renderObsLinha(document.getElementById('pdesc-obs'), plan, item);
 
