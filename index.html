@@ -640,6 +640,10 @@ input, textarea, select { font-family: inherit; font-size: inherit; }
   border: 1.5px solid #f59e0b;
 }
 .proc-badge.pronto { color: #166534; background: #dcfce7; border-color: #4ade80; }
+/* Pintura com PDM (betuminoso): entregar a frente */
+.item-row.row-pdm { border-left: 6px solid #2563eb; }
+.item-row.row-processo.row-pdm { border-left-color: #f59e0b; box-shadow: inset 6px 0 0 #2563eb, 0 1px 4px rgba(0,0,0,0.06); }
+.proc-badge.pdm { color: #1e3a8a; background: #dbeafe; border-color: #2563eb; }
 
 .item-checkbox {
   width: 28px;
@@ -5215,6 +5219,11 @@ function processoPintura(nota) {
   return '';
 }
 
+// PDM no tipo de pintura (ou na utilizacao) = leva betuminoso: entregar a frente.
+function temPDM(item) {
+  return /pdm/i.test(String(item.cesta || '')) || /pdm/i.test(String(item.entregueNota || ''));
+}
+
 // Stock ou producao: a "Utilizacao" da linha da OV no SAP, gravada pela rotina.
 // Nas colunas a produzir junta o que ja passou na linha (Excel das colunas):
 // o empilhadorista fica a saber se o material ja existe ou se ainda falta.
@@ -5348,9 +5357,13 @@ function renderItemRow(item, plan, opts) {
 
     const proc = processoPintura(item.entregueNota);
     const utilizacaoHtml  = !item.entregueNota ? ''
+      : (!proc && /pdm/i.test(item.entregueNota)) ? `<span class="proc-badge pdm">${escHtml(item.entregueNota)}</span>`
       : proc ? `<span class="proc-badge ${proc === 'pronto' ? 'pronto' : ''}">${proc === 'pronto' ? '\u2705' : '\u{1F527}'} ${escHtml(item.entregueNota)}</span>`
       : `<span style="color:var(--text-muted);font-size:11px">📋 ${escHtml(item.entregueNota)}</span>`;
-    const tipoPinturaHtml = item.cesta        ? `<span style="color:#7c3aed;font-size:11px;font-weight:600">🎨 ${escHtml(item.cesta)}</span>` : '';
+    const pdm = temPDM(item);
+    const tipoPinturaHtml = !item.cesta ? ''
+      : /pdm/i.test(item.cesta) ? `<span class="proc-badge pdm">🎨 ${escHtml(item.cesta)}</span>`
+      : `<span style="color:#7c3aed;font-size:11px;font-weight:600">🎨 ${escHtml(item.cesta)}</span>`;
     const prioHtml        = item.fiada && item.fiada !== '—' ? `<span style="background:var(--primary);color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:10px;margin-right:6px">P${escHtml(item.fiada)}</span>` : '';
     const qtyHtml         = item.qtyPedida > 0
       ? `<span style="font-size:13px;font-weight:700;color:${sepExcesso ? '#9333ea' : (sepFull ? 'var(--success)' : 'var(--text-main)')}">${item.qtySeparada > 0 ? item.qtySeparada + '/' : ''}${item.qtyPedida} un.</span>`
@@ -5363,7 +5376,7 @@ function renderItemRow(item, plan, opts) {
     // Descrição inline para acessórios
     const showDesc = plan.grupo !== 'colunas' && item.desc;
     // Linha por fazer: quantidade grande à direita, botões à largura do cartão
-    const rowClassNovo = ((item.qtySeparada > 0 || item.qtyEntregue > 0) ? 'row-partial' : '') + (proc === 'processo' ? ' row-processo' : '');
+    const rowClassNovo = ((item.qtySeparada > 0 || item.qtyEntregue > 0) ? 'row-partial' : '') + (proc === 'processo' ? ' row-processo' : '') + (pdm ? ' row-pdm' : '');
     return `<div class="item-row ${rowClassNovo}" onclick="openPinturaDescModal('${plan.id}','${item.id}')" style="cursor:pointer;flex-wrap:wrap">
       <div class="item-body" style="flex:1;min-width:0">
         <div class="item-model-row" style="align-items:baseline;flex-wrap:wrap;gap:6px">
@@ -6705,7 +6718,7 @@ function openPinturaTabela(planId) {
       ${!isColunas ? `<td style="${tdStyle};max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px">${escHtml(item.desc || '—')}</td>` : ''}
       <td style="${tdStyle};text-align:right;font-weight:700">${item.qtyPedida}</td>
       <td style="${tdStyle};font-size:11px;color:var(--text-muted)">${processoPintura(item.entregueNota) ? `<span class="proc-badge ${processoPintura(item.entregueNota) === 'pronto' ? 'pronto' : ''}" style="font-size:11px;padding:1px 6px">${escHtml(item.entregueNota)}</span>` : escHtml(item.entregueNota || '—')}</td>
-      <td style="${tdStyle};font-size:11px;color:#7c3aed">${escHtml(item.cesta || '—')}</td>
+      <td style="${tdStyle};font-size:11px;color:#7c3aed">${/pdm/i.test(item.cesta || '') ? `<span class="proc-badge pdm" style="font-size:11px;padding:1px 6px">${escHtml(item.cesta)}</span>` : escHtml(item.cesta || '—')}</td>
       <td style="${tdStyle};text-align:center">${sepIcon}</td>
       <td style="${tdStyle};text-align:center">${entrIcon}</td>
     </tr>`;
@@ -6735,6 +6748,7 @@ function openPinturaDescModal(planId, itemId) {
       ? `<span class="proc-badge ${proc === 'pronto' ? 'pronto' : ''}">${proc === 'pronto' ? '\u2705' : '\u{1F527}'} ${escHtml(item.entregueNota)}</span>`
       : `<span style="background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:3px 10px;font-size:12px">📋 ${escHtml(item.entregueNota)}</span>`);
   }
+  if (/pdm/i.test(item.cesta || '')) parts.push(`<span class="proc-badge pdm">🎨 ${escHtml(item.cesta)}</span>`);
   metaEl.innerHTML = parts.join('');
   renderObsLinha(document.getElementById('pdesc-obs'), plan, item);
 
