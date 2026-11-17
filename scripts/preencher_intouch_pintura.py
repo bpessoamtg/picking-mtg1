@@ -21,8 +21,10 @@ Regras:
 - Se a mesma linha da OV está em várias linhas da app (planos de dias
   diferentes), o fechado no inTouch reparte-se por elas, do plano mais antigo
   para o mais recente.
-- Linha da app que não se consegue ligar a nenhuma linha da OV fica sem
-  indicação (nunca "falta fechar" por falta de ligação).
+- Linha da app que não se consegue ligar a nenhuma linha da OV fica com -1
+  (a app não mostra nada; nunca "falta fechar" por falta de ligação).
+  Linha ainda não lida (vazio) conta na app como 0 fechado, para o aviso
+  aparecer logo a seguir à entrega, antes da próxima leitura do inTouch.
 """
 import argparse
 import datetime
@@ -146,6 +148,8 @@ def main():
             v = resto if n == len(ls) - 1 else min(resto, q)
             resto -= v
             novos[l['id']] = int(round(v))
+    for l in sem_ligacao:
+        novos[l['id']] = -1
 
     agora = datetime.datetime.now(datetime.timezone.utc).isoformat()
     mudou = {i: v for i, v in novos.items()
@@ -155,10 +159,11 @@ def main():
             pedido('PATCH', '/plan_items?id=eq.' + urllib.parse.quote(str(i)), {'intouch_qtd': v, 'intouch_em': agora})
 
     por_id = {l['id']: l for l in linhas}
-    falta = [(por_id[i], v) for i, v in novos.items() if v < por_id[i]['qty_entregue']]
+    falta = [(por_id[i], v) for i, v in novos.items() if 0 <= v < por_id[i]['qty_entregue']]
+    ligadas = sum(1 for v in novos.values() if v >= 0)
     acao = 'gravadas' if a.aplicar else 'a gravar (ensaio, usar --aplicar)'
-    print(f'Fechado no inTouch (pintura): {len(novos)} linhas entregues ligadas, '
-          f'{len(novos) - len(falta)} fechadas, {len(falta)} com falta de fechar, '
+    print(f'Fechado no inTouch (pintura): {ligadas} linhas entregues ligadas, '
+          f'{ligadas - len(falta)} fechadas, {len(falta)} com falta de fechar, '
           f'{len(sem_ligacao)} sem ligação; {len(mudou)} {acao}')
     if not a.aplicar:
         for l, v in falta[:25]:

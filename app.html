@@ -5243,17 +5243,26 @@ function processoPintura(nota) {
   return '';
 }
 
-// Entrega a pintura fechada no inTouch? O inTouch e lido pela rotina (8h30/16h
-// e com a dos planos); a comparacao e feita aqui, contra o entregue na app agora.
-function intouchFalta(item) {
-  if (item.intouchQtd == null || !(item.qtyEntregue > 0)) return null;
-  return Math.max(0, item.qtyEntregue - item.intouchQtd);
+// Entrega a pintura fechada no inTouch? O inTouch e lido pela rotina (8h30/16h);
+// a comparacao e feita aqui, contra o entregue na app agora.
+// intouchQtd: null = rotina ainda nao leu esta linha (conta como 0 fechado nos
+// planos dos ultimos 21 dias, os que a rotina le); -1 = linha sem ligacao ao inTouch.
+const INTOUCH_DIAS = 21;
+function intouchFechado(item, plan) {
+  if (!(item.qtyEntregue > 0) || item.intouchQtd === -1) return null;
+  if (item.intouchQtd != null) return item.intouchQtd;
+  const limite = new Date(Date.now() - INTOUCH_DIAS * 86400000).toISOString().slice(0, 10);
+  return plan && String(plan.data || '') >= limite ? 0 : null;
 }
-function intouchBadge(item) {
-  const f = intouchFalta(item);
+function intouchFalta(item, plan) {
+  const fe = intouchFechado(item, plan);
+  return fe == null ? null : Math.max(0, item.qtyEntregue - fe);
+}
+function intouchBadge(item, plan) {
+  const f = intouchFalta(item, plan);
   if (f == null) return '';
   if (f === 0) return `<div class="intouch-badge ok">\u2705 ${t('intouch_fechado')}</div>`;
-  return `<div class="intouch-badge falta">\u26A0\uFE0F ${t('intouch_falta', { f: Math.min(item.intouchQtd, item.qtyEntregue), t: item.qtyEntregue })}</div>`;
+  return `<div class="intouch-badge falta">\u26A0\uFE0F ${t('intouch_falta', { f: Math.min(intouchFechado(item, plan), item.qtyEntregue), t: item.qtyEntregue })}</div>`;
 }
 
 // PDM no tipo de pintura (ou na utilizacao) = leva betuminoso: entregar a frente.
@@ -5428,7 +5437,7 @@ function renderItemRow(item, plan, opts) {
         ${badgePendente(item)}
         ${(utilizacaoHtml || tipoPinturaHtml) ? `<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:3px">${utilizacaoHtml}${tipoPinturaHtml}</div>` : ''}
         ${faltamHtml}
-        ${intouchBadge(item)}
+        ${intouchBadge(item, plan)}
       </div>
       <div class="item-status-wrap">${qtyBigHtml}${delBtn}</div>
       <div class="pintura-actions-grid" style="flex-basis:100%">
@@ -5459,10 +5468,10 @@ function renderFeitaRow(item, plan) {
     : '';
   const quem = carga ? item.separadoPor : item.entreguePor;
   const quando = carga ? item.separadoEm : item.entregueEm;
-  const itF = carga ? null : intouchFalta(item);
+  const itF = carga ? null : intouchFalta(item, plan);
   const itHtml = itF == null ? '' : itF === 0
     ? `<span class="feita-it ok">inTouch ✓</span>`
-    : `<span class="feita-it falta">⚠️ ${t('intouch_falta_curto', { f: item.intouchQtd, t: item.qtyEntregue })}</span>`;
+    : `<span class="feita-it falta">⚠️ ${t('intouch_falta_curto', { f: Math.min(intouchFechado(item, plan), item.qtyEntregue), t: item.qtyEntregue })}</span>`;
   return `<div class="feita-row ${itF > 0 ? 'it-falta' : ''}" onclick="${abrir}">
     <span class="feita-ok">✓</span>
     <span class="feita-model">${escHtml(item.model)}</span>
@@ -5961,7 +5970,7 @@ function desenharFaltaIntouch() {
   const linhas = [];
   if (isAdm) plans.forEach(p => {
     if (p.tipo === 'pintura') p.items.forEach(i => {
-      if (intouchFalta(i) > 0 && userCanSeeItem(i, p)) linhas.push({ p, i });
+      if (intouchFalta(i, p) > 0 && userCanSeeItem(i, p)) linhas.push({ p, i });
     });
   });
   if (!linhas.length) { el.innerHTML = ''; return; }
@@ -5969,7 +5978,7 @@ function desenharFaltaIntouch() {
   el.innerHTML = `<div class="intouch-lista"><div class="titulo">\u26A0\uFE0F ${t('intouch_lista_titulo', { n: linhas.length })}</div>`
     + linhas.map(({ p, i }) => `<div class="linha" onclick="closeModal('modal-entregas');openPinturaDescModal('${p.id}','${i.id}')">
         <span>${escHtml(formatDate(p.data))} · OV ${escHtml(i.ov || '—')} · <b>${escHtml(i.model)}</b></span>
-        <span>${t('intouch_lista_linha', { a: i.qtyEntregue, i: i.intouchQtd })}</span></div>`).join('')
+        <span>${t('intouch_lista_linha', { a: i.qtyEntregue, i: intouchFechado(i, p) })}</span></div>`).join('')
     + '</div>';
 }
 
