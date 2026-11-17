@@ -644,6 +644,13 @@ input, textarea, select { font-family: inherit; font-size: inherit; }
 .item-row.row-pdm { border-left: 6px solid #2563eb; }
 .item-row.row-processo.row-pdm { border-left-color: #f59e0b; box-shadow: inset 6px 0 0 #2563eb, 0 1px 4px rgba(0,0,0,0.06); }
 .proc-badge.pdm { color: #1e3a8a; background: #dbeafe; border-color: #2563eb; }
+/* Entrega a pintura fechada (ou nao) no inTouch pelos empilhadoristas */
+.intouch-badge { display: inline-block; margin-top: 4px; font-size: 12px; font-weight: 700; border-radius: 6px; padding: 2px 8px; border: 1px solid; }
+.intouch-badge.ok { color: #166534; background: #f0fdf4; border-color: #86efac; }
+.intouch-badge.falta { color: #9a3412; background: #fff7ed; border-color: #fb923c; }
+.intouch-lista { margin: 0 0 10px; padding: 8px 10px; border: 1px solid #fb923c; background: #fff7ed; border-radius: 8px; font-size: 13px; }
+.intouch-lista .titulo { font-weight: 700; color: #9a3412; margin-bottom: 4px; }
+.intouch-lista .linha { display: flex; justify-content: space-between; gap: 8px; padding: 3px 0; border-top: 1px solid #fed7aa; cursor: pointer; }
 
 .item-checkbox {
   width: 28px;
@@ -1878,6 +1885,7 @@ body.com-aviso-offline { padding-bottom: 56px; }
       <button class="entregas-nav" onclick="mudarSemanaEntregas(1)" aria-label="Semana seguinte">›</button>
     </div>
     <div class="entregas-dias" id="entregas-dias"></div>
+    <div id="entregas-intouch"></div>
     <div class="entregas-resumo" id="entregas-resumo"></div>
     <div id="entregas-lista"></div>
   </div>
@@ -2060,6 +2068,10 @@ const I18N = {
     origem_falta: 'falta produzir {t}',
     origem_sem_registo: 'sem registo de produção',
     obs_badge: 'Obs',
+    intouch_fechado: 'Fechado no inTouch',
+    intouch_falta: 'Falta fechar no inTouch · fechado {f} de {t}',
+    intouch_lista_titulo: 'Falta fechar no inTouch ({n})',
+    intouch_lista_linha: 'app {a} · inTouch {i}',
     obs_titulo: 'Observação',
     obs_label_admin: 'Observação para os operadores',
     obs_placeholder: 'Ex.: tirar 2 da cesta P439',
@@ -2407,6 +2419,10 @@ const I18N = {
     origem_falta: '{t} still to produce',
     origem_sem_registo: 'no production record',
     obs_badge: 'Note',
+    intouch_fechado: 'Closed in inTouch',
+    intouch_falta: 'Not closed in inTouch · closed {f} of {t}',
+    intouch_lista_titulo: 'Not closed in inTouch ({n})',
+    intouch_lista_linha: 'app {a} · inTouch {i}',
     obs_titulo: 'Note',
     obs_label_admin: 'Note for the operators',
     obs_placeholder: 'E.g.: take 2 from basket P439',
@@ -2814,6 +2830,8 @@ function dbItemToLocal(i) {
     obsAdmin: i.obs_admin || null,
     obsAdminPor: i.obs_admin_por || null,
     obsAdminEm: i.obs_admin_em || null,
+    intouchQtd: i.intouch_qtd == null ? null : i.intouch_qtd,
+    intouchEm: i.intouch_em || null,
     prodFeitas: i.prod_feitas == null ? null : i.prod_feitas,
     prodTotal: i.prod_total == null ? null : i.prod_total,
   };
@@ -3735,13 +3753,13 @@ async function atualizarPlanosDoServidor() {
     try {
       const oldPlans = JSON.stringify(plans.map(p => ({
         id: p.id, status: p.status,
-        items: p.items.map(i => ({ id: i.id, qtySeparada: i.qtySeparada, qtyEntregue: i.qtyEntregue, separado: i.separado, entregue: i.entregue, obs: i.obsAdmin, origem: i.origem, prod: i.prodFeitas }))
+        items: p.items.map(i => ({ id: i.id, qtySeparada: i.qtySeparada, qtyEntregue: i.qtyEntregue, separado: i.separado, entregue: i.entregue, obs: i.obsAdmin, origem: i.origem, prod: i.prodFeitas, it: i.intouchQtd }))
       })));
       if (!(await lerAlteracoes())) await loadPlans();
       verificarNovidades();
       const newPlans = JSON.stringify(plans.map(p => ({
         id: p.id, status: p.status,
-        items: p.items.map(i => ({ id: i.id, qtySeparada: i.qtySeparada, qtyEntregue: i.qtyEntregue, separado: i.separado, entregue: i.entregue, obs: i.obsAdmin, origem: i.origem, prod: i.prodFeitas }))
+        items: p.items.map(i => ({ id: i.id, qtySeparada: i.qtySeparada, qtyEntregue: i.qtyEntregue, separado: i.separado, entregue: i.entregue, obs: i.obsAdmin, origem: i.origem, prod: i.prodFeitas, it: i.intouchQtd }))
       })));
       if (oldPlans !== newPlans) {
         renderAll();
@@ -5219,6 +5237,19 @@ function processoPintura(nota) {
   return '';
 }
 
+// Entrega a pintura fechada no inTouch? O inTouch e lido pela rotina (8h30/15h30
+// e com a dos planos); a comparacao e feita aqui, contra o entregue na app agora.
+function intouchFalta(item) {
+  if (item.intouchQtd == null || !(item.qtyEntregue > 0)) return null;
+  return Math.max(0, item.qtyEntregue - item.intouchQtd);
+}
+function intouchBadge(item) {
+  const f = intouchFalta(item);
+  if (f == null) return '';
+  if (f === 0) return `<div class="intouch-badge ok">\u2705 ${t('intouch_fechado')}</div>`;
+  return `<div class="intouch-badge falta">\u26A0\uFE0F ${t('intouch_falta', { f: Math.min(item.intouchQtd, item.qtyEntregue), t: item.qtyEntregue })}</div>`;
+}
+
 // PDM no tipo de pintura (ou na utilizacao) = leva betuminoso: entregar a frente.
 function temPDM(item) {
   return /pdm/i.test(String(item.cesta || '')) || /pdm/i.test(String(item.entregueNota || ''));
@@ -5391,6 +5422,7 @@ function renderItemRow(item, plan, opts) {
         ${badgePendente(item)}
         ${(utilizacaoHtml || tipoPinturaHtml) ? `<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:3px">${utilizacaoHtml}${tipoPinturaHtml}</div>` : ''}
         ${faltamHtml}
+        ${intouchBadge(item)}
       </div>
       <div class="item-status-wrap">${qtyBigHtml}${delBtn}</div>
       <div class="pintura-actions-grid" style="flex-basis:100%">
@@ -5907,8 +5939,28 @@ async function abrirEntregasPintura() {
   const hoje = new Date();
   state.entregas = { segunda: segundaDaSemana(hoje), dia: dataLocalISO(hoje), linhas: null, erro: null, ov: null };
   document.getElementById('entregas-ov').value = '';
+  desenharFaltaIntouch();
   openModal('modal-entregas');
   await carregarEntregas();
+}
+
+// Admins: linhas de pintura entregues na app e ainda nao fechadas no inTouch
+function desenharFaltaIntouch() {
+  const el = document.getElementById('entregas-intouch');
+  const isAdm = state.currentUser && state.currentUser.role === 'admin';
+  const linhas = [];
+  if (isAdm) plans.forEach(p => {
+    if (p.tipo === 'pintura') p.items.forEach(i => {
+      if (intouchFalta(i) > 0 && userCanSeeItem(i, p)) linhas.push({ p, i });
+    });
+  });
+  if (!linhas.length) { el.innerHTML = ''; return; }
+  linhas.sort((a, b) => String(b.p.data).localeCompare(String(a.p.data)));
+  el.innerHTML = `<div class="intouch-lista"><div class="titulo">\u26A0\uFE0F ${t('intouch_lista_titulo', { n: linhas.length })}</div>`
+    + linhas.map(({ p, i }) => `<div class="linha" onclick="closeModal('modal-entregas');openPinturaDescModal('${p.id}','${i.id}')">
+        <span>${escHtml(formatDate(p.data))} · OV ${escHtml(i.ov || '—')} · <b>${escHtml(i.model)}</b></span>
+        <span>${t('intouch_lista_linha', { a: i.qtyEntregue, i: i.intouchQtd })}</span></div>`).join('')
+    + '</div>';
 }
 
 // Pesquisa por OV: todas as entregas à pintura das linhas dessa OV, de sempre.
