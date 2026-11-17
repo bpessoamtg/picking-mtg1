@@ -919,6 +919,10 @@ input, textarea, select { font-family: inherit; font-size: inherit; }
 .feita-row .feita-model { font-family: 'Courier New', monospace; font-weight: 700; color: var(--text); white-space: nowrap; }
 .feita-row .feita-txt { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .feita-row .feita-qty { font-weight: 700; color: var(--success); font-size: 14px; }
+.feita-row.it-falta { background: #fff7ed; border: 1px solid #fb923c; }
+.feita-it { font-size: 11px; font-weight: 700; white-space: nowrap; border-radius: 5px; padding: 1px 6px; }
+.feita-it.ok { color: #166534; background: #dcfce7; }
+.feita-it.falta { color: #9a3412; background: #ffedd5; }
 .grupo-modelo { display: flex; justify-content: space-between; align-items: center; gap: 8px; background: var(--card, #fff); border: 1px solid var(--border); border-radius: 10px; padding: 7px 12px; margin: 10px 0 6px; }
 .grupo-modelo b { font-family: 'Courier New', monospace; font-size: 15px; }
 .grupo-modelo span { font-size: 12px; color: var(--text-muted); display: flex; gap: 6px; align-items: center; flex-wrap: wrap; justify-content: flex-end; }
@@ -2069,6 +2073,7 @@ const I18N = {
     origem_sem_registo: 'sem registo de produção',
     obs_badge: 'Obs',
     intouch_fechado: 'Fechado no inTouch',
+    intouch_falta_curto: 'Fechar no inTouch ({f}/{t})',
     intouch_falta: 'Falta fechar no inTouch · fechado {f} de {t}',
     intouch_lista_titulo: 'Falta fechar no inTouch ({n})',
     intouch_lista_linha: 'app {a} · inTouch {i}',
@@ -2420,6 +2425,7 @@ const I18N = {
     origem_sem_registo: 'no production record',
     obs_badge: 'Note',
     intouch_fechado: 'Closed in inTouch',
+    intouch_falta_curto: 'Close in inTouch ({f}/{t})',
     intouch_falta: 'Not closed in inTouch · closed {f} of {t}',
     intouch_lista_titulo: 'Not closed in inTouch ({n})',
     intouch_lista_linha: 'app {a} · inTouch {i}',
@@ -5453,11 +5459,15 @@ function renderFeitaRow(item, plan) {
     : '';
   const quem = carga ? item.separadoPor : item.entreguePor;
   const quando = carga ? item.separadoEm : item.entregueEm;
-  return `<div class="feita-row" onclick="${abrir}">
+  const itF = carga ? null : intouchFalta(item);
+  const itHtml = itF == null ? '' : itF === 0
+    ? `<span class="feita-it ok">inTouch ✓</span>`
+    : `<span class="feita-it falta">⚠️ ${t('intouch_falta_curto', { f: item.intouchQtd, t: item.qtyEntregue })}</span>`;
+  return `<div class="feita-row ${itF > 0 ? 'it-falta' : ''}" onclick="${abrir}">
     <span class="feita-ok">✓</span>
     <span class="feita-model">${escHtml(item.model)}</span>
     <span class="feita-txt">· OV ${escHtml(item.ov || '—')}${quem ? ' · ' + escHtml(quem) + ' ' + quandoCurto(quando) : ''}${item.desc ? ' · ' + escHtml(item.desc) : ''}</span>
-    <span class="feita-qty">${qty}${extra}</span>${del}
+    ${itHtml}<span class="feita-qty">${qty}${extra}</span>${del}
   </div>`;
 }
 
