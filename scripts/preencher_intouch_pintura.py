@@ -21,6 +21,9 @@ Regras:
 - Se a mesma linha da OV está em várias linhas da app (planos de dias
   diferentes), o fechado no inTouch reparte-se por elas, do plano mais antigo
   para o mais recente.
+- Se a app tem entregue, nas linhas ligadas à mesma linha da OV, mais do que
+  a quantidade dessa linha (a mesma linha em dois planos, entregue nos dois),
+  o excesso é entrega repetida: conta como fechado, nunca como "falta fechar".
 - Linha da app que não se consegue ligar a nenhuma linha da OV fica com -1
   (a app não mostra nada; nunca "falta fechar" por falta de ligação).
   Linha ainda não lida (vazio) conta na app como 0 fechado, para o aviso
@@ -89,6 +92,7 @@ def main():
 
     # SAP: OV + material/texto -> linhas da OV
     sap = {}
+    sap_qtd = {}
     if a.sap:
         for r in ler(a.sap):
             mat = str(r['MATERIAL']).strip().upper()
@@ -96,6 +100,7 @@ def main():
                 continue
             sap.setdefault(str(r['OV']).lstrip('0'), []).append(
                 (str(r['ITEM']).lstrip('0'), mat, ultima(r['TEXTO']), str(r['TEXTO'] or '').strip().upper()))
+            sap_qtd[(str(r['OV']).lstrip('0'), str(r['ITEM']).lstrip('0'))] = float(r['QUANTIDADE'] or 0)
 
     def itens_da_linha(ov, modelo, ref):
         m = sem_v(modelo); refu = (ref or '').strip().upper()
@@ -140,14 +145,27 @@ def main():
         grupos.setdefault((l['ov'], itens), []).append(l)
 
     novos = {}
+    repetidas = 0
     for (ov, itens), ls in grupos.items():
         resto = sum(fechado.get((ov, it), 0) for it in itens)
+        # quantidade total das linhas da OV (só se o inTouch as tem todas)
+        # (a do inTouch; se a linha ainda não está no inTouch, a do SAP)
+        caps = [(it_item[(ov, it)][1] if (ov, it) in it_item else None) or sap_qtd.get((ov, it)) for it in itens]
+        devido = sum(caps) if itens and all(caps) else None
         ls.sort(key=lambda x: (x['data'], x['id']))
         for n, l in enumerate(ls):
             q = l['qty_entregue']
-            v = resto if n == len(ls) - 1 else min(resto, q)
+            if devido is None:
+                precisa, excesso = q, 0
+            else:
+                precisa = min(q, devido)
+                excesso = q - precisa
+                devido -= precisa
+            v = resto if n == len(ls) - 1 else min(resto, precisa)
             resto -= v
-            novos[l['id']] = int(round(v))
+            if excesso:
+                repetidas += 1
+            novos[l['id']] = int(round(v + excesso))
     for l in sem_ligacao:
         novos[l['id']] = -1
 
@@ -164,7 +182,8 @@ def main():
     acao = 'gravadas' if a.aplicar else 'a gravar (ensaio, usar --aplicar)'
     print(f'Fechado no inTouch (pintura): {ligadas} linhas entregues ligadas, '
           f'{ligadas - len(falta)} fechadas, {len(falta)} com falta de fechar, '
-          f'{len(sem_ligacao)} sem ligação; {len(mudou)} {acao}')
+          f'{len(sem_ligacao)} sem ligação; {len(mudou)} {acao}'
+          + (f'; {repetidas} com entrega repetida em dois planos (não contam)' if repetidas else ''))
     if not a.aplicar:
         for l, v in falta[:25]:
             print(f'  falta: {l["data"]} {l["plano"][:28]} OV {l["ov"]} {l["model"]} app {l["qty_entregue"]} inTouch {v}')
