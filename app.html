@@ -5974,10 +5974,12 @@ function desenharFaltaIntouch() {
     });
   });
   if (!linhas.length) { el.innerHTML = ''; return; }
-  linhas.sort((a, b) => String(b.p.data).localeCompare(String(a.p.data)));
+  // data = dia em que a entrega foi registada na app (o plano pode ser de outra data)
+  const diaEntrega = i => (i.entregueEm ? dataLocalISO(new Date(i.entregueEm)) : '');
+  linhas.sort((a, b) => diaEntrega(b.i).localeCompare(diaEntrega(a.i)));
   el.innerHTML = `<div class="intouch-lista"><div class="titulo">\u26A0\uFE0F ${t('intouch_lista_titulo', { n: linhas.length })}</div>`
     + linhas.map(({ p, i }) => `<div class="linha" onclick="closeModal('modal-entregas');openPinturaDescModal('${p.id}','${i.id}')">
-        <span>${escHtml(formatDate(p.data))} · OV ${escHtml(i.ov || '—')} · <b>${escHtml(i.model)}</b></span>
+        <span>${escHtml(formatDate(diaEntrega(i) || p.data))} · OV ${escHtml(i.ov || '—')} · <b>${escHtml(i.model)}</b></span>
         <span>${t('intouch_lista_linha', { a: i.qtyEntregue, i: intouchFechado(i, p) })}</span></div>`).join('')
     + '</div>';
 }
